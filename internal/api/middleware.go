@@ -279,14 +279,19 @@ func (s *Server) requireAdmin(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-// canWrite reports whether the caller may mutate data at all.
+// canWrite reports whether the caller may mutate data at all. Viewer accounts
+// are strictly read-only; only admin/owner roles can change state.
 func (s *Server) canWrite(w http.ResponseWriter, r *http.Request) bool {
 	u := userFrom(r)
 	if u == nil {
 		s.failCode(w, r, http.StatusUnauthorized, "unauthorized", "se requiere iniciar sesión")
 		return false
 	}
-	return u.Role == "admin" || u.Role == "owner" || u.Role == "viewer"
+	if u.Role != "admin" && u.Role != "owner" {
+		s.failCode(w, r, http.StatusForbidden, "forbidden", "la cuenta es de solo lectura")
+		return false
+	}
+	return true
 }
 
 func (s *Server) audit(r *http.Request, action, target string, detail map[string]any) {
