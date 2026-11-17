@@ -1,0 +1,27 @@
+# Binarios y artefactos de compilación
+/bin/
+/dist/
+*.exe
+
+# Datos locales y secretos
+*.db
+*.db-shm
+*.db-wal
+secret.key
+*.log
+data/
+reports/
+
+# Configuración local (las plantillas viven en docs/)
+config.yaml
+config.local.yaml
+.env
+
+# Editores y sistema
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+*.test
+coverage.out

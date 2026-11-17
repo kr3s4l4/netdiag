@@ -1,0 +1,39 @@
+[Unit]
+Description=NetDiag network diagnostic scanner
+Documentation=https://github.com/kr3s4l4/netdiag
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=netdiag
+Group=netdiag
+ExecStart=/usr/local/bin/netdiag serve --config /etc/netdiag/config.yaml
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=30s
+
+# Descubrimiento activo: ICMP sin privilegios y ARP con pcap.
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+NoNewPrivileges=no
+
+# Endurecimiento. La configuración se escribe desde la interfaz, de ahí que
+# /etc/netdiag sea escribible por el servicio.
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/netdiag /etc/netdiag
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictSUIDSGID=yes
+LockPersonality=yes
+UMask=0077
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
