@@ -330,13 +330,37 @@ func (s *Server) handleExportHosts(w http.ResponseWriter, r *http.Request) {
 
 // parseWindow reads from/to (RFC3339 or durations like 24h) and falls back to
 // the provided default window.
+// windowDuration accepts Go durations plus the day and week suffixes used by
+// the UI (24h, 7d, 30d, 2w). A bare number is interpreted as hours.
+func windowDuration(v string) (time.Duration, bool) {
+	v = strings.TrimSpace(strings.ToLower(v))
+	if v == "" {
+		return 0, false
+	}
+	if strings.HasSuffix(v, "d") || strings.HasSuffix(v, "w") {
+		unit := 24 * time.Hour
+		if strings.HasSuffix(v, "w") {
+			unit = 7 * 24 * time.Hour
+		}
+		n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimSuffix(v, "d"), "w"))
+		if err != nil || n <= 0 {
+			return 0, false
+		}
+		return time.Duration(n) * unit, true
+	}
+	if d, err := time.ParseDuration(v); err == nil && d > 0 {
+		return d, true
+	}
+	return 0, false
+}
+
 func parseWindow(r *http.Request, def time.Duration) (time.Time, time.Time) {
 	now := time.Now()
 	to := now
 	if v := queryString(r, "to"); v != "" {
 		if t, err := time.Parse(time.RFC3339, v); err == nil {
 			to = t
-		} else if d, err := time.ParseDuration(v); err == nil {
+		} else if d, ok := windowDuration(v); ok {
 			to = now.Add(-d)
 		}
 	}
@@ -344,7 +368,11 @@ func parseWindow(r *http.Request, def time.Duration) (time.Time, time.Time) {
 	if v := queryString(r, "from"); v != "" {
 		if t, err := time.Parse(time.RFC3339, v); err == nil {
 			from = t
-		} else if d, err := time.ParseDuration(v); err == nil {
+		} else if d, ok := windowDuration(v); ok {
+			from = to.Add(-d)
+		}
+	} else if v := queryString(r, "range"); v != "" {
+		if d, ok := windowDuration(v); ok {
 			from = to.Add(-d)
 		}
 	}
