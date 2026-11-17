@@ -960,6 +960,7 @@ const SETTINGS_TABS = [
   ['almacenamiento', 'Almacenamiento'],
   ['redes', 'Redes'],
   ['usuarios', 'Usuarios'],
+  ['copias', 'Copias'],
   ['sistema', 'Sistema'],
 ];
 
@@ -1065,6 +1066,7 @@ function configFormBody(cfg) {
       ${cfgInput('Intentos de login / minuto', 'security.login_rate', sec.login_rate, { type: 'number', min: 1, max: 100 })}
       ${cfgInput('Peticiones API / minuto', 'security.api_rate', sec.api_rate, { type: 'number', min: 10, max: 100000 })}
       ${cfgInput('Hosts permitidos', 'security.allowed_hosts', (sec.allowed_hosts || []).join(', '), { placeholder: 'netdiag.example.com', help: 'Separados por comas; vacío = cualquiera.' })}
+      ${cfgInput('Token de métricas', 'security.metrics_token', sec.metrics_token === '********' ? '' : sec.metrics_token, { placeholder: 'dejar en blanco para conservar', help: 'Si se define, /metrics exige Authorization: Bearer <token>.' })}
       <div class="field"><label>Proxy inverso</label>
         <label class="check"><input type="checkbox" name="security.trust_proxy" ${sec.trust_proxy ? 'checked' : ''}> Confiar en X-Forwarded-For</label></div>
     </div>`;
@@ -1085,6 +1087,10 @@ function configFormBody(cfg) {
       ${cfgInput('Retención de métricas (días)', 'storage.metrics_days', st.metrics_days, { type: 'number', min: 1 })}
       ${cfgInput('Retención de auditoría (días)', 'storage.audit_days', st.audit_days, { type: 'number', min: 1 })}
       ${cfgInput('Máximo de escaneos', 'storage.max_scans', st.max_scans, { type: 'number', min: 10 })}
+      ${cfgInput('Copia automática', 'storage.backup_enabled', st.backup_enabled, { type: 'checkbox', hint: 'Activar copias periódicas' })}
+      ${cfgInput('Directorio de copias', 'storage.backup_dir', st.backup_dir, { mono: true, help: 'Por defecto <data_dir>/backups.' })}
+      ${cfgInput('Intervalo entre copias', 'storage.backup_interval', st.backup_interval, { placeholder: '24h', help: 'Mínimo 15m.' })}
+      ${cfgInput('Copias a conservar', 'storage.backup_keep', st.backup_keep, { type: 'number', min: 1, max: 365 })}
     </div>`;
   }
   const wrapForm = ['general', 'escaneo', 'alertas', 'seguridad', 'almacenamiento'].includes(tab);
@@ -1113,11 +1119,12 @@ function readConfigForm(form, current) {
     }
     if (['server.max_body_mb', 'scan.concurrency', 'scan.port_concurrency', 'scan.max_hosts',
       'alerts.max_per_minute', 'security.session_hours', 'security.login_rate', 'security.api_rate',
-      'storage.retention_days', 'storage.metrics_days', 'storage.audit_days', 'storage.max_scans'].includes(name)) {
+      'storage.retention_days', 'storage.metrics_days', 'storage.audit_days', 'storage.max_scans',
+      'storage.backup_keep'].includes(name)) {
       setPath(next, name, Number(value));
       return;
     }
-    if (name === 'scan.snmp_v3_auth' || name === 'scan.snmp_v3_priv') {
+    if (name === 'scan.snmp_v3_auth' || name === 'scan.snmp_v3_priv' || name === 'security.metrics_token') {
       if (String(value).trim() === '') return; // keep stored secret
     }
     setPath(next, name, value);
@@ -1159,6 +1166,8 @@ async function renderSettings() {
     body = await settingsNetworksBody();
   } else if (tab === 'usuarios') {
     body = await settingsUsersBody();
+  } else if (tab === 'copias') {
+    body = await settingsBackupsBody();
   } else if (tab === 'sistema') {
     body = await settingsSystemBody();
   } else {
@@ -1211,22 +1220,62 @@ async function settingsNetworksBody() {
 async function settingsUsersBody() {
   const [usersRes, status] = await Promise.all([api('/auth/users'), api('/auth/status')]);
   const users = usersRes.items || [];
-  const rows = users.map((u) => `
+  const me = (status && status.user) || state.me || {};
+  const roleOptions = (u) => [['admin', 'Administrador'], ['operator', 'Operador'], ['viewer', 'Solo lectura']]
+    .map(([v, l]) => `<option value="${v}" ${u.role === v ? 'selected' : ''}>${esc(l)}</option>`).join('');
+  const rows = users.map((u) => {
+    const self = Number(u.id) === Number(me.id);
+    return `
     <tr>
       <td><div class="row"><div class="avatar">${esc((u.username || '?').slice(0, 1).toUpperCase())}</div>
-        <div class="name-cell"><b>${esc(u.username)}</b><span>${esc(u.role)}</span></div></div></td>
+        <div class="name-cell"><b>${esc(u.username)}</b><span>${esc(roleName(u.role))}${self ? ' · tú' : ''}</span></div></div></td>
       <td class="tiny muted">${fmtDate(u.created_at)}</td>
       <td class="tiny muted">${u.last_login_at ? ago(u.last_login_at) : 'Nunca'}</td>
-      <td>${u.role === 'admin' ? '<span class="badge info">Administrador</span>' : '<span class="badge unknown">Solo lectura</span>'}</td>
-    </tr>`).join('');
+      <td><select class="select sm" data-user-role="${u.id}" ${self ? 'disabled title="No puedes cambiar tu propio rol"' : ''}>${roleOptions(u)}</select></td>
+      <td class="right nowrap">
+        <button class="btn sm" data-action="user-reset" data-id="${u.id}" data-name="${esc(u.username)}">${icon('edit')} Contraseña</button>
+        <button class="btn sm danger" data-action="user-delete" data-id="${u.id}" data-name="${esc(u.username)}" data-self="${self ? '1' : '0'}" ${self ? 'disabled' : ''}>${icon('trash')}</button>
+      </td>
+    </tr>`;
+  }).join('');
   return `
     <div class="spread mb">
       <div class="muted small">${status.auth_enabled ? 'La autenticación está activa. Los visores pueden consultar pero no modificar.' : 'La autenticación está desactivada: cualquiera con acceso al puerto es administrador.'}</div>
       <button class="btn primary" data-action="user-new">${icon('plus')} Nuevo usuario</button>
     </div>
     <div class="card"><div class="table-wrap"><table>
-      <thead><tr><th>Usuario</th><th>Creado</th><th>Último acceso</th><th>Rol</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="4"><div class="empty">Sin usuarios</div></td></tr>'}</tbody>
+      <thead><tr><th>Usuario</th><th>Creado</th><th>Último acceso</th><th>Rol</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5"><div class="empty">Sin usuarios</div></td></tr>'}</tbody>
+    </table></div></div>
+    <div class="notice mt"><span><b>Roles:</b> administrador controla todo; operador puede escanear, editar inventario y gestionar alertas; solo lectura no puede modificar nada.</span></div>`;
+}
+
+async function settingsBackupsBody() {
+  const res = await api('/system/backups');
+  const items = res.items || [];
+  const rows = items.map((b) => `
+    <tr>
+      <td class="mono">${esc(b.name)}</td>
+      <td>${fmtBytes(b.size)}</td>
+      <td class="tiny muted">${fmtDate(b.created_at)}</td>
+      <td class="right nowrap">
+        <a class="btn sm" href="/api/v1/system/backups/${encodeURIComponent(b.name)}/download">${icon('download')} Descargar</a>
+        <button class="btn sm danger" data-action="backup-delete" data-name="${esc(b.name)}">${icon('trash')}</button>
+      </td>
+    </tr>`).join('');
+  return `
+    <div class="spread mb">
+      <div class="muted small">La copia incluye la base de datos, config.yaml y secret.key. Guárdala en un lugar cifrado.</div>
+      <button class="btn primary" data-action="backup-create">${icon('plus')} Crear copia ahora</button>
+    </div>
+    <div class="card pad mb">
+      <div class="spread"><div><div class="label muted tiny">Directorio de copias</div>
+        <div class="mono small">${esc(res.dir || '—')}</div></div>
+        <span class="badge info">${items.length} copia${items.length === 1 ? '' : 's'}</span></div>
+    </div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Archivo</th><th>Tamaño</th><th>Creada</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4"><div class="empty">Aún no hay copias</div></td></tr>'}</tbody>
     </table></div></div>`;
 }
 
@@ -1346,7 +1395,7 @@ function openUserModal() {
         <div class="field"><label>Usuario</label>
           <input class="input" name="username" required maxlength="64" autocomplete="off" placeholder="operador"></div>
         <div class="field"><label>Rol</label>
-          <select class="select" name="role"><option value="viewer">Solo lectura</option><option value="admin">Administrador</option></select></div>
+          <select class="select" name="role"><option value="viewer">Solo lectura</option><option value="operator">Operador</option><option value="admin">Administrador</option></select></div>
         <div class="field full"><label>Contraseña</label>
           <input class="input" name="password" type="password" required minlength="10" autocomplete="new-password">
           <span class="help">Mínimo 10 caracteres, con letras y números.</span></div>
@@ -1370,6 +1419,80 @@ async function submitUser(form) {
   });
   closeModal();
   toast(`Usuario ${user.username} creado`, { type: 'ok' });
+  await renderSettings();
+}
+
+async function changeUserRole(id, role) {
+  await api('/auth/users/' + id, { method: 'PATCH', body: { role } });
+  toast('Rol actualizado', { type: 'ok' });
+  await renderSettings();
+  if (state.me && Number(state.me.id) === id) {
+    state.me.role = role;
+    renderShell();
+    await route();
+  }
+}
+
+function openResetUserModal(id, username) {
+  const body = `
+    <form data-form="reset-password" data-id="${id}">
+      <div class="field"><label>Nueva contraseña para ${esc(username)}</label>
+        <input class="input" name="password" type="password" required minlength="10" autocomplete="new-password">
+        <span class="help">Mínimo 10 caracteres, con letras y números. Se cerrarán todas sus sesiones.</span></div>
+    </form>`;
+  openModal('Restablecer contraseña', body, {
+    footer: `<button class="btn" data-action="modal-close">Cancelar</button>
+      <button class="btn primary" data-action="user-password-save">${icon('check')} Restablecer</button>`,
+  });
+}
+
+async function submitUserPasswordFromModal() {
+  const form = document.querySelector('form[data-form="reset-password"]');
+  if (!form) return;
+  const btn = document.querySelector('[data-action="user-password-save"]');
+  if (btn) btn.disabled = true;
+  try {
+    await submitUserPassword(form);
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    throw e;
+  }
+}
+
+async function submitUserPassword(form) {
+  const id = Number(form.dataset.id || 0);
+  const fd = new FormData(form);
+  await api('/auth/users/' + id + '/password', {
+    method: 'POST',
+    body: { password: String(fd.get('password') || '') },
+  });
+  closeModal();
+  toast('Contraseña restablecida', { type: 'ok' });
+}
+
+async function deleteUserAccount(id, name, self) {
+  if (self) { toast('No puedes eliminar tu propia cuenta', { type: 'warn' }); return; }
+  if (!confirm(`¿Eliminar al usuario ${name}? Se cerrarán todas sus sesiones.`)) return;
+  await api('/auth/users/' + id, { method: 'DELETE' });
+  toast('Usuario eliminado', { type: 'ok' });
+  await renderSettings();
+}
+
+async function createBackup(btn) {
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Creando…'; }
+  try {
+    const entry = await api('/system/backups', { method: 'POST' });
+    toast(`Copia creada: ${entry.name} (${fmtBytes(entry.size)})`, { type: 'ok' });
+    await renderSettings();
+  } finally {
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+async function deleteBackup(name) {
+  if (!confirm(`¿Eliminar la copia ${name}?`)) return;
+  await api('/system/backups/' + encodeURIComponent(name), { method: 'DELETE' });
+  toast('Copia eliminada', { type: 'ok' });
   await renderSettings();
 }
 
@@ -1462,4 +1585,289 @@ async function toggleChannel(id, enabled) {
   toast(enabled ? 'Canal habilitado' : 'Canal deshabilitado', { type: 'ok' });
   state.channels = [];
   await renderAlerts('canales');
+}
+
+/* ------------------------------------------------------------------ */
+/* Guía interactiva                                                    */
+/* ------------------------------------------------------------------ */
+
+const GUIDE_SECTIONS = [
+  {
+    id: 'inicio', icon: 'play', title: 'Primeros pasos', titleEn: 'Getting started',
+    intro: 'De cero a una red monitorizada en cinco pasos.',
+    introEn: 'From zero to a monitored network in five steps.',
+    items: [
+      {
+        t: '1. Añade tu primera red', tEn: '1. Add your first network',
+        b: 'En Configuración → Redes pulsa «Nueva red» o acepta una de las redes detectadas automáticamente. Usa el CIDR real (por ejemplo 192.168.1.0/24) y, si quieres, asócialo a una interfaz concreta.',
+        bEn: 'In Settings → Networks click “New network”, or accept one of the automatically detected networks. Use the real CIDR (for example 192.168.1.0/24) and, if you want, bind it to a specific interface.',
+      },
+      {
+        t: '2. Lanza un escaneo', tEn: '2. Run a scan',
+        b: 'Pulsa «Escanear», elige la red y el perfil. «Común» cubre la mayoría de casos; «Completo» añade más puertos y enriquecimiento SNMP. Puedes seguir el progreso en Escaneos o en la cabecera.',
+        bEn: 'Click “Scan”, pick the network and profile. “Common” covers most cases; “Full” adds more ports and SNMP enrichment. Follow progress in Scans or in the header.',
+      },
+      {
+        t: '3. Revisa el inventario', tEn: '3. Review the inventory',
+        b: 'En Dispositivos verás IP, MAC, fabricante, tipo probable, sistema operativo, puertos y servicios. Abre un host para ver historial, vecinos y certificados.',
+        bEn: 'In Devices you see IP, MAC, vendor, likely type, operating system, ports and services. Open a host to see history, neighbors and certificates.',
+      },
+      {
+        t: '4. Activa el monitor', tEn: '4. Turn on the monitor',
+        b: 'En Configuración → Escaneo activa el monitor periódico. NetDiag escaneará las redes habilitadas, detectará hosts nuevos y caídos y guardará latencia y disponibilidad.',
+        bEn: 'In Settings → Scanning enable the periodic monitor. NetDiag will scan the enabled networks, detect new and down hosts, and store latency and availability.',
+      },
+      {
+        t: '5. Configura alertas', tEn: '5. Configure alerts',
+        b: 'En Alertas revisa las reglas integradas y crea las tuyas. Añade un canal (webhook, Slack, Telegram, correo o Syslog) y envíale una prueba antes de confiar en él.',
+        bEn: 'In Alerts review the built-in rules and create your own. Add a channel (webhook, Slack, Telegram, email or Syslog) and send it a test before relying on it.',
+      },
+    ],
+  },
+  {
+    id: 'conceptos', icon: 'book', title: 'Conceptos', titleEn: 'Concepts',
+    intro: 'El modelo mental que hace que todo lo demás encaje.',
+    introEn: 'The mental model that makes everything else click.',
+    items: [
+      {
+        t: 'Host e identidad estable', tEn: 'Hosts and stable identity',
+        b: 'Un host es un dispositivo descubierto. Su identidad se rekeyea a la MAC cuando se conoce, de modo que notas, etiquetas, favoritos e historial sobreviven a cambios de IP.',
+        bEn: 'A host is a discovered device. Its identity is rekeyed to the MAC when known, so notes, tags, favorites and history survive IP changes.',
+      },
+      {
+        t: 'Perfiles de escaneo', tEn: 'Scan profiles',
+        b: 'Rápido: descubrimiento y pocos puertos. Común: puertos habituales y servicios. Completo: rango amplio, banners, TLS y SNMP. Personalizado: tu lista de puertos.',
+        bEn: 'Quick: discovery and a few ports. Common: usual ports and services. Full: wide range, banners, TLS and SNMP. Custom: your own port list.',
+      },
+      {
+        t: 'Confianza en topología', tEn: 'Topology confidence',
+        b: 'Los enlaces proceden de LLDP/CDP (alta confianza), tablas de bridge/FDB (media) y ARP (baja). El mapa muestra el origen para que sepas cuánto fiarse de cada arista.',
+        bEn: 'Links come from LLDP/CDP (high confidence), bridge/FDB tables (medium) and ARP (low). The map shows the source so you know how much to trust each edge.',
+      },
+      {
+        t: 'Ciclo de una alerta', tEn: 'Alert lifecycle',
+        b: 'Activa → reconocida → resuelta. Reconocer indica que alguien la está mirando; resolver la cierra. Las reglas integradas se pueden desactivar sin borrarlas.',
+        bEn: 'Active → acknowledged → resolved. Acknowledging shows someone is on it; resolving closes it. Built-in rules can be disabled without deleting them.',
+      },
+      {
+        t: 'Roles', tEn: 'Roles',
+        b: 'Administrador: todo, incluida configuración, usuarios y copias. Operador: escanea, edita inventario y gestiona alertas. Solo lectura: consulta sin modificar nada.',
+        bEn: 'Administrator: everything, including settings, users and backups. Operator: scans, edits inventory and manages alerts. Read-only: can view but change nothing.',
+      },
+      {
+        t: 'Datos y secretos', tEn: 'Data and secrets',
+        b: 'Todo vive en un único directorio de datos: SQLite, informes, logs y secret.key. Las credenciales de canales y SNMPv3 se cifran con AES-256-GCM.',
+        bEn: 'Everything lives in a single data directory: SQLite, reports, logs and secret.key. Channel and SNMPv3 credentials are encrypted with AES-256-GCM.',
+      },
+    ],
+  },
+  {
+    id: 'flujos', icon: 'topology', title: 'Flujos de trabajo', titleEn: 'Workflows',
+    intro: 'Recetas para el día a día.',
+    introEn: 'Recipes for everyday use.',
+    items: [
+      {
+        t: 'Revisión diaria', tEn: 'Daily review',
+        b: 'Panel → Alertas activas → Dispositivos con estado caído. Usa el filtro «Solo favoritos» para vigilar la infraestructura crítica.',
+        bEn: 'Dashboard → Active alerts → Down devices. Use the “Favorites only” filter to watch critical infrastructure.',
+      },
+      {
+        t: 'Investigar un dispositivo nuevo', tEn: 'Investigate a new device',
+        b: 'Recibe el aviso «Nuevo dispositivo», búscalo por IP o MAC y revisa fabricante, puertos y vecinos. Añade notas y etiquetas si es infraestructura.',
+        bEn: 'Get the “New host” alert, find it by IP or MAC, and check vendor, ports and neighbors. Add notes and tags if it is infrastructure.',
+      },
+      {
+        t: 'Responder a una alerta', tEn: 'Respond to an alert',
+        b: 'Abre la alerta, revisa el host afectado y su historial. Reconócela mientras investigas y resuélvela al terminar, o silencia la regla si es ruido.',
+        bEn: 'Open the alert, review the affected host and its history. Acknowledge while you investigate, resolve when done, or disable the rule if it is noise.',
+      },
+      {
+        t: 'Preparar un informe', tEn: 'Prepare a report',
+        b: 'Informes → Generar informe. «Inventario» para auditoría, «Ejecutivo» para dirección, «Alertas» para operación. PDF para compartir, CSV/JSON para análisis.',
+        bEn: 'Reports → Generate report. “Inventory” for audits, “Executive” for management, “Alerts” for operations. PDF to share, CSV/JSON for analysis.',
+      },
+      {
+        t: 'Copiar y restaurar', tEn: 'Back up and restore',
+        b: 'Configuración → Copias crea un ZIP con base de datos, config.yaml y secret.key. Para restaurar: detén el servicio, sustituye esos tres archivos, ajusta permisos y arranca.',
+        bEn: 'Settings → Backups creates a ZIP with the database, config.yaml and secret.key. To restore: stop the service, replace those three files, fix permissions and start it again.',
+      },
+    ],
+  },
+  {
+    id: 'seguridad', icon: 'shield', title: 'Seguridad', titleEn: 'Security',
+    intro: 'NetDiag está pensado para quedarse dentro de tu red.',
+    introEn: 'NetDiag is meant to stay inside your network.',
+    items: [
+      {
+        t: 'Autenticación y sesiones', tEn: 'Authentication and sessions',
+        b: 'Argon2id para contraseñas, sesiones opacas en servidor y cierre global al cambiar o restablecer una contraseña. Configura security.session_hours según tu política.',
+        bEn: 'Argon2id for passwords, opaque server-side sessions, and a global logout when a password is changed or reset. Set security.session_hours to match your policy.',
+      },
+      {
+        t: 'CSRF y cabeceras', tEn: 'CSRF and headers',
+        b: 'Toda mutación exige X-CSRF-Token. La API envía CSP, HSTS opcional, X-Frame-Options, nosniff y Referrer-Policy.',
+        bEn: 'Every mutation requires X-CSRF-Token. The API sends CSP, optional HSTS, X-Frame-Options, nosniff and Referrer-Policy.',
+      },
+      {
+        t: 'Hosts permitidos', tEn: 'Allowed hosts',
+        b: 'Si publicas NetDiag tras un proxy, define security.allowed_hosts para bloquear DNS rebinding. Una petición con Host no permitido recibe 421.',
+        bEn: 'If you publish NetDiag behind a proxy, set security.allowed_hosts to block DNS rebinding. A request with a disallowed Host gets 421.',
+      },
+      {
+        t: 'Métricas y OpenAPI', tEn: 'Metrics and OpenAPI',
+        b: '/metrics y /api/v1/openapi.json son públicos por defecto. Si defines security.metrics_token, Prometheus debe enviar Authorization: Bearer <token>.',
+        bEn: '/metrics and /api/v1/openapi.json are public by default. If you set security.metrics_token, Prometheus must send Authorization: Bearer <token>.',
+      },
+      {
+        t: 'Secretos', tEn: 'Secrets',
+        b: 'Los canales y SNMPv3 se cifran en reposo. La UI nunca devuelve el secreto: muestra ******** y conserva el valor si dejas el campo vacío.',
+        bEn: 'Channels and SNMPv3 are encrypted at rest. The UI never returns secrets: it shows ******** and keeps the stored value when you leave the field empty.',
+      },
+      {
+        t: 'Menor privilegio', tEn: 'Least privilege',
+        b: 'Ejecuta el servicio como usuario sin login, con las capabilities mínimas del unit systemd. No lo expongas directamente a Internet sin TLS y proxy.',
+        bEn: 'Run the service as a no-login user with the minimum capabilities in the systemd unit. Never expose it directly to the Internet without TLS and a proxy.',
+      },
+    ],
+  },
+  {
+    id: 'trucos', icon: 'bolt', title: 'Atajos y trucos', titleEn: 'Tips and shortcuts',
+    intro: 'Detalles que ahorran tiempo.',
+    introEn: 'Small details that save time.',
+    items: [
+      {
+        t: 'Búsqueda global del inventario', tEn: 'Global inventory search',
+        b: 'El buscador de Dispositivos acepta IP, hostname, MAC y fabricante. Combínalo con estado, tipo, red y favoritos.',
+        bEn: 'The Devices search accepts IP, hostname, MAC and vendor. Combine it with status, type, network and favorites.',
+      },
+      {
+        t: 'Idioma y tema', tEn: 'Language and theme',
+        b: 'El botón ES/EN de la cabecera cambia el idioma y lo guarda en el navegador. El icono de sol/luna alterna tema claro y oscuro.',
+        bEn: 'The ES/EN button in the header switches language and remembers it in the browser. The sun/moon icon toggles light and dark themes.',
+      },
+      {
+        t: 'Esc para cerrar', tEn: 'Esc to close',
+        b: 'Los modales se cierran con Escape o pulsando fuera. El recorrido guiado se puede saltar en cualquier momento.',
+        bEn: 'Modals close with Escape or by clicking outside. The guided tour can be skipped at any time.',
+      },
+      {
+        t: 'Enlaces directos', tEn: 'Direct links',
+        b: 'Cada vista tiene hash propio: #/hosts, #/topology, #/alerts, #/scans, #/reports, #/guide y #/settings. Puedes guardarlos como marcadores.',
+        bEn: 'Each view has its own hash: #/hosts, #/topology, #/alerts, #/scans, #/reports, #/guide and #/settings. Bookmark them freely.',
+      },
+      {
+        t: 'Datos en vivo', tEn: 'Live data',
+        b: 'La barra inferior indica «En vivo» cuando el WebSocket está conectado. Si cae, se reconecta solo y las vistas se refrescan al volver.',
+        bEn: 'The footer shows “Live” while the WebSocket is connected. If it drops it reconnects on its own and views refresh when it returns.',
+      },
+    ],
+  },
+  {
+    id: 'problemas', icon: 'warn', title: 'Solución de problemas', titleEn: 'Troubleshooting',
+    intro: 'Lo que suele fallar y cómo comprobarlo.',
+    introEn: 'What usually breaks and how to check it.',
+    items: [
+      {
+        t: 'No aparecen hosts', tEn: 'No hosts show up',
+        b: 'Comprueba que la red está habilitada, que el CIDR es correcto y que el proceso tiene permiso para ARP/raw sockets. Ejecuta netdiag doctor y revisa los logs.',
+        bEn: 'Check that the network is enabled, the CIDR is right, and the process may use ARP/raw sockets. Run netdiag doctor and review the logs.',
+      },
+      {
+        t: 'El escaneo SNMP no devuelve nada', tEn: 'SNMP scanning returns nothing',
+        b: 'Verifica comunidad/versión, UDP 161 y ACL del dispositivo. Para v3 revisa usuario, protocolo de autenticación y privacidad.',
+        bEn: 'Verify community/version, UDP 161 and the device ACL. For v3 check the user, authentication protocol and privacy protocol.',
+      },
+      {
+        t: '421 host no permitido', tEn: '421 host not allowed',
+        b: 'La petición llega con un Host distinto de security.allowed_hosts. Ajusta la lista o el proxy; la SPA se sirve igual, pero la API responde 421.',
+        bEn: 'The request arrives with a Host outside security.allowed_hosts. Fix the list or the proxy; the SPA still loads, but the API answers 421.',
+      },
+      {
+        t: '/metrics devuelve 401', tEn: '/metrics returns 401',
+        b: 'Hay security.metrics_token configurado. Añade authorization: Bearer <token> en el scrape de Prometheus o vacía el campo para desactivarlo.',
+        bEn: 'security.metrics_token is set. Add authorization: Bearer <token> to the Prometheus scrape, or clear the field to disable it.',
+      },
+      {
+        t: 'Un visor no puede editar', tEn: 'A viewer cannot edit',
+        b: 'Es el comportamiento esperado. Cambia su rol a operador o administrador desde Configuración → Usuarios.',
+        bEn: 'That is expected. Change the role to operator or administrator in Settings → Users.',
+      },
+      {
+        t: 'Necesito recuperar una copia', tEn: 'I need to restore a backup',
+        b: 'Descarga el ZIP, detén NetDiag, extrae netdiag.db, config.yaml y secret.key en el directorio de datos, conserva permisos 600 y arranca de nuevo.',
+        bEn: 'Download the ZIP, stop NetDiag, extract netdiag.db, config.yaml and secret.key into the data directory, keep mode 600 and start again.',
+      },
+    ],
+  },
+];
+
+function guideText(obj, key) {
+  const en = window.NetDiagI18n && window.NetDiagI18n.isEnglish;
+  if (en && obj[key + 'En']) return obj[key + 'En'];
+  return obj[key];
+}
+
+function guideSectionHTML(sec) {
+  return `<section class="guide-section card" id="guide-${sec.id}" data-guide-text>
+    <div class="card-head"><h3>${icon(sec.icon)} ${esc(guideText(sec, 'title'))}</h3><span class="tiny muted">${esc(guideText(sec, 'intro'))}</span></div>
+    <div class="guide-items">
+      ${sec.items.map((item, i) => `
+        <details class="guide-item" ${i === 0 ? 'open' : ''}>
+          <summary>${esc(guideText(item, 't'))}</summary>
+          <p>${esc(guideText(item, 'b'))}</p>
+        </details>`).join('')}
+    </div>
+  </section>`;
+}
+
+async function renderGuide() {
+  setPageTitle('guide');
+  const en = window.NetDiagI18n && window.NetDiagI18n.isEnglish;
+  const pick = (es, english) => (en ? english : es);
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="guide-hero card pad mb">
+      <div class="spread wrap">
+        <div>
+          <h2 style="margin:0 0 6px">${esc(pick('Guía de uso', 'User guide'))}</h2>
+          <p class="muted" style="margin:0;max-width:620px">${esc(pick(
+            'Todo lo que necesitas para operar NetDiag, sin salir del producto. La guía es interactiva: puedes buscar, desplegar cada tema y repetir el recorrido guiado.',
+            'Everything you need to operate NetDiag, without leaving the product. Search, expand each topic and replay the guided tour.'
+          ))}</p>
+        </div>
+        <button class="btn primary" data-action="tour-start">${icon('play')} ${esc(pick('Iniciar recorrido guiado', 'Start guided tour'))}</button>
+      </div>
+      <div class="guide-search mt">
+        <input class="input" id="guide-search" data-guide-search placeholder="${esc(pick('Buscar en la guía…', 'Search the guide…'))}" autocomplete="off">
+      </div>
+      <div class="row wrap mt">
+        ${GUIDE_SECTIONS.map((s) => `<a class="btn sm" href="#guide-${s.id}">${icon(s.icon)} ${esc(guideText(s, 'title'))}</a>`).join('')}
+      </div>
+    </div>
+    <div class="guide-grid">
+      ${GUIDE_SECTIONS.map(guideSectionHTML).join('')}
+    </div>
+    <div class="card pad mt">
+      <div class="spread wrap">
+        <div><h3 style="margin:0 0 4px">${esc(pick('Referencia técnica', 'Technical reference'))}</h3>
+          <div class="muted small">${esc(pick('La especificación OpenAPI se publica en', 'The OpenAPI specification is published at'))} <span class="mono">/api/v1/openapi.json</span>; ${esc(pick('las métricas Prometheus en', 'Prometheus metrics at'))} <span class="mono">/metrics</span>.</div></div>
+        <div class="row wrap">
+          <a class="btn sm" href="/api/v1/openapi.json" target="_blank" rel="noopener">${icon('reports')} OpenAPI</a>
+          <a class="btn sm" href="/metrics" target="_blank" rel="noopener">${icon('bolt')} /metrics</a>
+        </div>
+      </div>
+    </div>`;
+}
+
+function filterGuide(query) {
+  const q = String(query || '').trim().toLowerCase();
+  document.querySelectorAll('[data-guide-text]').forEach((sec) => {
+    let visible = false;
+    sec.querySelectorAll('.guide-item').forEach((item) => {
+      const match = !q || item.textContent.toLowerCase().includes(q);
+      item.classList.toggle('hidden', !match);
+      if (match) visible = true;
+    });
+    sec.classList.toggle('hidden', !visible);
+  });
 }

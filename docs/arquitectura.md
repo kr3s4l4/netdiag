@@ -33,7 +33,7 @@ NetDiag se compila en un único binario que contiene la API HTTP, la SPA, el mot
 
 ### `internal/api`
 
-Router `net/http` con patrones de método (`GET /api/v1/hosts/{id}`). Cada escritura exige sesión y token CSRF. Los permisos distinguen `admin` de `viewer`. El hub WebSocket mantiene una cola por cliente y descarta mensajes si el cliente se retrasa, para no bloquear los escaneos.
+Router `net/http` con patrones de método (`GET /api/v1/hosts/{id}`). Cada escritura exige sesión y token CSRF. Los permisos tienen tres niveles: `admin`/`owner` (todo), `operator` (operación sin configuración ni usuarios) y `viewer` (solo lectura). El hub WebSocket mantiene una cola por cliente y descarta mensajes si el cliente se retrasa, para no bloquear los escaneos. La especificación OpenAPI 3.1 se genera en el propio paquete y las métricas Prometheus se sirven desde `/metrics`.
 
 ### `internal/app`
 
@@ -41,6 +41,7 @@ Router `net/http` con patrones de método (`GET /api/v1/hosts/{id}`). Cada escri
 - `StartScan` valida el CIDR, comprueba solapamientos (máximo tres escaneos y uno por CIDR), crea el registro y lanza el trabajo en segundo plano.
 - El planificador recorre las redes habilitadas según `monitor.interval`; cada `monitor.deep_interval` ejecuta un perfil más profundo.
 - El mantenimiento purga métricas, alertas, auditoría y escaneos según la retención.
+- El gestor de copias crea un ZIP inicial si no existe ninguno y luego uno por intervalo, aplicando la retención configurada.
 - Al apagar, cancela escaneos, espera a los workers y cierra el servidor con un timeout.
 
 ### `internal/discover`
@@ -60,6 +61,10 @@ SQLite en modo WAL con `busy_timeout`, claves foráneas y conexiones acotadas. L
 **Identidad de host.** `identity` es único. Si hay MAC válida se usa la MAC normalizada; si no, `ip:<IP>`. Cuando más adelante se descubre la MAC, la fila se rekeyea en la misma transacción. Si la MAC ya pertenece a otra fila, se fusiona. Las notas, etiquetas y favoritos nunca se sobrescriben con datos de escaneo.
 
 **Canales de alerta.** La configuración se cifra con AES-256-GCM antes de guardar. La clave se carga o crea en `<datos>/secret.key` con permisos `0600`. La API devuelve los campos secretos enmascarados.
+
+### `internal/backup`
+
+Instantáneas autocontenidas en ZIP: `manifest.json` (versión, fecha, tamaño y lista de archivos), una copia consistente de SQLite obtenida con `VACUUM INTO`, `config.yaml` y `secret.key`. El archivo se escribe con nombre temporal y se renombra al final, la retención se aplica por fecha de modificación y los nombres se validan contra traversal (`../`, separadores y extensiones ajenas). Está disponible por CLI (`netdiag backup`), por REST y desde la UI.
 
 ### `internal/fingerprint`
 
@@ -87,7 +92,9 @@ Genera PDF con `go-pdf/fpdf`, CSV, JSON y HTML. Los informes se guardan en `<dat
 
 ### `internal/webui`
 
-`//go:embed dist` sirve la SPA y `/healthz`. No hay CDN ni fuentes externas: el CSP puede ser estricto. El frontend usa delegación de eventos, un router por hash, estado en memoria y WebSocket con reconexión.
+`//go:embed dist` sirve la SPA, `/metrics` (delegado a la API) y `/healthz`. No hay CDN ni fuentes externas: el CSP puede ser estricto. El frontend usa delegación de eventos, un router por hash, estado en memoria y WebSocket con reconexión.
+
+La SPA está escrita en español y un diccionario español→inglés (`i18n.js`) traduce el DOM renderizado, incluida la guía y el recorrido guiado, que mantienen su propio contenido bilingüe. El idioma se guarda en `localStorage`. La guía interactiva y el tour por selectores viven en `views.js` y `app.js`; no requieren backend. Los elementos de escritura se ocultan con `html[data-can-write="0"]`, pero la autorización real siempre la aplica la API.
 
 ## Flujo de un escaneo
 
@@ -108,6 +115,7 @@ POST /api/v1/scans
 
 - **SQLite antes que un ORM**: consultas explícitas, migraciones legibles y cero dependencias nativas.
 - **Un binario**: despliegues reproducibles, copias de seguridad triviales y funcionamiento offline.
+- **Copias autocontenidas**: un ZIP con base, configuración y clave evita restauraciones parciales o canales indescifrables.
 - **Identidad por MAC con fallback a IP**: evita duplicados cuando DHCP cambia las direcciones.
 - **Seguridad conservadora**: canales cifrados, SSRF bloqueado, sesiones en servidor y auditoría desde el primer arranque.
 - **Progreso por WebSocket, no polling**: la UI recibe eventos y el backend limita la frecuencia de escritura.

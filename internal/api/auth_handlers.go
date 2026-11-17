@@ -139,3 +139,97 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	s.audit(r, "auth.user_created", req.Username, map[string]any{"role": u.Role})
 	s.created(w, u)
 }
+
+type updateUserRequest struct {
+	Role string `json:"role"`
+}
+
+func (s *Server) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	id, err := pathInt64(r, "id")
+	if err != nil {
+		s.fail(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
+	var req updateUserRequest
+	if err := decode(r, &req); err != nil {
+		s.fail(w, r, http.StatusBadRequest, "cuerpo inválido: "+err.Error())
+		return
+	}
+	u, err := s.auth.UpdateUserRole(id, req.Role)
+	if err != nil {
+		if !s.detectAuthErrors(w, r, err) {
+			s.fail(w, r, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+	s.audit(r, "auth.user_role_changed", u.Username, map[string]any{"role": u.Role})
+	s.ok(w, u)
+}
+
+func (s *Server) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	id, err := pathInt64(r, "id")
+	if err != nil {
+		s.fail(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
+	if me := userFrom(r); me != nil && me.ID == id {
+		s.failCode(w, r, http.StatusConflict, "self_delete", "no puedes eliminar tu propia cuenta")
+		return
+	}
+	u, err := s.st.GetUser(id)
+	if err != nil {
+		if !s.detectAuthErrors(w, r, err) {
+			s.fail(w, r, http.StatusInternalServerError, "no se pudo leer el usuario")
+		}
+		return
+	}
+	if err := s.auth.DeleteUser(id); err != nil {
+		if !s.detectAuthErrors(w, r, err) {
+			s.fail(w, r, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	s.audit(r, "auth.user_deleted", u.Username, nil)
+	s.ok(w, map[string]any{"ok": true})
+}
+
+type resetPasswordRequest struct {
+	Password string `json:"password"`
+}
+
+func (s *Server) handleResetUserPassword(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAdmin(w, r) {
+		return
+	}
+	id, err := pathInt64(r, "id")
+	if err != nil {
+		s.fail(w, r, http.StatusBadRequest, err.Error())
+		return
+	}
+	var req resetPasswordRequest
+	if err := decode(r, &req); err != nil {
+		s.fail(w, r, http.StatusBadRequest, "cuerpo inválido: "+err.Error())
+		return
+	}
+	u, err := s.st.GetUser(id)
+	if err != nil {
+		if !s.detectAuthErrors(w, r, err) {
+			s.fail(w, r, http.StatusInternalServerError, "no se pudo leer el usuario")
+		}
+		return
+	}
+	if err := s.auth.ResetPassword(id, req.Password); err != nil {
+		if !s.detectAuthErrors(w, r, err) {
+			s.fail(w, r, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+	s.audit(r, "auth.user_password_reset", u.Username, nil)
+	s.ok(w, map[string]any{"ok": true})
+}

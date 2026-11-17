@@ -64,6 +64,9 @@ func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	if cfg.Scan.SNMPv3Priv != "" {
 		cfg.Scan.SNMPv3Priv = maskedSecret
 	}
+	if cfg.Security.MetricsToken != "" {
+		cfg.Security.MetricsToken = maskedSecret
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"config": cfg,
 		"path":   s.configPath,
@@ -85,6 +88,9 @@ func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if incoming.Scan.SNMPv3Priv == maskedSecret || incoming.Scan.SNMPv3Priv == "" {
 		incoming.Scan.SNMPv3Priv = s.cfg.Scan.SNMPv3Priv
+	}
+	if incoming.Security.MetricsToken == maskedSecret || incoming.Security.MetricsToken == "" {
+		incoming.Security.MetricsToken = s.cfg.Security.MetricsToken
 	}
 	if err := incoming.Normalize(); err != nil {
 		s.fail(w, r, http.StatusBadRequest, err.Error())

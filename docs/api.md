@@ -31,7 +31,15 @@ curl -b cookies.txt -H 'Content-Type: application/json' \
   http://127.0.0.1:8080/api/v1/networks
 ```
 
-La cookie es `HttpOnly`, `SameSite=Lax` y `Secure` cuando la petición llega por HTTPS o `server.public_url` lo indica. Los roles son `admin` (todo) y `viewer` (solo lectura).
+La cookie es `HttpOnly`, `SameSite=Lax` y `Secure` cuando la petición llega por HTTPS o `server.public_url` lo indica.
+
+Roles:
+
+| Rol | Permisos |
+| --- | --- |
+| `admin` (o `owner`) | Todo: configuración, usuarios, copias de seguridad y operación |
+| `operator` | Escaneos, inventario, redes, alertas e informes; sin configuración ni usuarios |
+| `viewer` | Solo lectura de inventario, alertas, informes y métricas |
 
 ### Errores
 
@@ -63,7 +71,10 @@ La cookie es `HttpOnly`, `SameSite=Lax` y `Secure` cuando la petición llega por
 | POST | `/auth/logout` | |
 | POST | `/auth/password` | Cierra todas las sesiones |
 | GET | `/auth/users` | Admin |
-| POST | `/auth/users` | Admin; rol `admin` o `viewer` |
+| POST | `/auth/users` | Admin; rol `admin`, `operator` o `viewer` |
+| PATCH | `/auth/users/{id}` | Admin; `{"role":"operator"}`. No permite degradar al último admin |
+| DELETE | `/auth/users/{id}` | Admin; no permite eliminar al último admin |
+| POST | `/auth/users/{id}/password` | Admin; `{"password":"..."}`; cierra las sesiones del usuario |
 
 ### Panel e inventario
 
@@ -153,7 +164,28 @@ Canales: `webhook`, `slack`, `discord`, `telegram`, `pagerduty`, `smtp`, `syslog
 | PUT | `/system/config` | Admin; valida, guarda y aplica en caliente |
 | GET | `/system/audit` | Admin; `actor, action, from, to, page, limit` |
 | GET | `/system/health` | Comprobación interna |
+| GET | `/system/backups` | Admin; lista `{items:[{name,size,created_at}],dir}` |
+| POST | `/system/backups` | Admin; crea un ZIP y aplica la retención |
+| GET | `/system/backups/{name}/download` | Admin; descarga el ZIP |
+| DELETE | `/system/backups/{name}` | Admin; elimina una copia |
 | GET | `/ws` | WebSocket de eventos |
+
+### Endpoints públicos
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/api/v1/openapi.json` | Especificación OpenAPI 3.1 generada por el servidor |
+| GET | `/metrics` | Métricas Prometheus en formato texto |
+
+Ambos son públicos por defecto. Si se define `security.metrics_token`, `/metrics` exige `Authorization: Bearer <token>` (responde `401` sin él). OpenAPI permanece público para que clientes y herramientas puedan descubrir la API.
+
+```bash
+curl -s http://127.0.0.1:8080/metrics | head
+curl -s http://127.0.0.1:8080/api/v1/openapi.json | jq '.info'
+curl -s -H 'Authorization: Bearer <token>' http://127.0.0.1:8080/metrics
+```
+
+Series principales: `netdiag_info`, `netdiag_up`, `netdiag_uptime_seconds`, `netdiag_db_size_bytes`, `netdiag_hosts{status}`, `netdiag_hosts_by_type{type}`, `netdiag_hosts_total`, `netdiag_hosts_up`, `netdiag_hosts_down`, `netdiag_hosts_new_24h`, `netdiag_networks`, `netdiag_scans_24h`, `netdiag_alerts_active`, `netdiag_alerts_critical`, `netdiag_avg_rtt_ms` y `netdiag_availability_ratio`. No se consulta la base de datos para cada scrape más allá de las estadísticas agregadas del panel.
 
 ## WebSocket
 

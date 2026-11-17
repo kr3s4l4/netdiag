@@ -33,6 +33,8 @@ var publicPaths = map[string]bool{
 	"/api/v1/auth/login":    true,
 	"/api/v1/auth/setup":    true,
 	"/api/v1/system/health": true,
+	"/api/v1/openapi.json":  true,
+	"/metrics":              true,
 }
 
 func userFrom(r *http.Request) *model.User {
@@ -425,6 +427,10 @@ func (s *Server) detectAuthErrors(w http.ResponseWriter, r *http.Request, err er
 		s.failCode(w, r, http.StatusConflict, "setup_complete", err.Error())
 	case errors.Is(err, auth.ErrWeakPassword):
 		s.failCode(w, r, http.StatusBadRequest, "weak_password", err.Error())
+	case errors.Is(err, auth.ErrLastAdmin):
+		s.failCode(w, r, http.StatusConflict, "last_admin", err.Error())
+	case errors.Is(err, store.ErrNotFound):
+		s.failCode(w, r, http.StatusNotFound, "not_found", "el recurso no existe")
 	default:
 		if err != nil && strings.Contains(err.Error(), "contraseña") {
 			s.failCode(w, r, http.StatusBadRequest, "weak_password", err.Error())

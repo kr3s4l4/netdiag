@@ -24,7 +24,7 @@ func Handler(apiHandler http.Handler) http.Handler {
 	index, _ := fs.ReadFile(dist, "index.html")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") {
+		if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/metrics" {
 			apiHandler.ServeHTTP(w, r)
 			return
 		}

@@ -364,6 +364,100 @@ td.mono, th.mono { font-family: var(--mono); font-size: 12px; }
 .mono-ip { font-family: var(--mono); font-size: 12.2px; }
 .w-full { width: 100%; }
 
+/* ---------- v1.1: idioma, roles, copias y guía ---------- */
+.lang-btn { min-width: 40px; font-variant-numeric: tabular-nums; letter-spacing: .06em; }
+.select.sm { height: 28px; padding: 0 8px; font-size: 12px; width: auto; min-width: 118px; border-radius: 7px; }
+
+/* RBAC: el backend sigue siendo la autoridad; esto solo evita acciones imposibles. */
+html[data-can-write="0"] [data-action="open-scan"],
+html[data-can-write="0"] [data-action="host-delete"],
+html[data-can-write="0"] [data-action="host-rescan"],
+html[data-can-write="0"] [data-action="host-save-meta"],
+html[data-can-write="0"] [data-action="host-fav"],
+html[data-can-write="0"] [data-action="scan-cancel"],
+html[data-can-write="0"] [data-action="scan-start"],
+html[data-can-write="0"] [data-action="rule-new"],
+html[data-can-write="0"] [data-action="rule-edit"],
+html[data-can-write="0"] [data-action="rule-delete"],
+html[data-can-write="0"] [data-action="rule-save"],
+html[data-can-write="0"] [data-action="rule-toggle"],
+html[data-can-write="0"] [data-action="channel-new"],
+html[data-can-write="0"] [data-action="channel-edit"],
+html[data-can-write="0"] [data-action="channel-delete"],
+html[data-can-write="0"] [data-action="channel-save"],
+html[data-can-write="0"] [data-action="channel-toggle"],
+html[data-can-write="0"] [data-action="channel-test"],
+html[data-can-write="0"] [data-action="report-new"],
+html[data-can-write="0"] [data-action="report-create"],
+html[data-can-write="0"] [data-action="report-delete"],
+html[data-can-write="0"] [data-action="network-new"],
+html[data-can-write="0"] [data-action="network-edit"],
+html[data-can-write="0"] [data-action="network-delete"],
+html[data-can-write="0"] [data-action="network-save"],
+html[data-can-write="0"] [data-action="network-suggest"],
+html[data-can-write="0"] [data-action="alert-ack"],
+html[data-can-write="0"] [data-action="alert-resolve"],
+html[data-can-write="0"] [data-action="user-new"],
+html[data-can-write="0"] [data-action="user-save"],
+html[data-can-write="0"] [data-action="backup-create"],
+html[data-can-write="0"] [data-action="backup-delete"] { display: none !important; }
+
+html[data-is-admin="0"] [data-action="user-reset"],
+html[data-is-admin="0"] [data-action="user-password-save"],
+html[data-is-admin="0"] [data-action="user-delete"],
+html[data-is-admin="0"] [data-user-role],
+html[data-is-admin="0"] [data-action="backup-create"],
+html[data-is-admin="0"] [data-action="backup-delete"] { display: none !important; }
+
+/* ---------- guía de uso ---------- */
+.guide-hero { background: linear-gradient(135deg, var(--accent-soft), transparent 55%), var(--panel); }
+.guide-hero h2 { letter-spacing: -.02em; }
+.guide-search { position: relative; max-width: 460px; }
+.guide-search .input { padding-left: 34px; }
+.guide-search::before {
+  content: ""; position: absolute; left: 12px; top: 11px; width: 15px; height: 15px;
+  background: center / 15px no-repeat no-repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238fa1b8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.2-3.2'/%3E%3C/svg%3E");
+}
+.guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+.guide-section { display: flex; flex-direction: column; }
+.guide-section > .card-head { flex-wrap: wrap; row-gap: 4px; }
+.guide-section > .card-head h3 { display: inline-flex; align-items: center; gap: 8px; }
+.guide-section > .card-head h3 svg { width: 15px; height: 15px; color: var(--accent); }
+.guide-items { display: flex; flex-direction: column; }
+.guide-item { border-bottom: 1px solid var(--border-soft); }
+.guide-item:last-child { border-bottom: 0; }
+.guide-item > summary {
+  cursor: pointer; list-style: none; padding: 11px 18px; font-size: 13px; font-weight: 650;
+  display: flex; align-items: center; gap: 9px; transition: background .12s;
+}
+.guide-item > summary::-webkit-details-marker { display: none; }
+.guide-item > summary::before {
+  content: "›"; font-size: 17px; line-height: 1; color: var(--muted-2);
+  transition: transform .15s; flex: none; width: 12px; transform-origin: center;
+}
+.guide-item[open] > summary::before { transform: rotate(90deg); color: var(--accent); }
+.guide-item > summary:hover { background: var(--panel-2); }
+.guide-item > p { margin: 0; padding: 0 18px 13px 39px; color: var(--muted); font-size: 12.6px; line-height: 1.62; }
+
+/* ---------- recorrido guiado ---------- */
+.tour-layer { position: fixed; inset: 0; z-index: 200; pointer-events: none; }
+.tour-spot {
+  position: absolute; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(3, 7, 12, .72), 0 0 0 2px var(--accent), 0 0 30px rgba(56, 189, 248, .35);
+  transition: top .2s ease, left .2s ease, width .2s ease, height .2s ease;
+}
+.tour-pop {
+  position: absolute; pointer-events: auto; background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 15px 16px 14px; outline: none;
+}
+.tour-pop h3 { margin: 4px 0 7px; font-size: 15px; letter-spacing: -.01em; }
+.tour-pop p { margin: 0 0 14px; color: var(--muted); font-size: 12.8px; line-height: 1.6; }
+.tour-progress { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted-2); font-size: 11px; text-transform: uppercase; letter-spacing: .09em; font-weight: 650; }
+.tour-actions { display: flex; align-items: center; gap: 8px; }
+.tour-actions .spacer { flex: 1; }
+
 @media (max-width: 1100px) {
   .cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -380,4 +474,6 @@ td.mono, th.mono { font-family: var(--mono); font-size: 12px; }
   .kv dd { margin-bottom: 8px; }
   .stat .value { font-size: 25px; }
   .topbar .clock { display: none; }
+  .guide-grid { grid-template-columns: 1fr; }
+  .tour-pop { max-width: calc(100vw - 24px); }
 }

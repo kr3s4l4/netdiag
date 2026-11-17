@@ -228,13 +228,53 @@ Todo el estado está en dos sitios:
 | Ruta | Contenido | Crítico |
 | --- | --- | --- |
 | `/var/lib/netdiag/netdiag.db` | Inventario, alertas, escaneos, usuarios | Sí |
-| `/var/lib/netdiag/secret.key` | Clave AES-256-GCM de los canales | Sí |
+| `/var/lib/netdiag/secret.key` | Clave AES-256-GCM de los canales y secretos SNMP | Sí |
 | `/var/lib/netdiag/reports/` | Informes generados | Opcional |
 | `/etc/netdiag/config.yaml` | Configuración | Sí |
 
-**Sin `secret.key` no se pueden descifrar las configuraciones de los canales de alerta.** Guarda la clave junto a la base y protégete la copia: quien tenga ambos archivos puede leer los secretos de los canales.
+**Sin `secret.key` no se pueden descifrar las configuraciones de los canales de alerta.** NetDiag incluye la clave dentro de la copia para que el ZIP sea autocontenido: guárdalo en un destino cifrado y con permisos restringidos.
 
-Copia en caliente con la API de backup de SQLite (consistente con WAL):
+### Copias integradas
+
+NetDiag genera un ZIP con `manifest.json`, una instantánea consistente de SQLite (`VACUUM INTO`), `config.yaml` y `secret.key`:
+
+```bash
+# Copia puntual en el directorio configurado
+sudo -u netdiag netdiag backup
+
+# Ruta explícita y retención distinta
+sudo -u netdiag netdiag backup --out /var/backups/netdiag/$(date +%F).zip --keep 30
+```
+
+También desde **Ajustes → Copias** (solo administradores), que permite crear, descargar y eliminar copias. Las copias automáticas se configuran en `storage`:
+
+```yaml
+storage:
+  backup_enabled: true
+  backup_dir: /var/lib/netdiag/backups   # por defecto <data_dir>/backups
+  backup_interval: 24h                   # mínimo 15m
+  backup_keep: 7                         # copias a conservar
+```
+
+Al arrancar, si no hay ninguna copia, se crea una; después se respeta el intervalo y la retención. El ZIP se crea en un archivo temporal y se renombra al terminar, así que un corte no deja copias corruptas con nombre válido.
+
+### Restauración
+
+```bash
+sudo systemctl stop netdiag
+sudo install -d -m 0700 /var/lib/netdiag
+sudo unzip -o /var/backups/netdiag/2026-11-17.zip \
+  netdiag.db config.yaml secret.key -d /var/lib/netdiag
+sudo chown -R netdiag:netdiag /var/lib/netdiag
+sudo install -m 0600 /var/lib/netdiag/config.yaml /etc/netdiag/config.yaml
+sudo systemctl start netdiag
+```
+
+Si restauras la base pero no `secret.key`, los canales existentes fallarán al descifrar. En ese caso elimina y vuelve a crear los canales desde la interfaz.
+
+### Alternativa manual
+
+Si prefieres tu propio esquema, la API de SQLite produce una copia consistente con WAL:
 
 ```bash
 sudo install -d -m 0700 /var/backups/netdiag
@@ -245,23 +285,22 @@ sudo tar -czf /var/backups/netdiag/netdiag-$(date +%F).tar.gz \
   -C /etc/netdiag config.yaml
 ```
 
-Restauración:
+## Observabilidad
 
-```bash
-sudo systemctl stop netdiag
-sudo -u netdiag cp /var/backups/netdiag/netdiag-2026-01-31.db /var/lib/netdiag/netdiag.db
-sudo tar -xzf /var/backups/netdiag/netdiag-2026-01-31.tar.gz -C /
-sudo chown -R netdiag:netdiag /var/lib/netdiag /etc/netdiag
-sudo systemctl start netdiag
-```
+- **Prometheus**: `GET /metrics` expone contadores de hosts, alertas, escaneos, RTT medio, disponibilidad y tamaño de la base. Es público por defecto; define `security.metrics_token` para exigir `Authorization: Bearer <token>`.
 
-Si restauras la base pero no `secret.key`, los canales existentes fallarán al descifrar. En ese caso elimina y vuelve a crear los canales desde la interfaz.
+  ```yaml
+  scrape_configs:
+    - job_name: netdiag
+      authorization:
+        credentials: <token>   # omitir si metrics_token está vacío
+      static_configs:
+        - targets: ['127.0.0.1:8080']
+  ```
 
-Programa la copia con un timer systemd o cron. Ejemplo de cron diario a las 03:15:
-
-```cron
-15 3 * * * root install -d -m 0700 /var/backups/netdiag && sudo -u netdiag sqlite3 /var/lib/netdiag/netdiag.db ".backup '/var/backups/netdiag/netdiag-$(date +\%F).db'" && sudo tar -czf /var/backups/netdiag/netdiag-$(date +\%F).tar.gz -C /var/lib/netdiag secret.key reports -C /etc/netdiag config.yaml
-```
+- **OpenAPI 3.1**: la especificación se publica en `/api/v1/openapi.json` y puede importarse en Insomnia, Postman o generadores de clientes.
+- **Healthcheck**: `/healthz` responde `{"status":"ok"}` sin autenticación y sin tocar la base, apto para Sondeos de Kubernetes o `systemd` watchdog.
+- **Auditoría**: las operaciones sensibles (usuarios, configuración, copias) se registran con actor, acción y objetivo.
 
 ## Actualizaciones
 

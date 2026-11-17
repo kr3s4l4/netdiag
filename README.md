@@ -1,6 +1,6 @@
 # NetDiag
 
-**Escáner de red y monitor de inventario self-hosted.** Un único binario Go con interfaz web en español, descubrimiento activo/pasivo, SNMP, topología L2/L3, alertas cifradas y generación de informes. Sin dependencias externas en tiempo de ejecución, sin telemetría y sin servicios en la nube.
+**Escáner de red y monitor de inventario self-hosted.** Un único binario Go con interfaz web bilingüe (español/inglés), descubrimiento activo/pasivo, SNMP, topología L2/L3, alertas cifradas, copias de seguridad y generación de informes. Sin dependencias externas en tiempo de ejecución, sin telemetría y sin servicios en la nube.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -17,7 +17,11 @@
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
-- **Seguridad por defecto**: Argon2id, sesiones en servidor, CSRF, límite de intentos, cabeceras CSP/HSTS, auditoría y secretos cifrados con AES-256-GCM.
+- **Roles y multiusuario**: `admin` (todo), `operator` (operación) y `viewer` (solo lectura), con creación, cambio de rol, restablecimiento de contraseña y borrado protegido del último administrador.
+- **Bilingüe y guiado**: español por defecto e inglés con un clic, guía interactiva con búsqueda y recorrido guiado por la interfaz en el primer acceso.
+- **Integraciones**: OpenAPI 3.1 en `/api/v1/openapi.json` y métricas Prometheus en `/metrics`.
+- **Copias de seguridad**: ZIP autocontenido (base SQLite consistente, `config.yaml` y `secret.key`), automático por intervalo con retención, desde la UI, la API o `netdiag backup`.
+- **Seguridad por defecto**: Argon2id, sesiones en servidor, CSRF, límite de intentos, cabeceras CSP/HSTS, auditoría, secretos cifrados con AES-256-GCM y token opcional para `/metrics`.
 - **Un solo binario**: SPA embebida, SQLite embebido (modernc) y configuración YAML. Funciona offline.
 
 ## Inicio rápido
@@ -77,7 +81,17 @@ netdiag report [--kind inventory|executive|alerts] [--format pdf|csv|json|html]
                [--from 2026-01-01] [--to 2026-01-31] [--out informe.pdf]
 netdiag config [show|path|init|validate]
 netdiag doctor
-netdiag user [list|add|passwd]
+netdiag user [list|add|passwd|role|delete]
+netdiag backup [--out RUTA] [--keep N]
+```
+
+Ejemplos de gestión:
+
+```bash
+netdiag user add ana --role operator
+netdiag user role ana viewer
+netdiag user passwd ana            # por stdin, sin dejar la clave en el historial
+netdiag backup --out /var/backups/netdiag/$(date +%F).zip
 ```
 
 Las opciones se aceptan antes o después de los argumentos posicionales. Precedencia de configuración:
@@ -94,6 +108,8 @@ Variables admitidas: `NETDIAG_CONFIG`, `NETDIAG_DATA_DIR`, `NETDIAG_DB`, `NETDIA
 sudo -u netdiag netdiag user passwd admin
 # o crear otro administrador
 sudo -u netdiag netdiag user add operador --role admin
+# promocionar una cuenta existente sin perder su contraseña
+sudo -u netdiag netdiag user role operador admin
 ```
 
 La contraseña se puede pasar por `--password`, por `NETDIAG_PASSWORD` o por stdin para no dejarla en el historial.
@@ -129,11 +145,16 @@ alerts:
 storage:
   retention_days: 30
   metrics_days: 30
+  backup_enabled: true
+  backup_dir: ""            # por defecto <data_dir>/backups
+  backup_interval: 24h      # mínimo 15m
+  backup_keep: 7
 security:
   auth: true
   session_hours: 12
   login_rate: 5
   trust_proxy: false
+  metrics_token: ""         # si se define, /metrics exige Bearer
 ```
 
 La mayoría de cambios se aplican en caliente desde **Ajustes**; los de escucha, TLS, rutas de datos y nivel de registro requieren reiniciar.
@@ -146,7 +167,9 @@ La mayoría de cambios se aplican en caliente desde **Ajustes**; los de escucha,
 - **CSP**, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` y HSTS opcional.
 - Configuraciones de canales de alerta cifradas con **AES-256-GCM**; la clave `secret.key` se crea con permisos `0600`. Los secretos nunca se devuelven al navegador.
 - Protección **SSRF**: los webhooks a rangos privados, loopback y metadatos cloud se bloquean salvo `alerts.allow_private_targets: true`.
-- Registro de auditoría de accesos, cambios de configuración y operaciones sensibles, con retención configurable.
+- Roles de menor privilegio: `viewer` no puede escribir y `operator` no toca configuración ni usuarios; el backend rechaza la operación aunque el frontend la ofrezca.
+- `/metrics` es público por defecto; define `security.metrics_token` para exigir `Authorization: Bearer <token>`. `/api/v1/openapi.json` permanece público para el descubrimiento de la API.
+- Registro de auditoría de accesos, cambios de configuración, usuarios y copias, con retención configurable.
 
 Para exponer NetDiag fuera de localhost, usa un proxy inverso con TLS (Caddy, nginx, Traefik) o configura `server.tls_cert`/`server.tls_key`. No publiques la instancia directamente en Internet sin autenticación y HTTPS.
 
@@ -164,10 +187,11 @@ internal/snmp          SNMP v1/v2c/v3, IF-MIB, LLDP/CDP/FDB
 internal/topology      grafo de red y confianza de enlaces
 internal/alerts        reglas, deduplicación y canales
 internal/report        PDF, CSV, JSON, HTML
-internal/webui         SPA embebida (HTML/CSS/JS, sin dependencias)
+internal/backup        ZIP de base, configuración y clave; retención
+internal/webui         SPA embebida bilingüe (HTML/CSS/JS, sin dependencias)
 ```
 
-La API está versionada en `/api/v1`; el WebSocket (`/api/v1/ws`) emite eventos `scan.progress`, `scan.finished`, `host.new`, `host.updated`, `alert.new`, `dashboard.updated`. Consulta [docs/arquitectura.md](docs/arquitectura.md) y [docs/api.md](docs/api.md).
+La API está versionada en `/api/v1` y documentada en `/api/v1/openapi.json`; el WebSocket (`/api/v1/ws`) emite eventos `scan.progress`, `scan.finished`, `host.new`, `host.updated`, `alert.new`, `dashboard.updated`. Las métricas Prometheus se exponen en `/metrics`. Consulta [docs/arquitectura.md](docs/arquitectura.md) y [docs/api.md](docs/api.md).
 
 ## Despliegue
 
@@ -180,4 +204,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Proyecto en desarrollo activo. La suite cubre configuración, persistencia, identidad de hosts, cifrado de canales, clasificación, utilidades de red, topología y política de contraseñas. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.1**: inventario, escaneos, topología, alertas, informes, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts, cifrado de canales, clasificación, utilidades de red, topología, política de contraseñas, roles, copias y endpoints públicos. Las contribuciones y los informes de errores son bienvenidos.

@@ -12,6 +12,7 @@ import (
 
 	"github.com/kr3s4l4/netdiag/internal/alerts"
 	"github.com/kr3s4l4/netdiag/internal/auth"
+	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
@@ -46,6 +47,7 @@ type Deps struct {
 	Auth       *auth.Service
 	Alerts     *alerts.Manager
 	Reports    *report.Generator
+	Backups    *backup.Manager
 	Scanner    Scanner
 	Logger     *slog.Logger
 	Version    string
@@ -62,6 +64,7 @@ type Server struct {
 	auth       *auth.Service
 	alerts     *alerts.Manager
 	reports    *report.Generator
+	backups    *backup.Manager
 	scanner    Scanner
 	log        *slog.Logger
 	hub        *Hub
@@ -89,6 +92,7 @@ func New(d Deps) *Server {
 		auth:       d.Auth,
 		alerts:     d.Alerts,
 		reports:    d.Reports,
+		backups:    d.Backups,
 		scanner:    d.Scanner,
 		log:        log,
 		hub:        NewHub(log),
@@ -138,6 +142,9 @@ func (s *Server) register() {
 	m.HandleFunc("POST /api/v1/auth/password", s.handleChangePassword)
 	m.HandleFunc("GET /api/v1/auth/users", s.handleListUsers)
 	m.HandleFunc("POST /api/v1/auth/users", s.handleCreateUser)
+	m.HandleFunc("PATCH /api/v1/auth/users/{id}", s.handleUpdateUser)
+	m.HandleFunc("DELETE /api/v1/auth/users/{id}", s.handleDeleteUser)
+	m.HandleFunc("POST /api/v1/auth/users/{id}/password", s.handleResetUserPassword)
 
 	// ---- dashboard ----
 	m.HandleFunc("GET /api/v1/dashboard", s.handleDashboard)
@@ -198,7 +205,15 @@ func (s *Server) register() {
 	m.HandleFunc("PUT /api/v1/system/config", s.handleUpdateConfig)
 	m.HandleFunc("GET /api/v1/system/audit", s.handleAudit)
 	m.HandleFunc("GET /api/v1/system/health", s.handleHealth)
+	m.HandleFunc("GET /api/v1/system/backups", s.handleListBackups)
+	m.HandleFunc("POST /api/v1/system/backups", s.handleCreateBackup)
+	m.HandleFunc("GET /api/v1/system/backups/{name}/download", s.handleDownloadBackup)
+	m.HandleFunc("DELETE /api/v1/system/backups/{name}", s.handleDeleteBackup)
 	m.HandleFunc("GET /api/v1/ws", s.handleWS)
+
+	// ---- public operational endpoints ----
+	m.HandleFunc("GET /api/v1/openapi.json", s.handleOpenAPI)
+	m.HandleFunc("GET /metrics", s.handleMetrics)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

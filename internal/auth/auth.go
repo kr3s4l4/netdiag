@@ -19,7 +19,17 @@ var (
 	ErrSetupComplete      = errors.New("la configuración inicial ya se completó")
 	ErrSessionExpired     = errors.New("sesión expirada")
 	ErrForbidden          = errors.New("permiso insuficiente")
+	ErrLastAdmin          = errors.New("no se puede eliminar ni degradar al último administrador")
 )
+
+// ValidRole reports whether role is a supported local account role.
+func ValidRole(role string) bool {
+	switch role {
+	case "admin", "owner", "operator", "viewer":
+		return true
+	}
+	return false
+}
 
 // Service coordinates accounts, sessions and throttling.
 type Service struct {
@@ -186,7 +196,10 @@ func (s *Service) CreateUser(username, password, role string) (*model.User, erro
 	if username == "" || len(username) > 64 {
 		return nil, errors.New("nombre de usuario inválido")
 	}
-	if role != "admin" && role != "viewer" {
+	if role == "" {
+		role = "viewer"
+	}
+	if !ValidRole(role) {
 		return nil, errors.New("rol inválido")
 	}
 	if err := ValidatePassword(password); err != nil {
@@ -197,6 +210,68 @@ func (s *Service) CreateUser(username, password, role string) (*model.User, erro
 		return nil, err
 	}
 	return s.st.CreateUser(username, hash, role)
+}
+
+// UpdateUserRole changes an account role. It refuses to demote the last
+// administrator and invalidates existing sessions so the new role applies
+// immediately.
+func (s *Service) UpdateUserRole(userID int64, role string) (*model.User, error) {
+	if !ValidRole(role) {
+		return nil, errors.New("rol inválido")
+	}
+	user, err := s.st.GetUser(userID)
+	if err != nil {
+		return nil, err
+	}
+	isAdmin := user.Role == "admin" || user.Role == "owner"
+	willBeAdmin := role == "admin" || role == "owner"
+	if isAdmin && !willBeAdmin {
+		n, err := s.st.CountAdmins()
+		if err != nil {
+			return nil, err
+		}
+		if n <= 1 {
+			return nil, ErrLastAdmin
+		}
+	}
+	if err := s.st.UpdateUserRole(userID, role); err != nil {
+		return nil, err
+	}
+	_ = s.st.DeleteUserSessions(userID)
+	return s.st.GetUser(userID)
+}
+
+// DeleteUser removes an account. It refuses to delete the last administrator.
+func (s *Service) DeleteUser(userID int64) error {
+	user, err := s.st.GetUser(userID)
+	if err != nil {
+		return err
+	}
+	if user.Role == "admin" || user.Role == "owner" {
+		n, err := s.st.CountAdmins()
+		if err != nil {
+			return err
+		}
+		if n <= 1 {
+			return ErrLastAdmin
+		}
+	}
+	return s.st.DeleteUser(userID)
+}
+
+// ResetPassword sets a new password for an account and logs it out everywhere.
+func (s *Service) ResetPassword(userID int64, password string) error {
+	if err := ValidatePassword(password); err != nil {
+		return err
+	}
+	hash, err := HashPassword(password)
+	if err != nil {
+		return err
+	}
+	if err := s.st.UpdatePassword(userID, hash); err != nil {
+		return err
+	}
+	return s.st.DeleteUserSessions(userID)
 }
 
 func (s *Service) createSession(userID int64, ip, ua string) (*model.Session, error) {

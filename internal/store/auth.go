@@ -99,6 +99,45 @@ func (s *Store) UpdateLastLogin(userID int64) error {
 	return err
 }
 
+// UpdateUserRole changes a user's role.
+func (s *Store) UpdateUserRole(userID int64, role string) error {
+	res, err := s.db.Exec(`UPDATE users SET role = ? WHERE id = ?`, role, userID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// DeleteUser removes an account and all of its sessions.
+func (s *Store) DeleteUser(userID int64) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.Exec(`DELETE FROM sessions WHERE user_id = ?`, userID); err != nil {
+		return err
+	}
+	res, err := tx.Exec(`DELETE FROM users WHERE id = ?`, userID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return tx.Commit()
+}
+
+// CountAdmins returns how many administrator accounts exist.
+func (s *Store) CountAdmins() (int, error) {
+	var n int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM users WHERE role IN ('admin','owner')`).Scan(&n)
+	return n, err
+}
+
 // CreateSession stores a session. The caller generates ID (token hash) and CSRF.
 func (s *Store) CreateSession(sess *model.Session) error {
 	if sess.CreatedAt.IsZero() {

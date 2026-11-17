@@ -61,6 +61,21 @@ func (s *Store) Path() string { return s.path }
 // DB exposes the raw handle for maintenance tasks.
 func (s *Store) DB() *sql.DB { return s.db }
 
+// VacuumInto writes a consistent snapshot of the database to path.
+func (s *Store) VacuumInto(path string) error {
+	_, err := s.db.Exec(`VACUUM INTO ?`, path)
+	return err
+}
+
+// Size returns the database file size in bytes.
+func (s *Store) Size() int64 {
+	fi, err := os.Stat(s.path)
+	if err != nil {
+		return 0
+	}
+	return fi.Size()
+}
+
 var migrations = [][]string{
 	{
 		`CREATE TABLE settings (

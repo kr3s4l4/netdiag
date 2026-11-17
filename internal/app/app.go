@@ -16,6 +16,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/alerts"
 	"github.com/kr3s4l4/netdiag/internal/api"
 	"github.com/kr3s4l4/netdiag/internal/auth"
+	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/cryptoutil"
 	"github.com/kr3s4l4/netdiag/internal/discover"
@@ -43,6 +44,7 @@ type App struct {
 	auth    *auth.Service
 	alerts  *alerts.Manager
 	reports *report.Generator
+	backups *backup.Manager
 	engine  *discover.Engine
 	api     *api.Server
 	hub     *api.Hub
@@ -104,6 +106,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		auth:     auth.New(st, cfg.Security, log),
 		alerts:   alerts.New(st, cfg.Alerts, log),
 		reports:  reports,
+		backups:  backup.New(st, cfg, cfgPath, log),
 		engine:   discover.New(),
 		runs:     make(map[int64]*runState),
 		busyCIDR: make(map[string]int64),
@@ -116,6 +119,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		Auth:       a.auth,
 		Alerts:     a.alerts,
 		Reports:    reports,
+		Backups:    a.backups,
 		Scanner:    a,
 		Logger:     log,
 		Version:    build.Version,
@@ -139,6 +143,9 @@ func (a *App) Auth() *auth.Service { return a.auth }
 // Hub exposes the event hub.
 func (a *App) Hub() *api.Hub { return a.hub }
 
+// Backups exposes the backup manager (used by CLI subcommands).
+func (a *App) Backups() *backup.Manager { return a.backups }
+
 // Close releases the database.
 func (a *App) Close() error {
 	a.mu.Lock()
@@ -159,6 +166,9 @@ func (a *App) Run(ctx context.Context) error {
 	a.alerts.Start(ctx)
 	go a.monitorLoop(ctx)
 	go a.maintenanceLoop(ctx)
+	if a.backups != nil {
+		go a.backups.Start(ctx)
+	}
 
 	handler := webui.Handler(a.api.Handler())
 	srv := &http.Server{
@@ -247,6 +257,9 @@ func (a *App) UpdateConfig(cfg *config.Config) error {
 	a.cfg = cfg
 	a.cfgMu.Unlock()
 	a.alerts.UpdateConfig(cfg.Alerts)
+	if a.backups != nil {
+		a.backups.UpdateConfig(cfg)
+	}
 	return nil
 }
 

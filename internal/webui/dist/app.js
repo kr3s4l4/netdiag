@@ -38,6 +38,14 @@ const state = {
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+// Spanish is the source language; i18n.js translates rendered text to English.
+const tr = (s, vars) => (window.NetDiagI18n ? window.NetDiagI18n.t(s, vars) : s);
+const dateLocale = () => (window.NetDiagI18n ? window.NetDiagI18n.dateLocale() : 'es-ES');
+const roleOf = () => (state.me && state.me.role) || 'admin';
+const isAdmin = () => ['admin', 'owner'].includes(roleOf());
+const canWrite = () => ['admin', 'owner', 'operator'].includes(roleOf());
+const roleName = (r) => ({ admin: 'Administrador', owner: 'Administrador', operator: 'Operador', viewer: 'Solo lectura' }[r] || r || '');
+
 const esc = (v) => String(v === null || v === undefined ? '' : v)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -72,6 +80,7 @@ const ICONS = {
   alerts: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/>',
   scans: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
   reports: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
+  book: '<path d="M4 4a2 2 0 0 1 2-2h12v20H6a2 2 0 0 1-2-2z"/><path d="M8 2v20M12 7h4M12 11h4"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
@@ -131,24 +140,24 @@ function fmtDate(v, time = true) {
   if (!v) return '—';
   const d = new Date(v);
   if (isNaN(d.getTime()) || d.getFullYear() < 2000) return '—';
-  return d.toLocaleString('es-ES', time ? { dateStyle: 'short', timeStyle: 'short' } : { dateStyle: 'medium' });
+  return d.toLocaleString(dateLocale(), time ? { dateStyle: 'short', timeStyle: 'short' } : { dateStyle: 'medium' });
 }
 function fmtTime(v) {
   if (!v) return '—';
   const d = new Date(v);
   if (isNaN(d.getTime())) return '—';
-  return d.toLocaleTimeString('es-ES');
+  return d.toLocaleTimeString(dateLocale());
 }
 function ago(v) {
   if (!v) return '—';
   const d = new Date(v);
   if (isNaN(d.getTime())) return '—';
   const s = Math.max(0, (Date.now() - d.getTime()) / 1000);
-  if (s < 45) return 'ahora';
-  if (s < 90) return 'hace 1 min';
-  if (s < 3600) return `hace ${Math.round(s / 60)} min`;
-  if (s < 86400) return `hace ${Math.round(s / 3600)} h`;
-  return `hace ${Math.round(s / 86400)} d`;
+  if (s < 45) return tr('ahora');
+  if (s < 90) return tr('hace 1 min');
+  if (s < 3600) return tr('hace {n} min', { n: Math.round(s / 60) });
+  if (s < 86400) return tr('hace {n} h', { n: Math.round(s / 3600) });
+  return tr('hace {n} d', { n: Math.round(s / 86400) });
 }
 function fmtDuration(a, b) {
   if (!a || !b) return '—';
@@ -167,9 +176,9 @@ function fmtBytes(n) {
 }
 function fmtNum(n, digits = 0) {
   if (n === null || n === undefined || isNaN(n)) return '—';
-  return Number(n).toLocaleString('es-ES', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return Number(n).toLocaleString(dateLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
-function typeLabel(t) { return TYPE_LABELS[t] || t || 'Desconocido'; }
+function typeLabel(t) { return TYPE_LABELS[t] || t || tr('Desconocido'); }
 function statusBadge(s) {
   return `<span class="badge ${esc(s || 'unknown')}"><i class="dot"></i>${esc(STATUS_LABELS[s] || s || 'Desconocido')}</span>`;
 }
@@ -354,6 +363,11 @@ function enterApp() {
   if (!current) location.hash = '#/dashboard';
   else route();
   startClock();
+  setTimeout(() => {
+    try {
+      if (!localStorage.getItem('netdiag-tour-done')) startTour();
+    } catch {}
+  }, 900);
 }
 
 function logout() {
@@ -375,19 +389,23 @@ const NAV = [
   { view: 'scans', label: 'Escaneos', icon: 'scans' },
   { view: 'reports', label: 'Informes', icon: 'reports' },
   { section: 'Sistema' },
-  { view: 'settings', label: 'Configuración', icon: 'settings' },
+  { view: 'guide', label: 'Guía', icon: 'book' },
+  { view: 'settings', label: 'Configuración', icon: 'settings', adminOnly: true },
 ];
 
 function renderShell() {
-  const nav = NAV.map((item) => {
-    if (item.section) return `<div class="nav-section">${esc(item.section)}</div>`;
+  const nav = NAV.filter((item) => !item.adminOnly || isAdmin()).map((item) => {
+    if (item.section) return `<div class="nav-section">${esc(tr(item.section))}</div>`;
     return `<a class="nav-item" data-action="nav" data-view="${item.view}" href="#/${item.view}">
-      ${icon(item.icon)}<span>${esc(item.label)}</span>
+      ${icon(item.icon)}<span>${esc(tr(item.label))}</span>
       ${item.badge ? '<span class="count hidden" id="nav-alert-count">0</span>' : ''}
     </a>`;
   }).join('');
   const user = state.me || { username: 'local', role: 'admin' };
   const initials = (user.username || 'N').slice(0, 1).toUpperCase();
+  document.documentElement.dataset.canWrite = canWrite() ? '1' : '0';
+  document.documentElement.dataset.isAdmin = isAdmin() ? '1' : '0';
+  const i18n = window.NetDiagI18n;
   $('#root').innerHTML = `<div class="shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
@@ -399,7 +417,7 @@ function renderShell() {
         <div class="live"><span class="dot" id="live-dot"></span><span id="live-label">Conectando…</span></div>
         <div class="user-mini">
           <div class="avatar">${esc(initials)}</div>
-          <div class="who"><b>${esc(user.username)}</b><span>${esc(user.role || 'admin')}</span></div>
+          <div class="who"><b>${esc(user.username)}</b><span>${esc(tr(roleName(user.role || 'admin')))}</span></div>
           <button class="btn ghost icon sm right" data-action="logout" title="Cerrar sesión">${icon('logout')}</button>
         </div>
       </div>
@@ -411,6 +429,7 @@ function renderShell() {
         <span class="crumb" id="page-crumb"></span>
         <div class="spacer"></div>
         <span class="clock" id="clock">—</span>
+        <button class="btn sm ghost lang-btn" data-action="lang" title="Cambiar idioma">${i18n ? i18n.label : 'EN'}</button>
         <button class="btn ghost icon" data-action="theme" title="Cambiar tema" id="theme-btn">${icon(document.documentElement.dataset.theme === 'light' ? 'moon' : 'sun')}</button>
         <button class="btn primary" data-action="open-scan">${icon('radar')} Escanear</button>
       </header>
@@ -436,22 +455,23 @@ const PAGE_META = {
   alerts: ['Alertas', 'Reglas y canales'],
   scans: ['Escaneos', 'Historial y ejecución'],
   reports: ['Informes', 'Exportación'],
+  guide: ['Guía', 'Guía interactiva'],
   settings: ['Configuración', 'Sistema'],
 };
 
 function setPageTitle(view, crumb = '') {
   const meta = PAGE_META[view] || ['NetDiag', ''];
   const t = $('#page-title');
-  if (t) t.textContent = meta[0];
+  if (t) t.textContent = tr(meta[0]);
   const c = $('#page-crumb');
-  if (c) c.textContent = crumb || meta[1] || '';
+  if (c) c.textContent = tr(crumb || meta[1] || '');
 }
 
 function startClock() {
   if (state.clockTimer) clearInterval(state.clockTimer);
   const tick = () => {
     const el = $('#clock');
-    if (el) el.textContent = new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'medium' });
+    if (el) el.textContent = new Date().toLocaleString(dateLocale(), { dateStyle: 'short', timeStyle: 'medium' });
   };
   tick();
   state.clockTimer = setInterval(tick, 1000);
@@ -474,7 +494,7 @@ function setLive(on) {
   const dot = $('#live-dot');
   const label = $('#live-label');
   if (dot) dot.classList.toggle('on', on);
-  if (label) label.textContent = on ? 'En vivo' : 'Reconectando…';
+  if (label) label.textContent = on ? tr('En vivo') : tr('Reconectando…');
 }
 
 function connectWS() {
@@ -580,7 +600,8 @@ async function route(silent = false) {
   if (!state.me) return;
   const raw = (location.hash || '#/dashboard').replace(/^#\/?/, '');
   const [view, ...rest] = raw.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'alerts', 'scans', 'reports', 'settings'].includes(view) ? view : 'dashboard';
+  state.view = ['dashboard', 'hosts', 'topology', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
   updateNav();
   const content = $('#content');
   if (!content) return;
@@ -598,6 +619,7 @@ async function route(silent = false) {
       case 'alerts': await renderAlerts(rest[0]); break;
       case 'scans': await renderScans(); break;
       case 'reports': await renderReports(); break;
+      case 'guide': await renderGuide(); break;
       case 'settings': await renderSettings(); break;
       default: await renderDashboard();
     }
@@ -1038,6 +1060,17 @@ document.addEventListener('click', async (e) => {
       case 'reload': route(); break;
       case 'logout': logout(); break;
       case 'theme': toggleTheme(); break;
+      case 'lang': if (window.NetDiagI18n) window.NetDiagI18n.toggle(); break;
+      case 'guide-open': navTo('#/guide'); break;
+      case 'tour-start': startTour(); break;
+      case 'tour-next': tourNext(); break;
+      case 'tour-prev': tourPrev(); break;
+      case 'tour-end': endTour(); break;
+      case 'user-reset': openResetUserModal(Number(target.dataset.id), target.dataset.name || ''); break;
+      case 'user-password-save': await submitUserPasswordFromModal(); break;
+      case 'user-delete': await deleteUserAccount(Number(target.dataset.id), target.dataset.name || '', target.dataset.self === '1'); break;
+      case 'backup-create': await createBackup(target); break;
+      case 'backup-delete': await deleteBackup(target.dataset.name || ''); break;
       case 'toggle-sidebar': $('#sidebar')?.classList.toggle('open'); break;
       case 'open-scan': openScanModal(); break;
       case 'hosts-page':
@@ -1122,6 +1155,9 @@ document.addEventListener('change', (e) => {
     state.hostHistoryRange = el.value;
     renderHostDetail(state.host.host.id);
   }
+  if (el.dataset.userRole !== undefined) {
+    changeUserRole(Number(el.dataset.userRole), el.value).catch((err) => toast(err.message || String(err), { type: 'err', title: 'Error' }));
+  }
 });
 
 const debouncedHostsReload = debounce(() => { if (state.view === 'hosts') reloadHosts(); }, 320);
@@ -1146,6 +1182,9 @@ document.addEventListener('input', (e) => {
     state.alerts.search = e.target.value;
     debouncedAlertsReload();
   }
+  if (e.target.dataset.guideSearch !== undefined && typeof filterGuide === 'function') {
+    filterGuide(e.target.value);
+  }
 });
 
 const debouncedAlertsReload = debounce(() => { if (state.view === 'alerts') renderAlerts(state.alertsTab || 'alertas'); }, 320);
@@ -1165,6 +1204,7 @@ document.addEventListener('submit', async (e) => {
     if (kind === 'channel') { await submitChannel(form); return; }
     if (kind === 'network') { await submitNetwork(form); return; }
     if (kind === 'user') { await submitUser(form); return; }
+    if (kind === 'reset-password') { await submitUserPassword(form); return; }
     if (kind === 'report') { await submitReport(form); return; }
     if (kind === 'config') { await submitConfig(form); return; }
     if (kind === 'password') { await submitPassword(form); return; }
@@ -1230,6 +1270,165 @@ async function setAlertStatus(id, action) {
   refreshAlertBadge();
   if (state.view === 'alerts') await renderAlerts(state.alertsTab || 'alertas');
 }
+
+/* ---------------- guía interactiva / tour ---------------- */
+const TOUR_STEPS = [
+  {
+    selector: '[data-view="dashboard"]', title: 'Panel', titleEn: 'Dashboard',
+    body: 'Aquí ves el estado de la red: dispositivos, alertas, latencia y disponibilidad de las últimas 24 horas.',
+    bodyEn: 'The state of your network at a glance: devices, alerts, latency and availability for the last 24 hours.',
+  },
+  {
+    selector: '[data-view="hosts"]', title: 'Dispositivos', titleEn: 'Devices',
+    body: 'El inventario guarda cada host con su IP, MAC, fabricante, puertos, notas y etiquetas. La identidad se conserva aunque cambie la IP.',
+    bodyEn: 'The inventory keeps every host with its IP, MAC, vendor, ports, notes and tags. Identity survives IP changes.',
+  },
+  {
+    selector: '[data-view="topology"]', title: 'Topología', titleEn: 'Topology',
+    body: 'Mapa interactivo de enlaces L2/L3 construido con LLDP, CDP, tablas de bridge y ARP. Arrastra, acerca y filtra por subred.',
+    bodyEn: 'Interactive L2/L3 link map built from LLDP, CDP, bridge tables and ARP. Drag, zoom and filter by subnet.',
+  },
+  {
+    selector: '[data-view="alerts"]', title: 'Alertas', titleEn: 'Alerts',
+    body: 'Reglas integradas y personalizadas. Reconoce, resuelve y envía notificaciones por webhook, Slack, Telegram, correo o Syslog.',
+    bodyEn: 'Built-in and custom rules. Acknowledge, resolve, and notify through webhooks, Slack, Telegram, email or Syslog.',
+  },
+  {
+    selector: '[data-view="scans"]', title: 'Escaneos', titleEn: 'Scans',
+    body: 'Lanza descubrimientos por perfil y sigue el progreso en vivo. Puedes cancelar sin perder lo ya descubierto.',
+    bodyEn: 'Run discoveries by profile and follow progress live. Cancel at any time without losing what was already found.',
+  },
+  {
+    selector: '[data-view="reports"]', title: 'Informes', titleEn: 'Reports',
+    body: 'Genera inventarios, resúmenes ejecutivos y listados de alertas en PDF, CSV, JSON o HTML.',
+    bodyEn: 'Generate inventories, executive summaries and alert lists in PDF, CSV, JSON or HTML.',
+  },
+  {
+    selector: '[data-view="guide"]', title: 'Guía', titleEn: 'Guide',
+    body: 'La guía completa vive aquí. Puedes repetir este recorrido cuando quieras.',
+    bodyEn: 'The full guide lives here. You can replay this tour whenever you like.',
+  },
+  {
+    selector: '[data-action="lang"]', title: 'Idioma', titleEn: 'Language',
+    body: 'Cambia entre español e inglés en cualquier momento. La preferencia se guarda en este navegador.',
+    bodyEn: 'Switch between Spanish and English at any time. The preference is stored in this browser.',
+  },
+  {
+    selector: '[data-view="settings"]', title: 'Configuración', titleEn: 'Settings',
+    body: 'Redes, usuarios, copias de seguridad y ajustes avanzados. Solo los administradores ven esta sección.',
+    bodyEn: 'Networks, users, backups and advanced options. Only administrators see this section.',
+    adminOnly: true,
+  },
+];
+
+let tourState = null;
+
+function startTour() {
+  if (!state.me) return;
+  const steps = TOUR_STEPS.filter((s) => {
+    if (s.adminOnly && !isAdmin()) return false;
+    const el = document.querySelector(s.selector);
+    return el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  });
+  if (!steps.length) return;
+  closeModal();
+  tourState = { index: 0, steps };
+  renderTour();
+}
+
+function tourText(step, key) {
+  const en = window.NetDiagI18n && window.NetDiagI18n.isEnglish;
+  if (en && step[key + 'En']) return step[key + 'En'];
+  return step[key];
+}
+
+function tourRoot() {
+  let root = document.getElementById('tour-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'tour-root';
+    root.className = 'tour-layer';
+    document.body.appendChild(root);
+  }
+  return root;
+}
+
+function renderTour() {
+  if (!tourState) return;
+  const step = tourState.steps[tourState.index];
+  if (!step) return endTour();
+  const root = tourRoot();
+  const last = tourState.index === tourState.steps.length - 1;
+  root.innerHTML = `
+    <div class="tour-spot" id="tour-spot"></div>
+    <div class="tour-pop" id="tour-pop" role="dialog" aria-modal="true">
+      <div class="tour-progress"><span>${tr('Paso')} ${tourState.index + 1} / ${tourState.steps.length}</span>
+        <button class="btn ghost icon sm" data-action="tour-end" aria-label="${esc(tr('Cerrar'))}">${icon('x')}</button></div>
+      <h3>${esc(tourText(step, 'title'))}</h3>
+      <p>${esc(tourText(step, 'body'))}</p>
+      <div class="tour-actions">
+        <button class="btn ghost" data-action="tour-end">${esc(tr('Saltar'))}</button>
+        <div class="spacer"></div>
+        ${tourState.index > 0 ? `<button class="btn" data-action="tour-prev">${esc(tr('Anterior'))}</button>` : ''}
+        <button class="btn primary" data-action="tour-next">${esc(last ? tr('Finalizar') : tr('Siguiente'))}</button>
+      </div>
+    </div>`;
+  positionTour(step);
+  const pop = document.getElementById('tour-pop');
+  if (pop) pop.focus();
+}
+
+function positionTour(step) {
+  const target = document.querySelector(step.selector);
+  const spot = document.getElementById('tour-spot');
+  const pop = document.getElementById('tour-pop');
+  if (!target || !spot || !pop) return;
+  target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  const r = target.getBoundingClientRect();
+  const pad = 6;
+  spot.style.top = `${r.top - pad}px`;
+  spot.style.left = `${r.left - pad}px`;
+  spot.style.width = `${r.width + pad * 2}px`;
+  spot.style.height = `${r.height + pad * 2}px`;
+
+  const pw = Math.min(340, window.innerWidth - 32);
+  pop.style.width = `${pw}px`;
+  const rect = pop.getBoundingClientRect();
+  const ph = rect.height || 220;
+  let top = r.bottom + 14;
+  if (top + ph > window.innerHeight - 12) top = Math.max(12, r.top - ph - 14);
+  let left = r.left + r.width / 2 - pw / 2;
+  left = Math.max(12, Math.min(window.innerWidth - pw - 12, left));
+  pop.style.top = `${top}px`;
+  pop.style.left = `${left}px`;
+}
+
+function tourNext() {
+  if (!tourState) return;
+  if (tourState.index >= tourState.steps.length - 1) return endTour();
+  tourState.index++;
+  renderTour();
+}
+
+function tourPrev() {
+  if (!tourState || tourState.index === 0) return;
+  tourState.index--;
+  renderTour();
+}
+
+function endTour() {
+  tourState = null;
+  try { localStorage.setItem('netdiag-tour-done', '1'); } catch {}
+  const root = document.getElementById('tour-root');
+  if (root) root.remove();
+}
+
+window.addEventListener('resize', () => {
+  if (tourState) {
+    const step = tourState.steps[tourState.index];
+    if (step) positionTour(step);
+  }
+});
 
 /* ---------------- boot ---------------- */
 async function boot() {

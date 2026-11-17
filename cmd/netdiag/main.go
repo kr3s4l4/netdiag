@@ -31,6 +31,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/api"
 	"github.com/kr3s4l4/netdiag/internal/app"
 	"github.com/kr3s4l4/netdiag/internal/auth"
+	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/discover"
 	"github.com/kr3s4l4/netdiag/internal/model"
@@ -41,7 +42,7 @@ import (
 
 // Injected with -ldflags at build time.
 var (
-	version   = "1.0.0"
+	version   = "1.1.0"
 	commit    = "dev"
 	buildDate = ""
 )
@@ -79,6 +80,8 @@ func run(args []string) int {
 		return doctorCmd(rest)
 	case "user", "users":
 		return userCmd(rest)
+	case "backup":
+		return backupCmd(rest)
 	default:
 		fmt.Fprintf(os.Stderr, "netdiag: comando desconocido %q\n\n", cmd)
 		usage(os.Stderr)
@@ -99,7 +102,8 @@ Comandos:
   report                Genera un informe (PDF, CSV, JSON o HTML)
   config                Muestra, valida o crea la configuración
   doctor                Comprueba el entorno y los permisos necesarios
-  user                  Gestiona usuarios (list, add, passwd)
+  user                  Gestiona usuarios (list, add, passwd, role, delete)
+  backup                Crea una copia de seguridad completa en ZIP
   version               Muestra la versión
   help                  Muestra esta ayuda
 
@@ -113,6 +117,7 @@ Ejemplos:
   netdiag scan 10.0.0.0/24 --profile full --snmp --wait
   netdiag serve --listen 0.0.0.0:8080
   netdiag report --kind inventory --format pdf
+  netdiag backup --out /var/backups/netdiag.zip
   netdiag doctor
 `)
 }
@@ -199,11 +204,17 @@ func loadConfig(cf *commonFlags) (*config.Config, string, error) {
 		return nil, path, err
 	}
 	if cf.dataDir != "" {
+		// If backup_dir was derived from the old data directory, keep deriving
+		// it from the new one. An explicitly configured path is left untouched.
+		derivedBackup := cfg.Storage.BackupDir == filepath.Join(cfg.Storage.DataDir, "backups")
 		cfg.Storage.DataDir = cf.dataDir
 		// Keep the database next to the new data directory unless the user
 		// explicitly overrides it as well.
 		if cf.db == "" {
 			cfg.Storage.DB = filepath.Join(cfg.Storage.DataDir, filepath.Base(cfg.Storage.DB))
+		}
+		if derivedBackup {
+			cfg.Storage.BackupDir = ""
 		}
 	}
 	if cf.db != "" {
@@ -908,13 +919,15 @@ func userCmd(args []string) int {
 Subcomandos:
   list                     Lista los usuarios
   add <usuario> [--role R] Crea un usuario (contraseña por stdin o --password)
-  passwd <usuario>         Cambia la contraseña de un usuario`)
+  passwd <usuario>         Cambia la contraseña de un usuario
+  role <usuario> <rol>     Cambia el rol: admin, operator o viewer
+  delete <usuario>         Elimina un usuario y sus sesiones`)
 		return 2
 	}
 	sub := args[0]
 	fs := flag.NewFlagSet("user "+sub, flag.ExitOnError)
 	cf := addCommonFlags(fs)
-	role := fs.String("role", "admin", "rol: admin o viewer")
+	role := fs.String("role", "viewer", "rol: admin, operator o viewer")
 	password := fs.String("password", "", "contraseña (si se omite, se lee de stdin)")
 	fs.Usage = func() { fmt.Fprintf(os.Stderr, "Uso: netdiag user %s [opciones] [usuario]\n", sub) }
 	if err := parseFlags(fs, args[1:]); err != nil {
@@ -989,6 +1002,36 @@ Subcomandos:
 		_ = a.Store().DeleteUserSessions(u.ID)
 		fmt.Printf("Contraseña actualizada para %s; sesiones cerradas\n", u.Username)
 		return 0
+	case "role":
+		username := fs.Arg(0)
+		newRole := fs.Arg(1)
+		if username == "" || newRole == "" {
+			return fail("uso: netdiag user role <usuario> <admin|operator|viewer>")
+		}
+		u, _, err := a.Store().GetUserWithHash(username)
+		if err != nil {
+			return fail("usuario no encontrado: %v", err)
+		}
+		updated, err := a.Auth().UpdateUserRole(u.ID, newRole)
+		if err != nil {
+			return fail("%v", err)
+		}
+		fmt.Printf("Rol de %s actualizado a %s; sesiones cerradas\n", updated.Username, updated.Role)
+		return 0
+	case "delete":
+		username := fs.Arg(0)
+		if username == "" {
+			return fail("indica el nombre de usuario")
+		}
+		u, _, err := a.Store().GetUserWithHash(username)
+		if err != nil {
+			return fail("usuario no encontrado: %v", err)
+		}
+		if err := a.Auth().DeleteUser(u.ID); err != nil {
+			return fail("%v", err)
+		}
+		fmt.Printf("Usuario %s eliminado\n", u.Username)
+		return 0
 	default:
 		fs.Usage()
 		return 2
@@ -1012,4 +1055,62 @@ func passwordValue(flagValue string) (string, error) {
 		return "", errors.New("contraseña vacía")
 	}
 	return pw, nil
+}
+
+/* ------------------------------------------------------------------ */
+/* backup                                                              */
+/* ------------------------------------------------------------------ */
+
+func backupCmd(args []string) int {
+	fs := flag.NewFlagSet("backup", flag.ExitOnError)
+	cf := addCommonFlags(fs)
+	out := fs.String("out", "", "ruta del ZIP de salida (por defecto, el directorio de copias)")
+	keep := fs.Int("keep", 0, "número de copias a conservar (por defecto, el de la configuración)")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, `Uso: netdiag backup [opciones]
+
+Crea un ZIP con la base de datos, config.yaml y secret.key. Sin --out la
+copia se guarda en storage.backup_dir y se aplica la retención configurada.`)
+	}
+	if err := parseFlags(fs, args); err != nil {
+		return 2
+	}
+	cfg, path, err := loadConfig(cf)
+	if err != nil {
+		return fail("%v", err)
+	}
+	if *keep > 0 {
+		cfg.Storage.BackupKeep = *keep
+	}
+	a, err := app.New(cfg, path, app.BuildInfo{Version: version, Commit: commit, BuildDate: buildDate}, newLogger(cfg))
+	if err != nil {
+		return fail("%v", err)
+	}
+	defer a.Close()
+
+	mgr := a.Backups()
+	var entry *backup.Entry
+	if *out != "" {
+		entry, err = mgr.CreateTo(*out)
+	} else {
+		entry, err = mgr.Create()
+	}
+	if err != nil {
+		return fail("no se pudo crear la copia: %v", err)
+	}
+	fmt.Printf("Copia creada: %s (%s)\n", entry.Name, humanBytes(entry.Size))
+	return 0
+}
+
+func humanBytes(n int64) string {
+	const unit = 1024
+	if n < unit {
+		return fmt.Sprintf("%d B", n)
+	}
+	div, exp := int64(unit), 0
+	for m := n / unit; m >= unit; m /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGTPE"[exp])
 }

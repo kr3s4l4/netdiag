@@ -131,12 +131,16 @@ type Alerts struct {
 
 // Storage holds persistence settings.
 type Storage struct {
-	DataDir       string `yaml:"data_dir" json:"data_dir"`
-	DB            string `yaml:"db" json:"db"`
-	RetentionDays int    `yaml:"retention_days" json:"retention_days"`
-	MetricsDays   int    `yaml:"metrics_days" json:"metrics_days"`
-	AuditDays     int    `yaml:"audit_days" json:"audit_days"`
-	MaxScans      int    `yaml:"max_scans" json:"max_scans"`
+	DataDir        string   `yaml:"data_dir" json:"data_dir"`
+	DB             string   `yaml:"db" json:"db"`
+	RetentionDays  int      `yaml:"retention_days" json:"retention_days"`
+	MetricsDays    int      `yaml:"metrics_days" json:"metrics_days"`
+	AuditDays      int      `yaml:"audit_days" json:"audit_days"`
+	MaxScans       int      `yaml:"max_scans" json:"max_scans"`
+	BackupEnabled  bool     `yaml:"backup_enabled" json:"backup_enabled"`
+	BackupDir      string   `yaml:"backup_dir" json:"backup_dir"`
+	BackupInterval Duration `yaml:"backup_interval" json:"backup_interval"`
+	BackupKeep     int      `yaml:"backup_keep" json:"backup_keep"`
 }
 
 // Security holds auth and hardening settings.
@@ -147,6 +151,7 @@ type Security struct {
 	APIRate      int      `yaml:"api_rate" json:"api_rate"`     // requests per minute per IP
 	TrustProxy   bool     `yaml:"trust_proxy" json:"trust_proxy"`
 	AllowedHosts []string `yaml:"allowed_hosts" json:"allowed_hosts"`
+	MetricsToken string   `yaml:"metrics_token" json:"metrics_token"`
 }
 
 // Log holds logging settings.
@@ -219,12 +224,15 @@ func Defaults() *Config {
 			MaxPerMinute:   30,
 		},
 		Storage: Storage{
-			DataDir:       DefaultDataDir(),
-			DB:            "netdiag.db",
-			RetentionDays: 30,
-			MetricsDays:   30,
-			AuditDays:     90,
-			MaxScans:      500,
+			DataDir:        DefaultDataDir(),
+			DB:             "netdiag.db",
+			RetentionDays:  30,
+			MetricsDays:    30,
+			AuditDays:      90,
+			MaxScans:       500,
+			BackupEnabled:  true,
+			BackupInterval: Duration(24 * time.Hour),
+			BackupKeep:     7,
 		},
 		Security: Security{
 			Auth:         true,
@@ -280,6 +288,22 @@ func (c *Config) Normalize() error {
 	}
 	if !filepath.IsAbs(c.Storage.DB) {
 		c.Storage.DB = filepath.Join(c.Storage.DataDir, c.Storage.DB)
+	}
+	if c.Storage.BackupDir == "" {
+		c.Storage.BackupDir = filepath.Join(c.Storage.DataDir, "backups")
+	}
+	if strings.HasPrefix(c.Storage.BackupDir, "~") {
+		home, _ := os.UserHomeDir()
+		c.Storage.BackupDir = filepath.Join(home, strings.TrimPrefix(c.Storage.BackupDir, "~"))
+	}
+	if !filepath.IsAbs(c.Storage.BackupDir) {
+		c.Storage.BackupDir = filepath.Join(c.Storage.DataDir, c.Storage.BackupDir)
+	}
+	if c.Storage.BackupInterval.Duration() <= 0 {
+		c.Storage.BackupInterval = Duration(24 * time.Hour)
+	}
+	if c.Storage.BackupKeep <= 0 {
+		c.Storage.BackupKeep = 7
 	}
 	if strings.HasPrefix(c.Server.TLSCert, "~") {
 		home, _ := os.UserHomeDir()
@@ -350,6 +374,14 @@ func (c *Config) Validate() error {
 	if c.Storage.RetentionDays < 1 {
 		errs = append(errs, "storage.retention_days debe ser >= 1")
 	}
+	if c.Storage.BackupEnabled {
+		if c.Storage.BackupInterval.Duration() < 15*time.Minute {
+			errs = append(errs, "storage.backup_interval mínimo 15m")
+		}
+		if c.Storage.BackupKeep < 1 || c.Storage.BackupKeep > 365 {
+			errs = append(errs, "storage.backup_keep debe estar entre 1 y 365")
+		}
+	}
 	if (c.Server.TLSCert == "") != (c.Server.TLSKey == "") {
 		errs = append(errs, "server.tls_cert y server.tls_key deben configurarse juntos")
 	}
@@ -380,7 +412,11 @@ func (c *Config) Save(path string) error {
 
 // EnsureDirs creates the data directory structure.
 func (c *Config) EnsureDirs() error {
-	for _, d := range []string{c.Storage.DataDir, filepath.Join(c.Storage.DataDir, "reports"), filepath.Join(c.Storage.DataDir, "logs")} {
+	dirs := []string{c.Storage.DataDir, filepath.Join(c.Storage.DataDir, "reports"), filepath.Join(c.Storage.DataDir, "logs")}
+	if c.Storage.BackupEnabled {
+		dirs = append(dirs, c.Storage.BackupDir)
+	}
+	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0o700); err != nil {
 			return err
 		}
