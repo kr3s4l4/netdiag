@@ -114,6 +114,7 @@ const ICONS = {
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
   moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
+  contrast: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
   play: '<path d="m7 4 13 8-13 8z"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="1"/>',
@@ -454,7 +455,7 @@ function renderShell() {
         </label>
         <span class="clock" id="clock">—</span>
         <button class="btn sm ghost lang-btn" data-action="lang" title="Cambiar idioma">${i18n ? i18n.label : 'EN'}</button>
-        <button class="btn ghost icon" data-action="theme" title="Cambiar tema" id="theme-btn">${icon(document.documentElement.dataset.theme === 'light' ? 'moon' : 'sun')}</button>
+        <button class="btn ghost icon" data-action="theme" title="${esc(t('Cambiar tema'))}" id="theme-btn">${icon(themeIcon(document.documentElement.dataset.theme || 'dark'))}</button>
         <button class="btn primary" data-action="open-scan">${icon('radar')} Escanear</button>
       </header>
       <div class="content" id="content"><div class="loading"><div class="spinner"></div></div></div>
@@ -1310,13 +1311,32 @@ document.addEventListener('submit', async (e) => {
   }
 });
 
-function toggleTheme() {
-  const html = document.documentElement;
-  const next = html.dataset.theme === 'light' ? 'dark' : 'light';
-  html.dataset.theme = next;
-  localStorage.setItem('netdiag-theme', next);
+const THEMES = ['dark', 'light', 'high-contrast'];
+
+function themeIcon(theme) {
+  return theme === 'dark' ? 'sun' : theme === 'light' ? 'moon' : 'contrast';
+}
+
+function themeLabel(theme) {
+  return t(theme === 'dark' ? 'Tema oscuro' : theme === 'light' ? 'Tema claro' : 'Alto contraste');
+}
+
+function applyTheme(theme, persist = true) {
+  const next = THEMES.includes(theme) ? theme : 'dark';
+  document.documentElement.dataset.theme = next;
+  if (persist) {
+    try { localStorage.setItem('netdiag-theme', next); } catch {}
+  }
   const btn = $('#theme-btn');
-  if (btn) btn.innerHTML = icon(next === 'light' ? 'moon' : 'sun');
+  if (btn) {
+    btn.innerHTML = icon(themeIcon(next));
+    btn.title = t('Cambiar tema') + ': ' + themeLabel(next);
+  }
+}
+
+function toggleTheme() {
+  const current = THEMES.indexOf(document.documentElement.dataset.theme || 'dark');
+  applyTheme(THEMES[(current + 1) % THEMES.length]);
 }
 
 async function copyText(text) {
@@ -1526,8 +1546,13 @@ window.addEventListener('resize', () => {
 
 /* ---------------- boot ---------------- */
 async function boot() {
-  const saved = localStorage.getItem('netdiag-theme');
-  if (saved) document.documentElement.dataset.theme = saved;
+  let saved = null;
+  try { saved = localStorage.getItem('netdiag-theme'); } catch {}
+  if (saved && THEMES.includes(saved)) {
+    document.documentElement.dataset.theme = saved;
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    document.documentElement.dataset.theme = 'light';
+  }
   try {
     const st = await api('/auth/status', { noAuthRedirect: true });
     state.auth = st;

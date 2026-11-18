@@ -2193,8 +2193,8 @@ const GUIDE_SECTIONS = [
       },
       {
         t: 'Idioma y tema', tEn: 'Language and theme',
-        b: 'El botón ES/EN de la cabecera cambia el idioma y lo guarda en el navegador. El icono de sol/luna alterna tema claro y oscuro.',
-        bEn: 'The ES/EN button in the header switches language and remembers it in the browser. The sun/moon icon toggles light and dark themes.',
+        b: 'El botón ES/EN de la cabecera cambia el idioma y lo guarda en el navegador. El icono de tema cicla entre oscuro, claro y alto contraste; sin preferencia guardada respeta prefers-color-scheme.',
+        bEn: 'The ES/EN button in the header switches language and remembers it in the browser. The theme icon cycles between dark, light and high contrast; with no saved preference it respects prefers-color-scheme.',
       },
       {
         t: 'Esc para cerrar', tEn: 'Esc to close',

@@ -58,6 +58,45 @@
   color-scheme: light;
 }
 
+/* High contrast: AAA-oriented palette, no gradients, strong borders. */
+[data-theme="high-contrast"] {
+  --bg: #000000;
+  --bg-grad: none;
+  --panel: #000000;
+  --panel-2: #0a0a0a;
+  --panel-3: #171717;
+  --border: #ffffff;
+  --border-soft: #b0b0b0;
+  --text: #ffffff;
+  --muted: #f0f0f0;
+  --muted-2: #d0d0d0;
+  --accent: #ffff00;
+  --accent-strong: #ffff00;
+  --accent-soft: rgba(255, 255, 0, 0.22);
+  --green: #00ff66;
+  --green-soft: rgba(0, 255, 102, 0.18);
+  --amber: #ffcc00;
+  --amber-soft: rgba(255, 204, 0, 0.18);
+  --red: #ff5555;
+  --red-soft: rgba(255, 85, 85, 0.18);
+  --violet: #ff88ff;
+  --violet-soft: rgba(255, 136, 255, 0.18);
+  --shadow: none;
+  --radius: 4px;
+  --radius-sm: 3px;
+  color-scheme: dark;
+}
+[data-theme="high-contrast"] body { background-image: none; }
+[data-theme="high-contrast"] .card,
+[data-theme="high-contrast"] input,
+[data-theme="high-contrast"] select,
+[data-theme="high-contrast"] textarea,
+[data-theme="high-contrast"] .btn,
+[data-theme="high-contrast"] .tab,
+[data-theme="high-contrast"] table,
+[data-theme="high-contrast"] th,
+[data-theme="high-contrast"] td { border-width: 2px; }
+
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
