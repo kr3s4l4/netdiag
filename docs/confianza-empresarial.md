@@ -75,6 +75,8 @@ Si se ofrece el addon hosted, ese servicio se describe como un **subprocesador**
 | P3 | Error menor, pregunta o mejora | 1 día hábil | — | 5 días hábiles | Foro / correo |
 | P4 | Solicitud de información comercial | 2 días hábiles | — | — | Correo |
 
+**Condición para operación unipersonal:** el SLA P1 de 1 h solo se activa cuando existe cobertura real —responsable alterno, retainer de seguridad o acuerdo de guardia—. Mientras no exista, se ofrece P1 con **respuesta objetivo de 8 h hábiles** y se dice así en el presupuesto. Prometer 1 h sin cobertura es incumplible y genera más responsabilidad que ventaja comercial.
+
 El SLA se mide desde la confirmación de recepción en el canal de soporte definido en el contrato. Exclusiones: mantenimiento programado avisado, cambios no soportados y fallos de infraestructura del cliente.
 
 ## Contratos y cumplimiento

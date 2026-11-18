@@ -192,7 +192,7 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 
 - Documentos: whitepaper de seguridad, modelo de amenazas, flujo de datos, DPA/EULA, matriz SLA, guía de endurecimiento y política de vulnerabilidades.
 - Proceso: prueba de 30 días, PoC guiado, presupuesto con SKU, orden de compra, factura anual, licencia firmada y alta en soporte.
-- SLA Enterprise: P1 respuesta 1 h / workaround 8 h / objetivo de solución 24 h; P2 4 h hábiles / 2 días; P3 1 día hábil / 5 días.
+- SLA Enterprise: P1 respuesta 1 h / workaround 8 h / objetivo de solución 24 h; P2 4 h hábiles / 2 días; P3 1 día hábil / 5 días. El P1 de 1 h requiere cobertura alterna; sin ella se ofrece 8 h hábiles y se indica en el presupuesto.
 - Pro: soporte por correo con objetivo 48 h hábiles, sin SLA contractual.
 - Kit de venta: ficha de precios, one-pager de ROI, demo con datos sintéticos (F39), preguntas frecuentes de seguridad y checklist de compras.
 - Transparencia: declarar que SQLite no cifra toda la base por defecto; `secret.key` protege secretos de integraciones; la edición portable no captura 802.11 crudo.

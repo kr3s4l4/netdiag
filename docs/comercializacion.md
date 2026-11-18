@@ -37,6 +37,8 @@ Precios en EUR, **sin IVA**, facturación anual por adelantado.
 
 Las bandas de retención son **7 días / 1 mes / 1 año**, con 7 años en Enterprise. La retención es un diferenciador del plan, no un producto de duración de acceso: el acceso al producto es siempre la suscripción anual.
 
+**SLA y capacidad real:** el SLA P1 de 1 h en Enterprise se activa solo cuando existe cobertura operativa —responsable alterno o retainer—. En fase unipersonal se ofrece P1 con respuesta objetivo de 8 h hábiles, explicitado en el presupuesto. La primera versión vendible no depende de prometer 1 h.
+
 ### Incluido en todos los planes de pago
 
 - Informe ejecutivo de una página (F32).
