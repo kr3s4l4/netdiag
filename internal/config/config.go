@@ -6,9 +6,11 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -72,6 +74,7 @@ type Config struct {
 	Monitor      Monitor      `yaml:"monitor" json:"monitor"`
 	Alerts       Alerts       `yaml:"alerts" json:"alerts"`
 	Integrations Integrations `yaml:"integrations" json:"integrations"`
+	Update       Update       `yaml:"update" json:"update"`
 	Storage      Storage      `yaml:"storage" json:"storage"`
 	Security     Security     `yaml:"security" json:"security"`
 	Diagnostics  Diagnostics  `yaml:"diagnostics" json:"diagnostics"`
@@ -141,6 +144,21 @@ type Integrations struct {
 	Timeout             Duration `yaml:"timeout" json:"timeout"`
 	MaxPerMinute        int      `yaml:"max_per_minute" json:"max_per_minute"`
 	QueueSize           int      `yaml:"queue_size" json:"queue_size"`
+}
+
+// Update configures F23 self-updates. The public key is a minisign public key
+// (base64 of "Ed" || key_id || Ed25519 public key, or the full two-line file).
+// No credentials belong here: manifests are downloaded and verified
+// unauthenticated, and the signing key is intentionally not stored.
+type Update struct {
+	Enabled            bool     `yaml:"enabled" json:"enabled"`
+	ManifestURL        string   `yaml:"manifest_url" json:"manifest_url"`
+	PublicKey          string   `yaml:"public_key" json:"public_key"`
+	CheckIntervalHours int      `yaml:"check_interval_hours" json:"check_interval_hours"`
+	DownloadTimeout    Duration `yaml:"download_timeout" json:"download_timeout"`
+	MaxDownloadMB      int      `yaml:"max_download_mb" json:"max_download_mb"`
+	RestartCommand     string   `yaml:"restart_command" json:"restart_command"`
+	RestartArgs        []string `yaml:"restart_args" json:"restart_args"`
 }
 
 // Storage holds persistence settings.
@@ -275,6 +293,12 @@ func Defaults() *Config {
 			Timeout:      Duration(10 * time.Second),
 			MaxPerMinute: 60,
 			QueueSize:    512,
+		},
+		Update: Update{
+			Enabled:            false,
+			CheckIntervalHours: 24,
+			DownloadTimeout:    Duration(120 * time.Second),
+			MaxDownloadMB:      512,
 		},
 		VPN: VPN{
 			Enabled:       true,
@@ -443,6 +467,18 @@ func (c *Config) Normalize() error {
 	if c.Integrations.QueueSize <= 0 {
 		c.Integrations.QueueSize = 512
 	}
+	c.Update.ManifestURL = strings.TrimSpace(c.Update.ManifestURL)
+	c.Update.PublicKey = minisignPublicKeyB64(c.Update.PublicKey)
+	c.Update.RestartCommand = strings.TrimSpace(c.Update.RestartCommand)
+	if c.Update.CheckIntervalHours <= 0 {
+		c.Update.CheckIntervalHours = 24
+	}
+	if c.Update.DownloadTimeout.Duration() <= 0 {
+		c.Update.DownloadTimeout = Duration(120 * time.Second)
+	}
+	if c.Update.MaxDownloadMB <= 0 {
+		c.Update.MaxDownloadMB = 512
+	}
 	if c.VPN.Interval.Duration() <= 0 {
 		c.VPN.Interval = Duration(5 * time.Minute)
 	}
@@ -556,6 +592,46 @@ func (c *Config) Validate() error {
 	if c.WiFi.ScanSeconds < 1 || c.WiFi.ScanSeconds > 300 {
 		errs = append(errs, "wifi.scan_seconds debe estar entre 1 y 300")
 	}
+	if c.Update.CheckIntervalHours < 1 || c.Update.CheckIntervalHours > 720 {
+		errs = append(errs, "update.check_interval_hours debe estar entre 1 y 720")
+	}
+	if c.Update.DownloadTimeout.Duration() < time.Second || c.Update.DownloadTimeout.Duration() > 30*time.Minute {
+		errs = append(errs, "update.download_timeout debe estar entre 1s y 30m")
+	}
+	if c.Update.MaxDownloadMB < 1 || c.Update.MaxDownloadMB > 8192 {
+		errs = append(errs, "update.max_download_mb debe estar entre 1 y 8192")
+	}
+	if strings.ContainsRune(c.Update.RestartCommand, 0) {
+		errs = append(errs, "update.restart_command contiene caracteres NUL")
+	}
+	for _, arg := range c.Update.RestartArgs {
+		if strings.ContainsRune(arg, 0) {
+			errs = append(errs, "update.restart_args contiene caracteres NUL")
+			break
+		}
+	}
+	if c.Update.Enabled {
+		if c.Update.ManifestURL == "" {
+			errs = append(errs, "update.manifest_url es obligatoria cuando update.enabled=true")
+		} else {
+			u, err := url.Parse(c.Update.ManifestURL)
+			if err != nil || u.Hostname() == "" || (u.Scheme != "https" && u.Scheme != "http") {
+				errs = append(errs, "update.manifest_url debe ser una URL http(s) válida")
+			} else if u.User != nil {
+				errs = append(errs, "update.manifest_url no puede incluir credenciales")
+			} else if u.Scheme == "http" && !isLocalhost(u.Hostname()) {
+				errs = append(errs, "update.manifest_url debe usar HTTPS salvo en localhost")
+			}
+		}
+		if c.Update.PublicKey == "" {
+			errs = append(errs, "update.public_key es obligatoria cuando update.enabled=true")
+		} else {
+			raw, err := base64.StdEncoding.DecodeString(c.Update.PublicKey)
+			if err != nil || len(raw) != 42 || string(raw[:2]) != "Ed" {
+				errs = append(errs, "update.public_key debe ser una clave pública minisign válida")
+			}
+		}
+	}
 	for _, ch := range c.WiFi.Channels {
 		if ch < 1 || ch > 233 {
 			errs = append(errs, "wifi.channels contiene un canal fuera de rango (1-233)")
@@ -602,6 +678,31 @@ func (c *Config) EnsureDirs() error {
 		}
 	}
 	return nil
+}
+
+// minisignPublicKeyB64 accepts either the bare base64 key or a complete
+// two-line minisign public key file and returns just the encoded key.
+func minisignPublicKeyB64(s string) string {
+	s = strings.TrimSpace(s)
+	if !strings.ContainsAny(s, "\r\n") {
+		return s
+	}
+	for _, line := range strings.Split(s, "\n") {
+		line = strings.TrimSpace(strings.TrimSuffix(line, "\r"))
+		if line == "" || strings.HasPrefix(line, "untrusted comment:") || strings.HasPrefix(line, "trusted comment:") {
+			continue
+		}
+		return line
+	}
+	return ""
+}
+
+func isLocalhost(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 func applyEnv(c *Config) {
@@ -676,4 +777,15 @@ func applyEnv(c *Config) {
 	})
 	set("NETDIAG_TLS_CERT", func(v string) { c.Server.TLSCert = v })
 	set("NETDIAG_TLS_KEY", func(v string) { c.Server.TLSKey = v })
+	set("NETDIAG_UPDATE_ENABLED", func(v string) {
+		c.Update.Enabled = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+	})
+	set("NETDIAG_UPDATE_MANIFEST_URL", func(v string) { c.Update.ManifestURL = v })
+	set("NETDIAG_UPDATE_PUBLIC_KEY", func(v string) { c.Update.PublicKey = v })
+	set("NETDIAG_UPDATE_INTERVAL_HOURS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Update.CheckIntervalHours = n
+		}
+	})
+	set("NETDIAG_UPDATE_RESTART_COMMAND", func(v string) { c.Update.RestartCommand = v })
 }

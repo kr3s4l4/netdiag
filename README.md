@@ -232,6 +232,58 @@ curl -sb cookies.txt -o auditoria.json.gz \
 
 Crear y borrar snapshots requiere `admin`, `owner` u `operator`; listar, consultar, comparar y exportar está disponible para cualquier rol autenticado. El detalle (`GET /api/v1/audits/{id}`) devuelve solo metadatos salvo que se pida `?data=1`.
 
+## Auto-actualización
+
+La tarjeta **Actualizaciones** de *Ajustes → Sistema* cierra F23: comprueba una versión firmada, descarga el binario, lo verifica, lo instala de forma atómica y permite reiniciar o revertir. La comprobación está desactivada por defecto; para habilitarla hacen falta `update.enabled: true`, una URL de manifiesto y la clave pública del firmante:
+
+```yaml
+update:
+  enabled: true
+  manifest_url: https://updates.example.com/netdiag/manifest.json
+  public_key: RWQf6...   # base64 de la clave pública minisign, o el archivo de dos líneas
+  check_interval_hours: 24
+  download_timeout: 120s
+  max_download_mb: 512
+  restart_command: ""    # ej. systemctl; vacío usa syscall.Exec sobre el propio binario
+  restart_args: []       # ej. ["restart", "netdiag"]
+```
+
+El manifiesto está firmado con **minisign** (Ed25519 sobre BLAKE2b-512, algoritmo `ED`) y cubre exactamente `schema`, `version`, `url`, `checksum`, `released_at` y `notes`. El comentario de confianza liga además `version:` y `sha256:` para impedir sustituciones. La URL del manifiesto y del binario deben ser HTTPS; HTTP solo se acepta en `localhost`/loopback para espejos internos o pruebas. Las URL con credenciales se rechazan. Antes de instalar se valida el SHA256 del binario y, en Linux, la cabecera ELF; el tamaño está limitado por `update.max_download_mb`. El manifiesto está limitado a 1 MiB.
+
+La instalación renombra el ejecutable a `<binario>.netdiag-old`, coloca el nuevo binario con el mismo modo de permisos y escribe `<data_dir>/update-pending.json`. Al arrancar, NetDiag confirma la actualización si el binario coincide con el checksum firmado; si está corrupto, restaura automáticamente la copia. `netdiag update rollback` hace lo mismo de forma manual. `update.restart_command`/`restart_args` permite reiniciar mediante systemd u otro supervisor; sin comando se usa `syscall.Exec`. El reinicio de la API se difiere 500 ms para que la respuesta HTTP llegue completa.
+
+```bash
+# Comprobar, instalar sin reiniciar y confirmar tras verificar el arranque
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" \
+  http://127.0.0.1:8080/api/v1/update/check | python3 -m json.tool
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"version":"1.6.0","restart":false}' \
+  http://127.0.0.1:8080/api/v1/update/apply | python3 -m json.tool
+netdiag update commit
+
+# Si la nueva versión no arranca correctamente
+netdiag update rollback
+```
+
+También están disponibles `netdiag update check|apply|rollback|commit` y el flag `-update-check-interval-hours` (24 por defecto; solo sobrescribe la configuración cuando se pasa explícitamente). Las variables de entorno `NETDIAG_UPDATE_ENABLED`, `NETDIAG_UPDATE_MANIFEST_URL`, `NETDIAG_UPDATE_PUBLIC_KEY`, `NETDIAG_UPDATE_INTERVAL_HOURS` y `NETDIAG_UPDATE_RESTART_COMMAND` permiten organizaciones sin archivo de configuración writable. Los eventos WebSocket `update.available`, `update.applied`, `update.installed`, `update.restarting`, `update.restart_failed` y `update.rolled_back` alimentan la notificación de la interfaz.
+
+Consultar el estado y comprobar versiones es posible para cualquier rol autenticado; aplicar o revertir exige `admin`/`owner`. El manejo del gestor usa solo la biblioteca estándar más `x/crypto/blake2b` (ya presente); no se incorporó la dependencia externa sugerida en el roadmap para mantener el binario portable y el control total de la verificación.
+
+## Fases opcionales diferidas
+
+El roadmap clasifica F13, F14, F15, F16, F17 y F26 como opcionales/de baja prioridad. Se documenta aquí por qué no se incluyen en esta entrega:
+
+| Fase | Motivo de diferimiento | Alternativa cubierta hoy |
+| --- | --- | --- |
+| F13 — Multi-tenant | Solo tiene sentido si NetDiag se convierte en SaaS; introduces `tenant_id` en todo el modelo, cambia la autenticación y multiplica el riesgo de aislamiento. Requiere F25. | Multi-sede real con una sola base, sede `Principal` por defecto, aislamiento por `site_id` y exportación/importación por sede. |
+| F14 — Plugins | Cargar `.so` o JS externo ejecuta código de terceros dentro del proceso y rompe el modelo «binario único y seguro por defecto». | F10 exporta eventos a Elasticsearch, syslog, webhook, Kafka y Redis mediante configuración cifrada, sin ejecutar código externo. |
+| F15 — Forense pcap | Guardar capturas completas tiene coste de disco, privacidad y retención elevado; la demanda es inferior a la del inventario continuo. El binario portable tampoco captura tráfico crudo. | Informes JSON/CSV/PDF, snapshots comprimidos de auditoría (F22) y comparativa temporal (F21) como evidencia histórica; `-tags pcap` habilita ARP activo y WiFi. |
+| F16 — DPI | TLS 1.3 cifra casi todo el payload; la identificación por SNI/HTTP Host es parcial y depende de tráfico observable, con falsos positivos. | Clasificación por banners, puertos, SNMP y heurísticas con evidencia y confianza en diagnósticos e inventario. |
+| F17 — Threat Intel | Requiere servicios externos, claves, límites de tasa y listas que generan falsos positivos; contradice el funcionamiento offline y autohospedado. | Reglas y canales de alertas, integraciones salientes y detección de AP no autorizado en F11, todo local y auditable. |
+| F26 — Cloud sync | Igual que F13: solo aplica a un servicio SaaS centralizado y envía inventario de red a terceros. Requiere F25. | Copias ZIP cifradas localmente, exportación por sede y despliegue autocontenido sin dependencia de nube. |
+
+Estas decisiones no borran las ideas del roadmap: quedan como extensiones condicionadas a un modelo SaaS o a una necesidad operativa explícita, y no bloquean el cierre de la versión 1.5.
+
 ## Compilación
 
 ```bash
@@ -364,6 +416,15 @@ wifi:
   channels: []              # ej. [1, 6, 11]; salto de canal best effort con iw
   authorized_bssids: []     # inventario de APs propios
   known_ssids: []           # inventario de SSID permitidos
+update:
+  enabled: false            # comprobaciones firmadas; requiere manifest_url y public_key
+  manifest_url: ""          # HTTPS salvo localhost
+  public_key: ""            # clave pública minisign (base64 o archivo de dos líneas)
+  check_interval_hours: 24
+  download_timeout: 120s
+  max_download_mb: 512
+  restart_command: ""       # vacío usa syscall.Exec sobre el ejecutable actual
+  restart_args: []
 ```
 
 La mayoría de cambios se aplican en caliente desde **Ajustes**; los de escucha, TLS, rutas de datos y nivel de registro requieren reiniciar.
@@ -413,4 +474,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal y modo auditoría. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia y líneas base auditables. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal, modo auditoría y auto-actualización firmada con rollback. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia, líneas base auditables, manifiestos manipulados, instalación atómica, confirmación y reversión. F13, F14, F15, F16, F17 y F26 quedan documentados como opcionales diferidos. Las contribuciones y los informes de errores son bienvenidos.

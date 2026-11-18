@@ -316,6 +316,33 @@ La base se migra automáticamente al arrancar. Antes de actualizar entre version
 
 El binario se puede reemplazar en caliente sin tocar `/var/lib/netdiag` ni `/etc/netdiag`. Los escaneos en curso se marcan como interrumpidos al reiniciar y el planificador los retomará en el siguiente ciclo.
 
+### Auto-actualización firmada (F23)
+
+Además del reemplazo manual, NetDiag puede comprobar y aplicar versiones firmadas. Es **opt-in**: añade a `/etc/netdiag/config.yaml`:
+
+```yaml
+update:
+  enabled: true
+  manifest_url: https://updates.example.com/netdiag/manifest.json
+  public_key: |
+    untrusted comment: minisign public key
+    RWQf6...
+  restart_command: systemctl
+  restart_args: [restart, netdiag]
+```
+
+Publica la clave pública del firmante, nunca la privada. El manifiesto y el binario deben servirse por HTTPS (HTTP solo en loopback) y el SHA256 del binario se valida antes de instalar. Con `restart_command` definido, el reinicio pasa por systemd y conserva capabilities; sin él, NetDiag usa `syscall.Exec` sobre el propio ejecutable. La cuenta de servicio debe poder escribir el directorio que contiene el binario para poder instalar, o bien debe usarse un despliegue externo que llame a `netdiag update check`.
+
+Tras instalar se crea `<binario>.netdiag-old` y `/var/lib/netdiag/update-pending.json`. El arranque confirma el marcador si el binario coincide con el checksum firmado y lo revierte automáticamente si está corrupto. Para intervenir:
+
+```bash
+sudo -u netdiag netdiag update check
+sudo -u netdiag netdiag update commit   # confirma la versión instalada
+sudo -u netdiag netdiag update rollback # vuelve a la copia de seguridad
+```
+
+También puedes usar *Ajustes → Sistema → Actualizaciones* o los endpoints `/api/v1/update/*`; `apply` y `rollback` requieren un administrador. Si el binario se reemplaza manualmente con `install`, no queda marcador pendiente: la instalación se considera definitiva en el siguiente arranque.
+
 ## Operación
 
 ```bash

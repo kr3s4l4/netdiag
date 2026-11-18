@@ -36,6 +36,7 @@ const state = {
   topo: null,
   topoView: { x: 0, y: 0, k: 1 },
   settingsTab: 'general',
+  update: null,
   ws: null,
   wsRetry: 0,
   wsTimer: null,
@@ -420,7 +421,7 @@ const NAV = [
   { view: 'reports', label: 'Informes', icon: 'reports' },
   { section: 'Sistema' },
   { view: 'guide', label: 'Guía', icon: 'book' },
-  { view: 'settings', label: 'Configuración', icon: 'settings', adminOnly: true },
+  { view: 'settings', label: 'Configuración', icon: 'settings', adminOnly: true, badge: 'update' },
 ];
 
 function renderShell() {
@@ -428,7 +429,8 @@ function renderShell() {
     if (item.section) return `<div class="nav-section">${esc(tr(item.section))}</div>`;
     return `<a class="nav-item" data-action="nav" data-view="${item.view}" href="#/${item.view}">
       ${icon(item.icon)}<span>${esc(tr(item.label))}</span>
-      ${item.badge ? '<span class="count hidden" id="nav-alert-count">0</span>' : ''}
+      ${item.badge === true ? '<span class="count hidden" id="nav-alert-count">0</span>' : ''}
+      ${item.badge === 'update' ? '<span class="count hidden" id="nav-update-count">1</span>' : ''}
     </a>`;
   }).join('');
   const user = state.me || { username: 'local', role: 'admin' };
@@ -471,6 +473,7 @@ function renderShell() {
   </div>`;
   updateNav();
   refreshAlertBadge();
+  refreshUpdateStatus();
   const burger = $('#burger');
   if (window.innerWidth <= 820 && burger) burger.style.display = '';
 }
@@ -567,6 +570,23 @@ async function refreshAlertBadge() {
       el.classList.toggle('hidden', count === 0);
     }
   } catch {}
+}
+
+function setUpdateBadge(available) {
+  const el = $('#nav-update-count');
+  if (!el) return;
+  el.textContent = '1';
+  el.classList.toggle('hidden', !available);
+}
+
+async function refreshUpdateStatus() {
+  try {
+    const res = await api('/update/status');
+    state.update = Object.assign({ available: false }, res || {});
+    setUpdateBadge(Boolean(res && res.pending));
+  } catch {
+    setUpdateBadge(false);
+  }
 }
 
 /* ---------------- websocket ---------------- */
@@ -674,6 +694,42 @@ function handleEvent(ev) {
       break;
     case 'sites.updated':
       loadSites(true).then(() => { if (state.view === 'settings') route(true); });
+      break;
+    case 'update.checked':
+      state.update = Object.assign({ available: false }, state.update || {}, data);
+      setUpdateBadge(false);
+      if (state.view === 'settings') scheduleRefresh();
+      break;
+    case 'update.available':
+      state.update = Object.assign({ available: true }, state.update || {}, data);
+      setUpdateBadge(true);
+      toast(`Versión ${data.latest_version || ''} disponible`, {
+        title: 'Actualización disponible', type: 'warn',
+      });
+      if (state.view === 'settings') scheduleRefresh();
+      break;
+    case 'update.applied':
+    case 'update.installed':
+      state.update = Object.assign({ available: false, pending: data }, state.update || {});
+      setUpdateBadge(false);
+      toast(`Versión ${data.to_version || ''} instalada`, {
+        title: 'Actualización instalada', type: 'ok',
+      });
+      if (state.view === 'settings') scheduleRefresh();
+      break;
+    case 'update.restarting':
+      toast('El servidor se está reiniciando', { title: 'Reinicio', type: 'warn' });
+      break;
+    case 'update.restart_failed':
+      toast(data.error || 'No se pudo reiniciar automáticamente', {
+        title: 'Reinicio fallido', type: 'err',
+      });
+      break;
+    case 'update.rolled_back':
+      state.update = Object.assign({ available: false, pending: null }, state.update || {});
+      setUpdateBadge(false);
+      toast('Versión anterior restaurada', { title: 'Actualización revertida', type: 'ok' });
+      if (state.view === 'settings') scheduleRefresh();
       break;
   }
 }
@@ -1262,6 +1318,9 @@ document.addEventListener('click', async (e) => {
       case 'user-delete': await deleteUserAccount(Number(target.dataset.id), target.dataset.name || '', target.dataset.self === '1'); break;
       case 'backup-create': await createBackup(target); break;
       case 'backup-delete': await deleteBackup(target.dataset.name || ''); break;
+      case 'update-check': await checkForUpdate(target); break;
+      case 'update-apply': await applyUpdate(target); break;
+      case 'update-rollback': await rollbackUpdate(target); break;
       case 'toggle-sidebar': $('#sidebar')?.classList.toggle('open'); break;
       case 'open-scan': openScanModal(); break;
       case 'hosts-page':

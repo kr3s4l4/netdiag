@@ -37,9 +37,9 @@ Roles:
 
 | Rol | Permisos |
 | --- | --- |
-| `admin` (o `owner`) | Todo: configuración, usuarios, copias de seguridad y operación |
-| `operator` | Escaneos, inventario, redes, alertas, informes e importación de sedes; sin configuración, usuarios ni gestión de sedes |
-| `viewer` | Solo lectura de inventario, alertas, informes, sedes y métricas |
+| `admin` (o `owner`) | Todo: configuración, usuarios, copias de seguridad, actualizaciones y operación |
+| `operator` | Escaneos, inventario, redes, alertas, informes e importación de sedes; sin configuración, usuarios, gestión de sedes ni actualizaciones |
+| `viewer` | Solo lectura de inventario, alertas, informes, sedes, estado de actualizaciones y métricas |
 
 ### Alcance por sede
 
@@ -333,6 +333,56 @@ La respuesta del diff (`AuditDiff`) contiene `from_id`, `to_id`, `from_name`, `t
 
 Los snapshots se comprimen con gzip antes de persistirse en SQLite. Los límites son 64 MiB de JSON antes de comprimir y 16 MiB comprimidos por snapshot; se conservan como máximo 100 capturas por sede, descartando las más antiguas. La exportación `format=gzip` devuelve `application/gzip` con el mismo documento JSON comprimido y un nombre de archivo `netdiag-audit-<id>-<fecha>.json.gz`.
 
+### Actualizaciones (F23)
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/update/status` | Estado local sin contactar con el servidor de manifiestos; cualquier rol autenticado |
+| GET | `/update/check` | Descarga y verifica el manifiesto firmado; cualquier rol autenticado |
+| POST | `/update/apply` | Descarga, verifica e instala; requiere `admin`/`owner` |
+| POST | `/update/rollback` | Restaura el binario anterior; requiere `admin`/`owner` |
+
+`GET /update/status` responde `{current_version, enabled, check_interval_hours, pending}`; `pending` es `null` o un objeto `{schema, version, previous_version, checksum, backup_path, applied_at}`.
+
+`GET /update/check` responde `{current_version, latest_version, available, release, checked_at, message, pending}`. `release` contiene el manifiesto verificado (`schema`, `version`, `url`, `checksum`, `released_at`, `notes`, `signature`) tal como se recibió y validó. Si las actualizaciones están desactivadas, `available: false` y `message` lo explica. Errores de red o firma se devuelven como `502`.
+
+Cuerpo de `/update/apply`:
+
+```json
+{
+  "version": "1.6.0",
+  "restart": false
+}
+```
+
+`version` es opcional; si se envía, debe coincidir exactamente con la versión del manifiesto firmado. `restart` vale `true` por defecto: el reinicio se programa 500 ms después de la respuesta para no cortar la petición; con `false` el cliente debe reiniciar manualmente (`netdiag update commit` tras comprobar el arranque). La respuesta es `{from_version, to_version, installed_at, backup_path, message}`. Cada aplicación y reversión genera una entrada `update.applied` / `update.rolled_back` en la auditoría de seguridad.
+
+El manifiesto firmado es JSON con estos campos exactos; cualquier propiedad adicional se rechaza:
+
+```json
+{
+  "schema": "netdiag/update/v1",
+  "version": "1.6.0",
+  "url": "https://updates.example.com/netdiag-1.6.0",
+  "checksum": "64 hexadecimales del SHA256 del binario",
+  "released_at": "2026-11-18T00:00:00Z",
+  "notes": "Notas de la versión",
+  "signature": "untrusted comment: ...\n<base64>\ntrusted comment: version:1.6.0\tsha256:<checksum>\n<base64>"
+}
+```
+
+La firma es minisign prehashed (`ED`): Ed25519 sobre BLAKE2b-512, con el comentario de confianza firmado por separado. El comentario debe incluir `version:` y `sha256:` coherentes con el resto del manifiesto. La configuración `update.public_key` acepta la clave en base64 o el archivo completo de dos líneas. URL HTTPS obligatorias salvo `localhost`/loopback; sin credenciales de usuario. Límites: 1 MiB de manifiesto y `update.max_download_mb` (512 por defecto) de binario; en Linux el binario debe empezar por `ELF`.
+
+La instalación guarda `<ejecutable>.netdiag-old` y `<data_dir>/update-pending.json`. En el arranque, si el binario coincide con el checksum del marcador se borran marcador y copia; si no coincide se restaura la copia automáticamente. `POST /update/rollback` fuerza la restauración manual. El reinicio usa `update.restart_command`/`update.restart_args` cuando están definidos y, en caso contrario, `syscall.Exec` sobre el propio ejecutable.
+
+Ejemplo de aplicación controlada:
+
+```bash
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"version":"1.6.0","restart":false}' \
+  http://127.0.0.1:8080/api/v1/update/apply | python3 -m json.tool
+```
+
 ### Topología y sistema
 
 | Método | Ruta | Notas |
@@ -376,7 +426,7 @@ ws.onmessage = (e) => {
 };
 ```
 
-Eventos: `hello`, `scan.started`, `scan.progress`, `scan.finished`, `scan.canceled`, `host.new`, `host.updated`, `host.deleted`, `alert.new`, `alert.updated`, `dashboard.updated`.
+Eventos: `hello`, `scan.started`, `scan.progress`, `scan.finished`, `scan.canceled`, `host.new`, `host.updated`, `host.deleted`, `alert.new`, `alert.updated`, `dashboard.updated`, `sites.updated`, `report.created`, `update.checked`, `update.available`, `update.applied`, `update.installed`, `update.restarting`, `update.restart_failed`, `update.rolled_back`.
 
 El servidor hace ping periódico y cierra clientes que no responden. Si la cola de un cliente se llena, los eventos se descartan para ese cliente; la UI siempre puede recargar por REST.
 

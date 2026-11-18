@@ -37,6 +37,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/netutil"
 	"github.com/kr3s4l4/netdiag/internal/report"
+	"github.com/kr3s4l4/netdiag/internal/update"
 	"gopkg.in/yaml.v3"
 )
 
@@ -82,6 +83,8 @@ func run(args []string) int {
 		return userCmd(rest)
 	case "backup":
 		return backupCmd(rest)
+	case "update", "updates":
+		return updateCmd(rest)
 	default:
 		fmt.Fprintf(os.Stderr, "netdiag: comando desconocido %q\n\n", cmd)
 		usage(os.Stderr)
@@ -104,6 +107,7 @@ Comandos:
   doctor                Comprueba el entorno y los permisos necesarios
   user                  Gestiona usuarios (list, add, passwd, role, delete)
   backup                Crea una copia de seguridad completa en ZIP
+  update check|apply|rollback|commit  Gestiona actualizaciones firmadas
   version               Muestra la versión
   help                  Muestra esta ayuda
 
@@ -268,15 +272,22 @@ func serveCmd(args []string) int {
 	noMonitor := fs.Bool("no-monitor", false, "desactiva el monitor periódico al arrancar")
 	wifiIface := fs.String("wifi-monitor-iface", "", "interfaz ya configurada en modo monitor para captura 802.11")
 	wifiInterval := fs.Int("wifi-scan-interval-sec", 0, "segundos entre capturas WiFi (0 usa la configuración)")
+	updateInterval := fs.Int("update-check-interval-hours", 24, "horas entre comprobaciones de actualizaciones firmadas")
 	fs.Usage = func() { fmt.Fprintln(os.Stderr, "Uso: netdiag serve [opciones]") }
 	if err := parseFlags(fs, args); err != nil {
 		return 2
 	}
-
 	cfg, path, err := loadConfig(cf)
 	if err != nil {
 		return fail("%v", err)
 	}
+	// The flag advertises the 24h default, but only overrides YAML when the
+	// operator sets it explicitly.
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "update-check-interval-hours" {
+			cfg.Update.CheckIntervalHours = *updateInterval
+		}
+	})
 	if *listen != "" {
 		cfg.Server.Listen = *listen
 	}
@@ -314,6 +325,8 @@ func serveCmd(args []string) int {
 		"monitor", cfg.Monitor.Enabled,
 		"wifi", cfg.WiFi.Enabled && cfg.WiFi.Interface != "",
 		"arp_activo", discover.ARPAvailable(),
+		"actualizaciones", cfg.Update.Enabled,
+		"update_interval_h", cfg.Update.CheckIntervalHours,
 	)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -1070,6 +1083,98 @@ func passwordValue(flagValue string) (string, error) {
 /* ------------------------------------------------------------------ */
 /* backup                                                              */
 /* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* update (F23)                                                        */
+/* ------------------------------------------------------------------ */
+
+func updateCmd(args []string) int {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Uso: netdiag update check|apply|rollback|commit [opciones]")
+		return 2
+	}
+	sub := args[0]
+	fs := flag.NewFlagSet("update "+sub, flag.ExitOnError)
+	cf := addCommonFlags(fs)
+	wantVersion := fs.String("version", "", "versión esperada del manifiesto firmado (apply)")
+	restart := fs.Bool("restart", false, "reinicia tras instalar (apply)")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, `Uso: netdiag update <accion> [opciones]
+
+Acciones:
+  check     Comprueba el manifiesto firmado sin instalar nada
+  apply     Descarga, verifica e instala; usa --restart para reiniciar
+  rollback  Restaura el binario anterior usando el marcador
+  commit    Confirma o revierte una actualización pendiente al arrancar`)
+	}
+	if err := parseFlags(fs, args[1:]); err != nil {
+		return 2
+	}
+	cfg, _, err := loadConfig(cf)
+	if err != nil {
+		return fail("%v", err)
+	}
+	log := newLogger(cfg)
+	m, err := update.New(update.Options{
+		Config:         cfg.Update,
+		CurrentVersion: version,
+		DataDir:        cfg.Storage.DataDir,
+		Log:            log,
+	})
+	if err != nil {
+		return fail("%v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	switch sub {
+	case "check":
+		res, err := m.Check(ctx)
+		if err != nil {
+			return fail("comprobación fallida: %v", err)
+		}
+		printUpdateJSON(res)
+		return 0
+	case "apply":
+		res, err := m.Apply(ctx, *wantVersion)
+		if err != nil {
+			return fail("instalación fallida: %v", err)
+		}
+		printUpdateJSON(res)
+		if *restart {
+			if err := m.Restart(ctx); err != nil {
+				return fail("no se pudo reiniciar: %v", err)
+			}
+		}
+		return 0
+	case "rollback":
+		res, err := m.Rollback()
+		if err != nil {
+			return fail("rollback fallido: %v", err)
+		}
+		printUpdateJSON(res)
+		return 0
+	case "commit":
+		res, err := m.CommitPending()
+		if err != nil {
+			return fail("confirmación fallida: %v", err)
+		}
+		printUpdateJSON(res)
+		return 0
+	default:
+		fs.Usage()
+		return 2
+	}
+}
+
+func printUpdateJSON(v any) {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		fmt.Println(v)
+		return
+	}
+	fmt.Println(string(data))
+}
 
 func backupCmd(args []string) int {
 	fs := flag.NewFlagSet("backup", flag.ExitOnError)

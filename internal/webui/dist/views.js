@@ -2272,7 +2272,12 @@ async function settingsBackupsBody() {
 }
 
 async function settingsSystemBody() {
-  const [info, audit] = await Promise.all([api('/system/info'), api('/system/audit?limit=40')]);
+  const [info, audit, status] = await Promise.all([
+    api('/system/info'), api('/system/audit?limit=40'), api('/update/status').catch(() => null),
+  ]);
+  const upd = Object.assign({ available: false }, state.update || {}, status || {});
+  state.update = upd;
+  setUpdateBadge(Boolean(upd.available || upd.pending));
   const caps = Object.entries(info.capabilities || {}).map(([k, v]) =>
     `<span class="badge ${v ? 'up' : 'unknown'}">${esc(k)}</span>`).join(' ');
   const ifaces = (info.interfaces || []).map((i) => `
@@ -2302,6 +2307,32 @@ async function settingsSystemBody() {
       <div class="card pad"><div class="label muted tiny" style="letter-spacing:.08em;text-transform:uppercase">Datos</div>
         <div style="font-size:19px;font-weight:700;margin-top:4px">${fmtBytes(info.db_size)}</div>
         <div class="tiny muted mono ellipsis" title="${esc(info.data_dir)}">${esc(info.data_dir)}</div></div>
+    </div>
+    <div class="card mb">
+      <div class="card-head"><h3>Actualizaciones</h3>
+        <button class="btn sm" data-action="update-check">${icon('refresh')} Comprobar versión</button></div>
+      <div class="card pad" style="padding-top:0">
+        <div class="spread">
+          <div>
+            <div class="label muted tiny" style="letter-spacing:.08em;text-transform:uppercase">Versión instalada</div>
+            <div style="font-size:19px;font-weight:700;margin-top:4px">${esc(upd.current_version || info.version)}</div>
+          </div>
+          <span class="badge ${upd.enabled ? 'up' : 'unknown'}">${upd.enabled ? 'Activadas' : 'Desactivadas'}</span>
+        </div>
+        <div class="small muted" style="margin-top:8px">${
+          upd.available && upd.latest_version
+            ? `Versión ${esc(upd.latest_version)} disponible`
+            : 'No hay una versión más reciente comprobada'
+        }</div>
+        ${upd.pending ? `<div class="notice warn" style="margin-top:10px">${icon('shield')}<div>
+          <b>Actualización pendiente de confirmación</b>
+          <div class="tiny">${esc(upd.pending.version || '')} · copia: ${esc(upd.pending.backup_path || '')}</div>
+        </div></div>` : ''}
+        <div class="row wrap" style="margin-top:12px">
+          ${upd.available ? `<button class="btn primary" data-action="update-apply" data-version="${esc(upd.latest_version || '')}">${icon('download')} Instalar y reiniciar</button>` : ''}
+          ${upd.pending ? `<button class="btn danger" data-action="update-rollback">${icon('shield')} Revertir</button>` : ''}
+        </div>
+      </div>
     </div>
     <div class="card pad mb">
       <div class="spread mb"><h3 style="margin:0;font-size:13.5px">Capacidades</h3>
@@ -2487,6 +2518,50 @@ async function deleteBackup(name) {
   await api('/system/backups/' + encodeURIComponent(name), { method: 'DELETE' });
   toast('Copia eliminada', { type: 'ok' });
   await renderSettings();
+}
+
+async function checkForUpdate(btn) {
+  if (btn) { btn.disabled = true; }
+  try {
+    const res = await api('/update/check');
+    state.update = Object.assign({ available: false }, res || {});
+    setUpdateBadge(Boolean(res && res.available));
+    toast(res && res.message ? res.message : 'Comprobación completada', { type: 'ok' });
+    if (state.view === 'settings') await renderSettings();
+  } finally {
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+async function applyUpdate(btn) {
+  const version = btn && btn.dataset.version ? btn.dataset.version : '';
+  if (!confirm(version
+    ? `¿Instalar NetDiag ${version} y reiniciar el servicio?`
+    : '¿Instalar la última versión firmada y reiniciar el servicio?')) return;
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Instalando…'; }
+  try {
+    const body = { restart: true };
+    if (version) body.version = version;
+    const res = await api('/update/apply', { method: 'POST', body });
+    state.update = Object.assign({}, state.update || {}, {
+      available: false,
+      pending: res,
+      current_version: res.to_version,
+    });
+    setUpdateBadge(false);
+    toast(`Versión ${res.to_version} instalada; reiniciando…`, { type: 'ok' });
+  } finally {
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+async function rollbackUpdate() {
+  if (!confirm('¿Restaurar el binario anterior y reiniciar para aplicarlo?')) return;
+  await api('/update/rollback', { method: 'POST', body: {} });
+  state.update = Object.assign({}, state.update || {}, { available: false, pending: null });
+  setUpdateBadge(false);
+  toast('Versión anterior restaurada', { type: 'ok' });
+  if (state.view === 'settings') await renderSettings();
 }
 
 /* Actions used by buttons inside modals. */

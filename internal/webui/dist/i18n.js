@@ -812,6 +812,26 @@
     'Los snapshots se comprimen y se guardan sin secretos: solo se conservan los nombres de las claves de configuración, nunca sus valores.':
       'Snapshots are compressed and stored without secrets: only configuration key names are kept, never their values.',
 
+    // ---- F23 auto-actualización ----
+    'Actualizaciones': 'Updates',
+    'Comprobar versión': 'Check for updates',
+    'Versión instalada': 'Installed version',
+    'Activadas': 'Enabled',
+    'Desactivadas': 'Disabled',
+    'No hay una versión más reciente comprobada': 'No newer version checked yet',
+    'Actualización pendiente de confirmación': 'Update pending confirmation',
+    'Instalar y reiniciar': 'Install and restart',
+    'Revertir': 'Roll back',
+    'Actualización disponible': 'Update available',
+    'Actualización instalada': 'Update installed',
+    'Actualización revertida': 'Update rolled back',
+    'Reinicio': 'Restart',
+    'Reinicio fallido': 'Restart failed',
+    'El servidor se está reiniciando': 'The server is restarting',
+    'Comprobación completada': 'Check completed',
+    'Versión anterior restaurada': 'Previous version restored',
+    '¿Instalar la última versión firmada y reiniciar el servicio?': 'Install the latest signed version and restart the service?',
+
     // ---- document title ----
     'NetDiag · Inventario y monitoreo de red': 'NetDiag · Network inventory and monitoring',
   };
@@ -839,6 +859,11 @@
     [/^(\d+) abiertos$/, '$1 open'],
     [/^activo desde (.+)$/, 'active since $1'],
     [/^(\d+) corriendo$/, '$1 running'],
+    [/^Versión (.+) disponible$/, 'Version $1 available'],
+    [/^Versión (.+) instalada; reiniciando…$/, 'Version $1 installed; restarting…'],
+    [/^Versión (.+) instalada$/, 'Version $1 installed'],
+    [/^Versión (.+) · copia: (.+)$/, 'Version $1 · backup: $2'],
+    [/^¿Instalar NetDiag (.+) y reiniciar el servicio\?$/, 'Install NetDiag $1 and restart the service?'],
   ];
 
   function savedLang() {

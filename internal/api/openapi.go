@@ -59,6 +59,11 @@ var apiRoutes = []apiRoute{
 	{"POST", "/api/v1/audits/{id}/diff/{id2}", "Comparar dos snapshots de auditoría", "Auditoría", false, false, "", nil, false, false},
 	{"GET", "/api/v1/audits/{id}/export", "Exportar un snapshot (json|gzip)", "Auditoría", false, false, "", []string{"format"}, false, false},
 
+	{"GET", "/api/v1/update/status", "Estado local de actualizaciones", "Actualizaciones", false, false, "", nil, false, false},
+	{"GET", "/api/v1/update/check", "Comprobar versión firmada", "Actualizaciones", false, false, "", nil, false, false},
+	{"POST", "/api/v1/update/apply", "Descargar, verificar e instalar una actualización", "Actualizaciones", false, true, "UpdateApplyRequest", nil, false, false},
+	{"POST", "/api/v1/update/rollback", "Restaurar el binario anterior", "Actualizaciones", false, true, "", nil, false, false},
+
 	{"GET", "/api/v1/networks", "Listar redes monitorizadas", "Redes", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/networks", "Añadir una red", "Redes", false, true, "NetworkRequest", nil, true, false},
 	{"GET", "/api/v1/networks/suggest", "Sugerir redes locales", "Redes", false, false, "", []string{"site_id"}, false, false},
@@ -218,7 +223,7 @@ func buildOpenAPI(version, commit, buildDate string) map[string]any {
 			{"name": "Autenticación"}, {"name": "Usuarios"}, {"name": "Panel"},
 			{"name": "Sedes"}, {"name": "Dispositivos"}, {"name": "Redes"}, {"name": "Escaneos"},
 			{"name": "Alertas"}, {"name": "Integraciones"}, {"name": "Informes"}, {"name": "Topología"},
-			{"name": "Diagnósticos"}, {"name": "Sistema"}, {"name": "Tiempo real"},
+			{"name": "Diagnósticos"}, {"name": "Actualizaciones"}, {"name": "Sistema"}, {"name": "Tiempo real"},
 		},
 		"components": map[string]any{
 			"securitySchemes": map[string]any{
@@ -417,6 +422,30 @@ func openAPISchemas() map[string]any {
 				"period_b": map[string]any{"type": "object", "properties": map[string]any{
 					"label": str, "from": str, "to": str,
 				}},
+			},
+		},
+		"UpdateApplyRequest": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"version": map[string]any{"type": "string", "description": "Versión esperada; debe coincidir con el manifiesto firmado"},
+				"restart": map[string]any{"type": "boolean", "default": true, "description": "Reinicia automáticamente tras responder"},
+			},
+		},
+		"UpdateCheckResult": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"current_version": str, "latest_version": str,
+				"available":  map[string]any{"type": "boolean"},
+				"checked_at": map[string]any{"type": "string", "format": "date-time"},
+				"message":    str,
+			},
+		},
+		"UpdateApplyResult": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"from_version": str, "to_version": str,
+				"installed_at": map[string]any{"type": "string", "format": "date-time"},
+				"backup_path":  str, "message": str,
 			},
 		},
 		"ReportRequest": map[string]any{

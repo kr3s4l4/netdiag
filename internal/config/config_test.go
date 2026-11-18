@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,6 +123,39 @@ func TestNormalizeAllowedHosts(t *testing.T) {
 		if cfg.Security.AllowedHosts[i] != want[i] {
 			t.Fatalf("hosts inesperados: %v", cfg.Security.AllowedHosts)
 		}
+	}
+}
+
+func TestUpdateConfigValidation(t *testing.T) {
+	cfg := Defaults()
+	cfg.Storage.DataDir = t.TempDir()
+	if cfg.Update.Enabled || cfg.Update.CheckIntervalHours != 24 || cfg.Update.MaxDownloadMB != 512 {
+		t.Fatalf("defaults de actualización inesperados: %+v", cfg.Update)
+	}
+	publicKey := base64.StdEncoding.EncodeToString(append([]byte("Ednetdiag1"), bytes.Repeat([]byte{0x11}, 32)...))
+
+	cfg.Update.Enabled = true
+	cfg.Update.ManifestURL = "https://updates.example.com/manifest.json"
+	cfg.Update.PublicKey = publicKey
+	if err := cfg.Normalize(); err != nil {
+		t.Fatal(err)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("configuración válida rechazada: %v", err)
+	}
+
+	cfg.Update.ManifestURL = "http://updates.example.com/manifest.json"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("se aceptó HTTP fuera de localhost")
+	}
+	cfg.Update.ManifestURL = "https://user:pass@updates.example.com/manifest.json"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("se aceptaron credenciales en la URL")
+	}
+	cfg.Update.ManifestURL = "http://127.0.0.1:8080/manifest.json"
+	cfg.Update.PublicKey = "clave-invalida"
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("se aceptó una clave pública inválida")
 	}
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
+	"github.com/kr3s4l4/netdiag/internal/update"
 	"github.com/kr3s4l4/netdiag/internal/vpn"
 	"github.com/kr3s4l4/netdiag/internal/webui"
 	"github.com/kr3s4l4/netdiag/internal/wifi"
@@ -51,6 +52,7 @@ type App struct {
 	wifi         *wifi.Manager
 	reports      *report.Generator
 	backups      *backup.Manager
+	updates      *update.Manager
 	engine       *discover.Engine
 	api          *api.Server
 	hub          *api.Hub
@@ -103,6 +105,21 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 	footer := "NetDiag · " + hostname
 	reports := report.New(filepath.Join(cfg.Storage.DataDir, "reports"), "NetDiag", footer)
 
+	updates, err := update.New(update.Options{
+		Config:         cfg.Update,
+		CurrentVersion: build.Version,
+		DataDir:        cfg.Storage.DataDir,
+		Log:            log,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("no se pudo preparar el gestor de actualizaciones: %w", err)
+	}
+	if commit, err := updates.CommitPending(); err != nil {
+		log.Warn("no se pudo reconciliar una actualización pendiente", "error", err)
+	} else if commit != nil && commit.RolledBack {
+		log.Warn("se restauró automáticamente la versión anterior", "version", commit.PreviousVersion)
+	}
+
 	a := &App{
 		cfg:          cfg,
 		cfgPath:      cfgPath,
@@ -116,6 +133,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		wifi:         wifi.New(st, cfg.WiFi, log),
 		reports:      reports,
 		backups:      backup.New(st, cfg, cfgPath, log),
+		updates:      updates,
 		engine:       discover.New(),
 		runs:         make(map[int64]*runState),
 		busyCIDR:     make(map[string]int64),
@@ -132,6 +150,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		WiFi:         a.wifi,
 		Reports:      reports,
 		Backups:      a.backups,
+		Updates:      a.updates,
 		Scanner:      a,
 		Logger:       log,
 		Version:      build.Version,
@@ -140,6 +159,9 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		StartedAt:    time.Now(),
 	})
 	a.hub = a.api.Hub()
+	a.updates.SetNotifier(func(event string, data any) {
+		a.hub.Broadcast(event, data)
+	})
 	a.alerts.SetNotifier(func(al model.Alert) {
 		a.hub.Broadcast("alert.new", al)
 		a.integrations.Publish(integrations.Event{
@@ -162,6 +184,9 @@ func (a *App) Hub() *api.Hub { return a.hub }
 
 // Backups exposes the backup manager (used by CLI subcommands).
 func (a *App) Backups() *backup.Manager { return a.backups }
+
+// Updates exposes the update manager (used by CLI subcommands).
+func (a *App) Updates() *update.Manager { return a.updates }
 
 // Close releases the database.
 func (a *App) Close() error {
@@ -187,6 +212,7 @@ func (a *App) Run(ctx context.Context) error {
 	go a.monitorLoop(ctx)
 	go a.historyLoop(ctx)
 	go a.maintenanceLoop(ctx)
+	go a.updateLoop(ctx)
 	if a.backups != nil {
 		go a.backups.Start(ctx)
 	}
@@ -298,6 +324,40 @@ func (a *App) maintenanceLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			a.runMaintenance()
+		}
+	}
+}
+
+// updateLoop performs the periodic signed check. The manager's notifier emits
+// update.available to WebSocket clients, so the UI learns about new versions
+// without polling the manifest server itself.
+func (a *App) updateLoop(ctx context.Context) {
+	if a.updates == nil || !a.cfg.Update.Enabled {
+		return
+	}
+	interval := time.Duration(a.cfg.Update.CheckIntervalHours) * time.Hour
+	if interval <= 0 {
+		interval = 24 * time.Hour
+	}
+	check := func() {
+		res, err := a.updates.Check(ctx)
+		if err != nil {
+			a.log.Debug("comprobación periódica de actualizaciones fallida", "error", err)
+			return
+		}
+		if res.Available {
+			a.log.Info("actualización disponible", "version", res.LatestVersion)
+		}
+	}
+	check()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			check()
 		}
 	}
 }

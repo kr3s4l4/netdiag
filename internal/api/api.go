@@ -18,6 +18,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
+	"github.com/kr3s4l4/netdiag/internal/update"
 	"github.com/kr3s4l4/netdiag/internal/vpn"
 	"github.com/kr3s4l4/netdiag/internal/wifi"
 )
@@ -55,6 +56,7 @@ type Deps struct {
 	WiFi         *wifi.Manager
 	Reports      *report.Generator
 	Backups      *backup.Manager
+	Updates      *update.Manager
 	Scanner      Scanner
 	Logger       *slog.Logger
 	Version      string
@@ -75,6 +77,7 @@ type Server struct {
 	wifi         *wifi.Manager
 	reports      *report.Generator
 	backups      *backup.Manager
+	updates      *update.Manager
 	scanner      Scanner
 	log          *slog.Logger
 	hub          *Hub
@@ -106,6 +109,7 @@ func New(d Deps) *Server {
 		wifi:         d.WiFi,
 		reports:      d.Reports,
 		backups:      d.Backups,
+		updates:      d.Updates,
 		scanner:      d.Scanner,
 		log:          log,
 		hub:          NewHub(log),
@@ -193,6 +197,12 @@ func (s *Server) register() {
 	m.HandleFunc("DELETE /api/v1/audits/{id}", s.handleDeleteAuditSnapshot)
 	m.HandleFunc("POST /api/v1/audits/{id}/diff/{id2}", s.handleDiffAuditSnapshots)
 	m.HandleFunc("GET /api/v1/audits/{id}/export", s.handleExportAuditSnapshot)
+
+	// ---- F23 self-update ----
+	m.HandleFunc("GET /api/v1/update/status", s.handleUpdateStatus)
+	m.HandleFunc("GET /api/v1/update/check", s.handleUpdateCheck)
+	m.HandleFunc("POST /api/v1/update/apply", s.handleUpdateApply)
+	m.HandleFunc("POST /api/v1/update/rollback", s.handleUpdateRollback)
 
 	// ---- networks ----
 	m.HandleFunc("GET /api/v1/networks", s.handleListNetworks)
