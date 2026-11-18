@@ -33,6 +33,19 @@
 - **Seguridad por defecto**: Argon2id, sesiones en servidor, CSRF, límite de intentos, cabeceras CSP/HSTS, auditoría, secretos cifrados con AES-256-GCM y token opcional para `/metrics`.
 - **Un solo binario**: SPA embebida, SQLite embebido (modernc) y configuración YAML. Funciona offline.
 
+## Hacia dónde va NetDiag
+
+La versión 1.5 ya cubre el núcleo: descubrimiento, inventario, topología, diagnósticos, alertas, informes, multi-sede, auditoría y actualización firmada. El [roadmap](docs/roadmap.md) describe el siguiente tramo, **todavía por implementar**:
+
+| Bloque | Qué aporta | Estado |
+| --- | --- | --- |
+| F27–F32 | Arranque asistido, panel de salud, buscador global, centro de notificaciones, diagnósticos accionables e informe ejecutivo de una página | Planificado |
+| F35–F38 | Activación de licencia offline, contenedor firmado `.ndc`, publicación reproducible y paquete de confianza empresarial | Planificado |
+| F39–F40 | Modo demo con datos sintéticos y vistas guardadas | Planificado |
+| F41–F42 | Cumplimiento CRA por dependencias de terceros y validación de mercado sin telemetría | Documentado, en ejecución |
+
+Las decisiones ya cerradas —AGPL para Community, licencia comercial para Pro/Enterprise, cobro por banda de hosts gestionados, sin telemetría y sin guardia 24/7 que no se pueda cumplir—están en el propio roadmap. Si quieres influir en el orden, cuenta tu caso de uso en el Discussion fijado o abre un issue con la plantilla **Caso de uso real**.
+
 ## Inicio rápido
 
 Requisitos: Go 1.27 o superior. Para ARP activo, además `libpcap-dev` y gcc.

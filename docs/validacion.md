@@ -6,6 +6,21 @@ Objetivo: comprobar si NetDiag resuelve un problema real antes de invertir en li
 
 No se añade telemetría al binario. La promesa de “sin telemetría” es parte del producto y no se negocia para medir vanidad.
 
+## Antes de publicar: que no parezca un script
+
+La dirección ya es visible: el README, el [roadmap](roadmap.md) y los documentos de licenciamiento, publicación segura y confianza empresarial. Lo que falta es **prueba visual**. Un visitante decide en segundos si esto es un producto con rumbo o un experimento suelto.
+
+Esto es presentación, **no código**. No hace falta implementar F27–F40 para hacerlo:
+
+- [ ] 3–5 capturas reales de la interfaz: inventario, topología, diagnósticos y ajustes. Usa datos de tu laboratorio; no montes un entorno ficticio.
+- [ ] Un GIF corto (10–20 s) del primer valor: añadir red → escanear → ver hosts identificados.
+- [ ] El bloque «Hacia dónde va NetDiag» visible cerca del inicio del README, con enlace al roadmap.
+- [ ] En la nota de Release: el mismo bloque de dirección y las tres preguntas del Discussion fijado.
+- [ ] Ajustes del repo completos: descripción, `topics`, `SECURITY.md` y plantilla **Caso de uso real** en `.github/ISSUE_TEMPLATE/`.
+- [ ] Texto de la Release marcado como **preview de validación**, no como release oficial firmada.
+
+Sin esas capturas, la gente lee 487 líneas de README y aun así se pregunta si hay interfaz. Con ellas, entiende de un vistazo que es un producto self-hosted serio.
+
 ## Qué medir
 
 | Señal | Cómo se mide sin telemetría | Umbral orientativo |
