@@ -172,6 +172,31 @@ Ejecutada desde un worktree limpio en `1cafe70`, con binarios compilados desde l
 - Se corrigió la topología para reutilizar nodos por IP/CIDR: ya no aparece dos veces `192.168.0.1` ni dos veces `192.168.1.0/24`. La arista de traza une directamente `192.168.0.1 → 192.168.1.1`.
 - Motor implementado con UDP + `IP_RECVERR`: funciona sin raw sockets y sin binarios externos.
 
+### Equipo local visible (18/11/2026)
+
+- El descubrimiento excluye la IP propia. Ahora la topología añade el nodo `self:192.168.0.105` con etiqueta `Este equipo · kali` (MAC `a0:a4:c5:c9:b2:ba`), color propio, anillo discontinuo y arista `local` desde `192.168.0.1`.
+- El nodo se marca con `is_self`, por lo que siempre muestra su etiqueta aunque caiga en un índice que `labelEvery` ocultaría. Verificado en el DOM: la etiqueta aparece en el SVG.
+- El equipo también entra en `GET /api/v1/hosts` con tags `self` y `excluded`. `GET /api/v1/system/license` sigue informando **6 hosts gestionados**: el equipo local no cuenta para la licencia.
+- Comprobación con Chromium: etiqueta en topología y chips `self`/`excluded` en inventario. `go test ./...`, `go vet` y `go build` OK.
+
+### Brecha frente al NetDiag original (18/11/2026)
+
+Inventario de solo lectura del repo histórico. No se borró código: el activo rediseñó el análisis pasivo por descubrimiento activo + diagnósticos por snapshot.
+
+| Capacidad original | Estado actual |
+| --- | --- |
+| Captura pasiva y `AnomalyDetector` (ICMP redirect, GARP, IP→MAC, MAC→muchas IPs, TTL anómalo) | No |
+| Detección de MITM por cambio de MAC del gateway y duplicados IP/MAC | No |
+| DHCP rogue (OFFERs, sonda DISCOVER, regla `!IsGateway && >1 servidor`) | No |
+| Escaneos entrantes, DNS tunneling y protocolos en claro | No |
+| Contexto DHCP y reducción de falsos positivos | No |
+| Reglas de alerta `anomaly` y `dhcp_rogue` | No |
+| SNMP profundo: sweep de communities, IP-MIB, Q-BRIDGE, correlación ARP↔FDB↔LLDP | Parcial |
+| Escaneo de puertos y banners | Sí (parcial: no distingue `closed`/`filtered`) |
+| WiFi y VPN | Sí (en el original solo eran roadmap) |
+
+Nota: el «DNS spoofing» histórico era un contador de consultas UDP/53, no validación de respuestas. Prioridad propuesta: anomalías ARP/MITM → DHCP rogue → alertas de seguridad → SNMP profundo.
+
 ### Señales públicas reales a 18/11/2026
 
 - HN: <https://news.ycombinator.com/item?id=50545732>. 1 punto. Comentario inicial `50545733` marcado `[flagged]`; no cuenta como respuesta pública.
