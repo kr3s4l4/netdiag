@@ -20,7 +20,7 @@ type apiRoute struct {
 }
 
 var apiRoutes = []apiRoute{
-	{"GET", "/api/v1/auth/status", "Estado de autenticación y versión", "Autenticación", true, false, "", nil, false, false},
+	{"GET", "/api/v1/auth/status", "Estado de autenticación, versión y marca demo", "Autenticación", true, false, "", nil, false, false},
 	{"POST", "/api/v1/auth/login", "Iniciar sesión", "Autenticación", true, false, "LoginRequest", nil, false, false},
 	{"POST", "/api/v1/auth/setup", "Crear la cuenta inicial de administrador", "Autenticación", true, false, "LoginRequest", nil, true, false},
 	{"POST", "/api/v1/auth/logout", "Cerrar la sesión actual", "Autenticación", false, false, "", nil, false, false},
@@ -109,6 +109,16 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/dashboards/{id}", "Obtener un dashboard", "Dashboards", false, false, "", nil, false, false},
 	{"PUT", "/api/v1/dashboards/{id}", "Actualizar un dashboard", "Dashboards", false, false, "DashboardRequest", nil, true, false},
 	{"DELETE", "/api/v1/dashboards/{id}", "Eliminar un dashboard", "Dashboards", false, false, "", nil, false, false},
+
+	{"GET", "/api/v1/views", "Listar las vistas guardadas del usuario", "Vistas", false, false, "", []string{"kind", "site_id"}, false, false},
+	{"POST", "/api/v1/views", "Guardar una vista de inventario o alertas", "Vistas", false, false, "SavedViewRequest", nil, true, false},
+	{"GET", "/api/v1/views/catalog", "Catálogo de columnas, órdenes y vistas por defecto", "Vistas", false, false, "", nil, false, false},
+	{"GET", "/api/v1/views/resolve", "Validar y resolver los parámetros de un enlace compartido", "Vistas", false, false, "", []string{"name", "kind", "site_id", "q", "severity", "status", "window", "columns", "sort", "desc"}, false, false},
+	{"GET", "/api/v1/views/{id}", "Obtener una vista propia", "Vistas", false, false, "", nil, false, false},
+	{"PUT", "/api/v1/views/{id}", "Actualizar una vista propia", "Vistas", false, false, "SavedViewRequest", nil, false, false},
+	{"DELETE", "/api/v1/views/{id}", "Eliminar una vista propia", "Vistas", false, false, "", nil, false, false},
+	{"GET", "/api/v1/views/{id}/share", "Obtener la URL con parámetros para compartir una vista", "Vistas", false, false, "", nil, false, false},
+
 	{"GET", "/api/v1/wifi/status", "Estado y capacidad de captura WiFi", "WiFi", false, false, "", nil, false, false},
 	{"GET", "/api/v1/wifi/aps", "Listar APs WiFi observados", "WiFi", false, false, "", []string{"site_id", "limit"}, false, false},
 	{"GET", "/api/v1/wifi/clients", "Listar clientes WiFi observados", "WiFi", false, false, "", []string{"site_id", "limit"}, false, false},
@@ -122,7 +132,7 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/diagnostics/stp", "Posibles lazos de spanning-tree", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 	{"GET", "/api/v1/diagnostics/vlan", "Posibles fugas de VLAN", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 
-	{"GET", "/api/v1/system/info", "Información del sistema y capacidades", "Sistema", false, false, "", nil, false, false},
+	{"GET", "/api/v1/system/info", "Información del sistema, capacidades y marca demo", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/license", "Estado de la licencia offline y avisos", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/interfaces", "Interfaces de red locales", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/config", "Leer la configuración", "Sistema", false, true, "", nil, false, false},
@@ -223,7 +233,7 @@ func buildOpenAPI(version, commit, buildDate string) map[string]any {
 		"tags": []map[string]any{
 			{"name": "Autenticación"}, {"name": "Usuarios"}, {"name": "Panel"},
 			{"name": "Sedes"}, {"name": "Dispositivos"}, {"name": "Redes"}, {"name": "Escaneos"},
-			{"name": "Alertas"}, {"name": "Integraciones"}, {"name": "Informes"}, {"name": "Topología"},
+			{"name": "Alertas"}, {"name": "Vistas"}, {"name": "Integraciones"}, {"name": "Informes"}, {"name": "Topología"},
 			{"name": "Diagnósticos"}, {"name": "Actualizaciones"}, {"name": "Sistema"}, {"name": "Tiempo real"},
 		},
 		"components": map[string]any{
@@ -421,6 +431,40 @@ func openAPISchemas() map[string]any {
 				}},
 			},
 		},
+		"SavedViewRequest": map[string]any{
+			"type": "object", "required": []string{"name", "kind"},
+			"properties": map[string]any{
+				"name": str, "kind": map[string]any{"type": "string", "enum": []string{"hosts", "alerts"}},
+				"site_id":  map[string]any{"type": "integer", "description": "0 = todas las sedes"},
+				"query":    map[string]any{"type": "string", "maxLength": 200},
+				"severity": map[string]any{"type": "string", "enum": []string{"", "info", "warning", "critical"}},
+				"status":   str, "window": str,
+				"columns": map[string]any{"type": "array", "items": str, "maxItems": 16},
+				"sort":    str, "desc": map[string]any{"type": "boolean"},
+			},
+		},
+		"SavedView": map[string]any{
+			"type": "object", "required": []string{"id", "name", "kind", "columns"},
+			"properties": map[string]any{
+				"id": map[string]any{"type": "integer"}, "name": str,
+				"kind":    map[string]any{"type": "string", "enum": []string{"hosts", "alerts"}},
+				"site_id": map[string]any{"type": "integer"}, "query": str,
+				"severity": str, "status": str, "window": str,
+				"columns": map[string]any{"type": "array", "items": str},
+				"sort":    str, "desc": map[string]any{"type": "boolean"},
+				"builtin":    map[string]any{"type": "boolean"},
+				"created_at": map[string]any{"type": "string", "format": "date-time"},
+				"updated_at": map[string]any{"type": "string", "format": "date-time"},
+			},
+		},
+		"ViewShare": map[string]any{
+			"type": "object", "required": []string{"path", "params"},
+			"properties": map[string]any{
+				"id": map[string]any{"type": "integer"}, "name": str,
+				"path": str, "url": str,
+				"params": map[string]any{"type": "object", "additionalProperties": true},
+			},
+		},
 		"AuditSnapshotRequest": map[string]any{
 			"type": "object",
 			"properties": map[string]any{
@@ -454,9 +498,11 @@ func openAPISchemas() map[string]any {
 			"type": "object",
 			"properties": map[string]any{
 				"current_version": str, "latest_version": str,
-				"available":  map[string]any{"type": "boolean"},
-				"checked_at": map[string]any{"type": "string", "format": "date-time"},
-				"message":    str,
+				"available":       map[string]any{"type": "boolean"},
+				"security_update": map[string]any{"type": "boolean", "description": "Versión instalada anterior a min_version; emite el evento update.security"},
+				"min_version":     map[string]any{"type": "string", "description": "Primera versión segura según el manifiesto firmado (F41)"},
+				"checked_at":      map[string]any{"type": "string", "format": "date-time"},
+				"message":         str,
 			},
 		},
 		"UpdateApplyResult": map[string]any{

@@ -249,6 +249,54 @@ Vistas por sede con widgets en una rejilla fija de 12 columnas (máximo 16). Las
 
 Cada widget tiene `{id, type, position:{x,y}, size:{w,h}, config}`. Los tipos válidos son `dashboard`, `hosts`, `ports`, `topology`, `alerts`, `scans`, `wifi` y `vpn`. El campo `config.source` se deriva siempre del catálogo en el servidor: los valores enviados por el cliente se ignoran, de modo que no se pueden consultar URL arbitrarias. `position.x` va de 0 a 11, `position.y` de 0 a 23, `size.w` ∈ {2,3,4,6,12} y `size.h` ∈ {1,2,3}; los valores fuera de rango se normalizan o rechazan.
 
+### Filtros y vistas guardadas (F40)
+
+Filtros personales para el inventario (`hosts`) y la lista de alertas (`alerts`). Pertenecen a la cuenta autenticada: **cualquier rol autenticado**, incluido `viewer`, puede crear, editar y borrar sus propias vistas, pero nunca las de otro usuario. Las escrituras requieren la cabecera `X-CSRF-Token`.
+
+La primera llamada a `GET /views` siembra una sola vez cuatro vistas integradas por usuario (`Críticas`, `Nuevos hosts`, `Caídos`, `Cambios de la semana`). Borrar una integrada no la recrea. `site_id=0` significa «todas las sedes»; un `site_id` positivo restringe la vista a esa sede. Máximo 100 vistas por usuario, con nombres únicos sin distinguir usuario.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/views` | `{items, total, max_views}`; admite `kind` y `site_id` en la query |
+| GET | `/views/catalog` | Catálogo de `kinds`, `columns`, `sorts`, `statuses`, `severities`, `windows`, `defaults`, `max_views` y `max_columns` |
+| POST | `/views` | Crea una vista; responde `201` con el objeto creado |
+| GET | `/views/{id}` | Detalle de una vista propia; `404` si pertenece a otro usuario |
+| PUT | `/views/{id}` | Reemplaza los filtros de una vista propia |
+| DELETE | `/views/{id}` | `204`; `404` si no es propia |
+| GET | `/views/{id}/share` | `{id, name, path, url, params}` con un hash `#/<kind>?...` listo para compartir |
+| GET | `/views/resolve` | Valida los parámetros de un enlace compartido y devuelve la vista resultante sin guardarla |
+
+Cuerpo de `POST`/`PUT` (todos los campos opcionales salvo `name` y `kind`):
+
+```json
+{
+  "name": "Críticas de LAN",
+  "kind": "alerts",
+  "site_id": 1,
+  "query": "srv-web",
+  "severity": "critical",
+  "status": "active",
+  "window": "7d",
+  "columns": ["severity", "title", "created_at"],
+  "sort": "created_at",
+  "desc": true
+}
+```
+
+Los valores se normalizan en servidor: el nombre (≤80 caracteres) y la consulta (≤200) se sanea escapando HTML y eliminando caracteres de control; `kind`, `severity`, `status`, `window`, `columns` (≤16) y `sort` se validan contra el catálogo. `columns`/`sort` nunca se interpolan en SQL. La interfaz aplica `query`, `status`, `severity`, `sort`, `desc` y la visibilidad de `columns` al abrir una vista o un enlace compartido. Los errores usan `400` con `code: invalid_view`, `invalid_body`, `invalid_id` o `unauthorized`; `404` con `not_found`; y `409` con `duplicate_view` o `view_limit`.
+
+El enlace de `/views/{id}/share` serializa **todos los filtros**, no el identificador interno. Así, `#/alerts?severity=critical&site_id=1&...` funciona para otro operador sin exponer la fila privada de su autor. El SPA vuelve a validar y acota esos parámetros al aplicarlos desde la URL.
+
+```bash
+# Crear y compartir
+curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"name":"Caídas","kind":"hosts","status":"down","sort":"last_seen","desc":true}' \
+  http://127.0.0.1:8080/api/v1/views
+
+curl -b cookies.txt http://127.0.0.1:8080/api/v1/views/7/share
+# → {"path":"#/hosts?status=down&sort=last_seen&desc=1&name=Ca%C3%ADdas", ...}
+```
+
 ### WiFi (F11)
 
 Captura pasiva 802.11 y análisis de APs/clientes. Las lecturas están disponibles para cualquier rol autenticado; `POST /wifi/scan` requiere `canWrite` y `DELETE /wifi/aps` requiere `admin`/`owner`.

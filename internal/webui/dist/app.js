@@ -36,6 +36,8 @@ const state = {
   topo: null,
   topoView: { x: 0, y: 0, k: 1 },
   settingsTab: 'general',
+  views: { items: [], catalog: null, loaded: false, kind: '', search: '', activeColumns: { hosts: null, alerts: null }, activeWindow: '' },
+  routeQuery: null,
   update: null,
   ws: null,
   wsRetry: 0,
@@ -325,6 +327,7 @@ function renderAuthCard(mode, st) {
     : 'Accede al inventario y monitoreo de tu red.';
   $('#root').innerHTML = `<div class="auth-wrap"><div class="auth-card">
     <div class="auth-logo"><div class="mark">N</div><h1>NetDiag</h1></div>
+    ${st && st.demo ? '<p class="notice warn">Datos sintéticos · modo demo</p>' : ''}
     <p class="auth-sub">${esc(sub)}</p>
     <form data-form="${setup ? 'setup' : 'login'}">
       <div class="field">
@@ -383,6 +386,7 @@ async function enterApp() {
   try { state.siteId = Number(localStorage.getItem('netdiag-site') || 0) || 0; } catch {}
   renderShell();
   await loadSites(true);
+  if (typeof loadSavedViews === 'function') await loadSavedViews();
   connectWS();
   const current = (location.hash || '').replace(/^#\/?/, '');
   if (!current) location.hash = '#/dashboard';
@@ -411,6 +415,7 @@ const NAV = [
   { view: 'topology', label: 'Topología', icon: 'topology' },
   { view: 'diagnostics', label: 'Diagnósticos', icon: 'diagnostics' },
   { view: 'dashboards', label: 'Dashboards', icon: 'dashboard' },
+  { view: 'views', label: 'Vistas guardadas', icon: 'star' },
   { view: 'wifi', label: 'WiFi', icon: 'wifi' },
   { view: 'vpn', label: 'VPN', icon: 'network' },
   { view: 'alerts', label: 'Alertas', icon: 'alerts', badge: true },
@@ -459,11 +464,13 @@ function renderShell() {
         <button class="btn ghost icon sm" data-action="toggle-sidebar" aria-label="Menú" style="display:none" id="burger">${icon('menu')}</button>
         <h2 id="page-title">Panel</h2>
         <span class="crumb" id="page-crumb"></span>
+        ${state.auth && state.auth.demo ? '<span class="badge warning" title="Datos sintéticos generados por netdiag demo">DEMO</span>' : ''}
         <div class="spacer"></div>
         <label class="site-picker" title="${esc(tr('Sede activa'))}">${icon('network')}
           <select class="select sm" id="site-select" aria-label="${esc(tr('Sede activa'))}"></select>
         </label>
         <span class="clock" id="clock">—</span>
+        <button class="btn ghost icon" data-action="view-palette" title="${esc(tr('Buscar y ejecutar (Ctrl+K)'))}" aria-label="${esc(tr('Buscar y ejecutar (Ctrl+K)'))}">${icon('search')}</button>
         <button class="btn sm ghost lang-btn" data-action="lang" title="Cambiar idioma">${i18n ? i18n.label : 'EN'}</button>
         <button class="btn ghost icon" data-action="theme" title="${esc(t('Cambiar tema'))}" id="theme-btn">${icon(themeIcon(document.documentElement.dataset.theme || 'dark'))}</button>
         <button class="btn primary" data-action="open-scan">${icon('radar')} Escanear</button>
@@ -531,6 +538,7 @@ const PAGE_META = {
   topology: ['Topología', 'Mapa de red'],
   diagnostics: ['Diagnósticos', 'Problemas empresariales'],
   dashboards: ['Dashboards', 'Vistas personalizadas'],
+  views: ['Vistas guardadas', 'Filtros y accesos rápidos'],
   wifi: ['WiFi', 'APs, clientes e interferencias'],
   vpn: ['VPN', 'Túneles detectados'],
   alerts: ['Alertas', 'Reglas y canales'],
@@ -737,10 +745,17 @@ function handleEvent(ev) {
 /* ---------------- routing ---------------- */
 async function route(silent = false) {
   if (!state.me) return;
-  const raw = (location.hash || '#/dashboard').replace(/^#\/?/, '');
-  const [view, ...rest] = raw.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'diagnostics', 'wifi', 'vpn', 'alerts', 'compare', 'audits', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  const hash = (location.hash || '#/dashboard').replace(/^#\/?/, '');
+  const qi = hash.indexOf('?');
+  const rawPath = qi >= 0 ? hash.slice(0, qi) : hash;
+  const rawQuery = qi >= 0 ? hash.slice(qi + 1) : '';
+  state.routeQuery = qi >= 0 ? new URLSearchParams(rawQuery) : null;
+  const [view, ...rest] = rawPath.split('/');
+  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'views', 'diagnostics', 'wifi', 'vpn', 'alerts', 'compare', 'audits', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
   if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
+  if (state.routeQuery && !silent && typeof applySharedFilters === 'function') {
+    applySharedFilters(state.view, state.routeQuery);
+  }
   updateNav();
   const content = $('#content');
   if (!content) return;
@@ -757,6 +772,7 @@ async function route(silent = false) {
       case 'topology': await renderTopology(); break;
       case 'diagnostics': await renderDiagnostics(); break;
       case 'dashboards': await renderDashboards(); break;
+      case 'views': await renderSavedViews(); break;
       case 'wifi': await renderWiFi(); break;
       case 'vpn': await renderVPN(); break;
       case 'alerts': await renderAlerts(rest[0]); break;
@@ -917,6 +933,9 @@ async function renderHosts() {
   const sortIcon = (col) => state.hosts.sort === col ? `<span class="muted">${state.hosts.asc ? '↑' : '↓'}</span>` : '';
   const netOpts = state.networks.map((n) => `<option value="${n.id}" ${String(f.network_id) === String(n.id) ? 'selected' : ''}>${esc(n.name || n.cidr)}</option>`).join('');
   const types = Object.keys(TYPE_LABELS).filter((t) => t !== 'unknown');
+  const vc = (col) => typeof showViewColumn === 'function' ? showViewColumn('hosts', col) : true;
+  const extraCols = ['vendor', 'device_type', 'status', 'latency_ms', 'open_port_count', 'model', 'first_seen', 'last_seen', 'tags'].filter(vc);
+  const colSpan = 2 + extraCols.length;
 
   content.innerHTML = `
     <div class="card">
@@ -937,6 +956,7 @@ async function renderHosts() {
           <option value="">Todas las redes</option>${netOpts}
         </select>
         <label class="check tiny"><input type="checkbox" data-filter="favorite" ${f.favorite ? 'checked' : ''}> Solo favoritos</label>
+        ${typeof savedViewBar === 'function' ? savedViewBar('hosts') : ''}
         <div class="spacer right"></div>
         <a class="btn sm" href="/api/v1/hosts/export?format=csv" download>${icon('download')} CSV</a>
         <button class="btn sm" data-action="reload">${icon('refresh')} Actualizar</button>
@@ -946,16 +966,19 @@ async function renderHosts() {
         <table>
           <thead><tr>
             <th class="sortable" data-sort="ip">Dispositivo ${sortIcon('ip')}</th>
-            <th class="sortable" data-sort="vendor">Fabricante ${sortIcon('vendor')}</th>
-            <th class="sortable" data-sort="device_type">Tipo ${sortIcon('device_type')}</th>
-            <th class="sortable" data-sort="status">Estado ${sortIcon('status')}</th>
-            <th class="sortable" data-sort="latency_ms">Latencia ${sortIcon('latency_ms')}</th>
-            <th>Puertos</th>
-            <th class="sortable" data-sort="last_seen">Visto ${sortIcon('last_seen')}</th>
+            ${vc('vendor') ? `<th class="sortable" data-sort="vendor">Fabricante ${sortIcon('vendor')}</th>` : ''}
+            ${vc('device_type') ? `<th class="sortable" data-sort="device_type">Tipo ${sortIcon('device_type')}</th>` : ''}
+            ${vc('status') ? `<th class="sortable" data-sort="status">Estado ${sortIcon('status')}</th>` : ''}
+            ${vc('latency_ms') ? `<th class="sortable" data-sort="latency_ms">Latencia ${sortIcon('latency_ms')}</th>` : ''}
+            ${vc('open_port_count') ? '<th>Puertos</th>' : ''}
+            ${vc('model') ? '<th>Modelo</th>' : ''}
+            ${vc('first_seen') ? '<th>Primera vista</th>' : ''}
+            ${vc('last_seen') ? `<th class="sortable" data-sort="last_seen">Visto ${sortIcon('last_seen')}</th>` : ''}
+            ${vc('tags') ? '<th>Etiquetas</th>' : ''}
             <th></th>
           </tr></thead>
           <tbody>
-          ${state.hosts.items.length ? state.hosts.items.map(hostRow).join('') : `<tr><td colspan="8"><div class="empty">${icon('hosts')}No hay dispositivos con estos filtros</div></td></tr>`}
+          ${state.hosts.items.length ? state.hosts.items.map(hostRow).join('') : `<tr><td colspan="${colSpan}"><div class="empty">${icon('hosts')}No hay dispositivos con estos filtros</div></td></tr>`}
           </tbody>
         </table>
       </div>
@@ -970,17 +993,21 @@ async function renderHosts() {
 
 function hostRow(h) {
   const ports = (h.ports || []).filter((p) => p.state === 'open' || !p.state).slice(0, 3);
-  return `<tr class="clickable" data-action="host-open" data-id="${h.id}">
-    <td><div class="row"><div class="type-icon">${typeIcon(h.device_type)}</div>
-      <div class="name-cell"><b>${esc(h.hostname || h.ip)}</b><span class="mono">${esc(h.ip)}${h.mac ? ' · ' + esc(h.mac) : ''}</span></div></div></td>
-    <td class="ellipsis">${esc(h.vendor || '—')}</td>
-    <td><span class="badge violet">${esc(typeLabel(h.device_type))}</span></td>
-    <td>${statusBadge(h.status)}${h.is_gateway ? ' <span class="tag">Gateway</span>' : ''}</td>
-    <td class="mono">${h.latency_ms ? fmtNum(h.latency_ms, 1) + ' ms' : '—'}</td>
-    <td>${ports.length ? `<span class="mono small">${ports.map((p) => p.number).join(', ')}</span>${h.open_port_count > 3 ? `<span class="tiny muted"> +${h.open_port_count - 3}</span>` : ''}` : '<span class="muted">—</span>'}</td>
-    <td class="muted tiny">${ago(h.last_seen)}</td>
-    <td>${h.favorite ? `<span style="color:var(--amber)">${icon('star', '')}</span>` : ''}</td>
-  </tr>`;
+  const vc = (col) => typeof showViewColumn === 'function' ? showViewColumn('hosts', col) : true;
+  const cells = [];
+  cells.push(`<td><div class="row"><div class="type-icon">${typeIcon(h.device_type)}</div>
+    <div class="name-cell"><b>${esc(h.hostname || h.ip)}</b><span class="mono">${esc(h.ip)}${h.mac ? ' · ' + esc(h.mac) : ''}</span></div></div></td>`);
+  if (vc('vendor')) cells.push(`<td class="ellipsis">${esc(h.vendor || '—')}</td>`);
+  if (vc('device_type')) cells.push(`<td><span class="badge violet">${esc(typeLabel(h.device_type))}</span></td>`);
+  if (vc('status')) cells.push(`<td>${statusBadge(h.status)}${h.is_gateway ? ' <span class="tag">Gateway</span>' : ''}</td>`);
+  if (vc('latency_ms')) cells.push(`<td class="mono">${h.latency_ms ? fmtNum(h.latency_ms, 1) + ' ms' : '—'}</td>`);
+  if (vc('open_port_count')) cells.push(`<td>${ports.length ? `<span class="mono small">${ports.map((p) => p.number).join(', ')}</span>${h.open_port_count > 3 ? `<span class="tiny muted"> +${h.open_port_count - 3}</span>` : ''}` : '<span class="muted">—</span>'}</td>`);
+  if (vc('model')) cells.push(`<td class="ellipsis">${esc(h.model || '—')}</td>`);
+  if (vc('first_seen')) cells.push(`<td class="muted tiny">${ago(h.first_seen)}</td>`);
+  if (vc('last_seen')) cells.push(`<td class="muted tiny">${ago(h.last_seen)}</td>`);
+  if (vc('tags')) cells.push(`<td>${(h.tags || []).length ? h.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join(' ') : '<span class="muted">—</span>'}</td>`);
+  cells.push(`<td>${h.favorite ? `<span style="color:var(--amber)">${icon('star', '')}</span>` : ''}</td>`);
+  return `<tr class="clickable" data-action="host-open" data-id="${h.id}">${cells.join('')}</tr>`;
 }
 
 async function reloadHosts() {

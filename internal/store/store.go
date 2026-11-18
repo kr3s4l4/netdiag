@@ -423,6 +423,30 @@ var migrations = [][]string{
 		)`,
 		`CREATE INDEX idx_audit_snapshots_site_ts ON audit_snapshots(site_id, ts DESC)`,
 	},
+	{
+		// v1.5.5: F40 per-user saved inventory/alert views. Values are
+		// sanitized by the store before they reach this table (name and query
+		// are HTML-escaped), so a view can be shared through a URL safely.
+		`CREATE TABLE saved_views (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL DEFAULT 0,
+			site_id INTEGER NOT NULL DEFAULT 0,
+			name TEXT NOT NULL,
+			kind TEXT NOT NULL DEFAULT 'hosts',
+			query TEXT NOT NULL DEFAULT '',
+			severity TEXT NOT NULL DEFAULT '',
+			status TEXT NOT NULL DEFAULT '',
+			window TEXT NOT NULL DEFAULT '',
+			columns_json TEXT NOT NULL DEFAULT '[]',
+			sort TEXT NOT NULL DEFAULT '',
+			desc INTEGER NOT NULL DEFAULT 0,
+			builtin INTEGER NOT NULL DEFAULT 0,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL,
+			UNIQUE(user_id, name)
+		)`,
+		`CREATE INDEX idx_saved_views_user ON saved_views(user_id, kind, site_id)`,
+	},
 }
 
 func (s *Store) migrate() error {

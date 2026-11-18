@@ -265,6 +265,16 @@ func (s *Server) register() {
 	m.HandleFunc("PUT /api/v1/dashboards/{id}", s.handleUpdateDashboard)
 	m.HandleFunc("DELETE /api/v1/dashboards/{id}", s.handleDeleteDashboard)
 
+	// ---- F40 saved filters and views ----
+	m.HandleFunc("GET /api/v1/views", s.handleListViews)
+	m.HandleFunc("POST /api/v1/views", s.handleCreateView)
+	m.HandleFunc("GET /api/v1/views/catalog", s.handleViewCatalog)
+	m.HandleFunc("GET /api/v1/views/resolve", s.handleResolveView)
+	m.HandleFunc("GET /api/v1/views/{id}", s.handleGetView)
+	m.HandleFunc("PUT /api/v1/views/{id}", s.handleUpdateView)
+	m.HandleFunc("DELETE /api/v1/views/{id}", s.handleDeleteView)
+	m.HandleFunc("GET /api/v1/views/{id}/share", s.handleShareView)
+
 	// ---- reports ----
 	m.HandleFunc("GET /api/v1/reports", s.handleListReports)
 	m.HandleFunc("POST /api/v1/reports", s.handleCreateReport)

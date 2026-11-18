@@ -392,6 +392,26 @@ td.mono, th.mono { font-family: var(--mono); font-size: 12px; }
 .toast span { color: var(--muted); }
 @keyframes slide { from { transform: translateX(16px); opacity: 0; } }
 
+/* ---------- F40 saved views & command palette ---------- */
+.saved-view-bar { display: inline-flex; align-items: center; gap: 6px; padding-left: 10px; border-left: 1px solid var(--border-soft); }
+.saved-view-bar select { max-width: 170px; }
+.view-columns { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--panel-2); max-height: 150px; overflow: auto; }
+.view-column { white-space: nowrap; }
+.palette-backdrop { position: fixed; inset: 0; background: rgba(3, 7, 12, 0.62); backdrop-filter: blur(3px); display: grid; place-items: start center; z-index: 150; padding: 12vh 20px 20px; animation: fade .12s ease; }
+.palette { width: 100%; max-width: 620px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; animation: pop .16s ease; }
+.palette-search { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border-soft); }
+.palette-search svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+.palette-search input { flex: 1; border: 0; background: transparent; outline: none; font-size: 14px; color: var(--text); }
+.palette-list { max-height: min(52vh, 420px); overflow: auto; padding: 8px; }
+.palette-item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.palette-item svg { width: 17px; height: 17px; color: var(--accent); flex: none; }
+.palette-item span:nth-child(2) { min-width: 0; flex: 1; }
+.palette-item b { display: block; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-item small { display: block; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-item.active, .palette-item:hover { background: var(--panel-3); }
+.palette-empty { padding: 26px; text-align: center; color: var(--muted); font-size: 12.5px; }
+.palette-foot { display: flex; gap: 16px; padding: 9px 16px; border-top: 1px solid var(--border-soft); color: var(--muted); font-size: 11px; }
+
 /* ---------- misc ---------- */
 .divider { height: 1px; background: var(--border-soft); margin: 18px 0; }
 .notice { display: flex; gap: 10px; padding: 11px 13px; border-radius: 10px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text); font-size: 12.5px; }

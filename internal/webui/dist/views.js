@@ -922,21 +922,40 @@ async function alertsListBody() {
   const rulesCount = (rulesRes.items || []).length;
   const items = res.items || [];
   const pages = Math.max(1, Math.ceil((res.total || 0) / f.limit));
+  const vc = (col) => typeof showViewColumn === 'function' ? showViewColumn('alerts', col) : true;
+  const showSeverity = vc('severity');
+  const showTitle = vc('title');
+  const showMessage = vc('message');
+  const showHost = vc('host_ip');
+  const showRule = vc('rule_name');
+  const showStatus = vc('status');
+  const showCreated = vc('created_at');
+  const showAcked = vc('acked_at');
+  const showResolved = vc('resolved_at');
+  const colSpan = 1 + (showSeverity ? 2 : 0) + (showTitle || showMessage ? 1 : 0)
+    + (showHost ? 1 : 0) + (showRule ? 1 : 0) + (showStatus ? 1 : 0)
+    + (showCreated ? 1 : 0) + (showAcked ? 1 : 0) + (showResolved ? 1 : 0);
   const rows = items.length ? items.map((a) => {
     const actions = [];
     if (a.status === 'active') actions.push(`<button class="btn sm" data-action="alert-ack" data-id="${a.id}">Reconocer</button>`);
     if (a.status !== 'resolved') actions.push(`<button class="btn sm" data-action="alert-resolve" data-id="${a.id}">Resolver</button>`);
-    return `<tr>
-      <td><span class="sev-dot sev-${esc(a.severity)}" title="${esc(SEV_LABELS[a.severity] || a.severity)}"></span></td>
-      <td><div class="name-cell"><b>${esc(a.title)}</b><span class="ellipsis" style="display:block">${esc(a.message)}</span></div></td>
-      <td>${a.host_id ? `<a href="#/hosts/${a.host_id}" class="mono-ip">${esc(a.host_name || a.host_ip || '#' + a.host_id)}</a>${a.host_name && a.host_ip ? `<div class="tiny muted mono">${esc(a.host_ip)}</div>` : ''}` : '<span class="muted">Global</span>'}</td>
-      <td class="tiny muted">${esc(a.rule_name || '—')}</td>
-      <td>${sevBadge(a.severity)}</td>
-      <td><span class="badge ${a.status === 'active' ? 'down' : a.status === 'acked' ? 'warning' : 'up'}">${a.status === 'active' ? 'Activa' : a.status === 'acked' ? 'Reconocida' : 'Resuelta'}</span></td>
-      <td class="tiny muted nowrap">${ago(a.created_at)}</td>
-      <td class="right nowrap">${actions.join(' ')}</td>
-    </tr>`;
-  }).join('') : `<tr><td colspan="8"><div class="empty">${icon('alerts')}Sin alertas para estos filtros</div></td></tr>`;
+    const cells = [];
+    if (showSeverity) {
+      cells.push(`<td><span class="sev-dot sev-${esc(a.severity)}" title="${esc(SEV_LABELS[a.severity] || a.severity)}"></span></td>`);
+      cells.push(`<td>${sevBadge(a.severity)}</td>`);
+    }
+    if (showTitle || showMessage) {
+      cells.push(`<td><div class="name-cell">${showTitle ? `<b>${esc(a.title)}</b>` : ''}${showMessage ? `<span class="ellipsis" style="display:block">${esc(a.message)}</span>` : ''}</div></td>`);
+    }
+    if (showHost) cells.push(`<td>${a.host_id ? `<a href="#/hosts/${a.host_id}" class="mono-ip">${esc(a.host_name || a.host_ip || '#' + a.host_id)}</a>${a.host_name && a.host_ip ? `<div class="tiny muted mono">${esc(a.host_ip)}</div>` : ''}` : '<span class="muted">Global</span>'}</td>`);
+    if (showRule) cells.push(`<td class="tiny muted">${esc(a.rule_name || '—')}</td>`);
+    if (showStatus) cells.push(`<td><span class="badge ${a.status === 'active' ? 'down' : a.status === 'acked' ? 'warning' : 'up'}">${a.status === 'active' ? 'Activa' : a.status === 'acked' ? 'Reconocida' : 'Resuelta'}</span></td>`);
+    if (showCreated) cells.push(`<td class="tiny muted nowrap">${ago(a.created_at)}</td>`);
+    if (showAcked) cells.push(`<td class="tiny muted nowrap">${a.acked_at ? ago(a.acked_at) : '—'}</td>`);
+    if (showResolved) cells.push(`<td class="tiny muted nowrap">${a.resolved_at ? ago(a.resolved_at) : '—'}</td>`);
+    cells.push(`<td class="right nowrap">${actions.join(' ')}</td>`);
+    return `<tr>${cells.join('')}</tr>`;
+  }).join('') : `<tr><td colspan="${colSpan}"><div class="empty">${icon('alerts')}Sin alertas para estos filtros</div></td></tr>`;
 
   return `
     <div class="grid cols-4 mb">
@@ -958,13 +977,24 @@ async function alertsListBody() {
           ${[['', 'Toda severidad'], ['critical', 'Crítica'], ['warning', 'Aviso'], ['info', 'Info']].map(([v, l]) =>
             `<option value="${v}" ${f.severity === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
+        ${typeof savedViewBar === 'function' ? savedViewBar('alerts') : ''}
         <div class="right row">
           <button class="btn sm" data-action="reload">${icon('refresh')} Actualizar</button>
           <a class="btn sm" href="#/alerts/reglas">${icon('settings')} Reglas</a>
         </div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th></th><th>Alerta</th><th>Dispositivo</th><th>Regla</th><th>Severidad</th><th>Estado</th><th>Creada</th><th></th></tr></thead>
+        <thead><tr>
+          ${showSeverity ? '<th></th><th>Severidad</th>' : ''}
+          ${showTitle || showMessage ? '<th>Alerta</th>' : ''}
+          ${showHost ? '<th>Dispositivo</th>' : ''}
+          ${showRule ? '<th>Regla</th>' : ''}
+          ${showStatus ? '<th>Estado</th>' : ''}
+          ${showCreated ? '<th>Creada</th>' : ''}
+          ${showAcked ? '<th>Reconocida</th>' : ''}
+          ${showResolved ? '<th>Resuelta</th>' : ''}
+          <th></th>
+        </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
       <div class="pagination">
@@ -2298,6 +2328,10 @@ async function settingsSystemBody() {
       <td class="tiny muted">${esc(a.ip || '')}</td>
     </tr>`).join('');
   return `
+    ${info.demo ? `<div class="notice warn mb">${icon('shield')}<div>
+      <b>Modo demo · datos sintéticos</b>
+      <div class="tiny">Generado por <span class="mono">netdiag demo</span>. No procede de una red real.</div>
+    </div></div>` : ''}
     <div class="grid cols-3 mb">
       <div class="card pad"><div class="label muted tiny" style="letter-spacing:.08em;text-transform:uppercase">Versión</div>
         <div style="font-size:19px;font-weight:700;margin-top:4px">${esc(info.version)}</div>
@@ -2325,6 +2359,10 @@ async function settingsSystemBody() {
             ? `Versión ${esc(upd.latest_version)} disponible`
             : 'No hay una versión más reciente comprobada'
         }</div>
+        ${upd.security_update ? `<div class="notice warn" style="margin-top:10px">${icon('shield')}<div>
+          <b>Actualización de seguridad obligatoria</b>
+          <div class="tiny">Versión mínima segura: ${esc(upd.min_version || '—')}. Instala la versión firmada.</div>
+        </div></div>` : ''}
         ${upd.pending ? `<div class="notice warn" style="margin-top:10px">${icon('shield')}<div>
           <b>Actualización pendiente de confirmación</b>
           <div class="tiny">${esc(upd.pending.version || '')} · copia: ${esc(upd.pending.backup_path || '')}</div>
