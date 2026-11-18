@@ -27,6 +27,78 @@ NetDiag no necesita servidor de licencias. La licencia es un JSON firmado con Ed
 
 **Descartada:** Lemon Squeezy. Ya no acepta altas y cierra el 31/03/2027.
 
+## Cómo funcionan los sitios que «lo gestionan todo»
+
+Gestionan **la venta**, no el producto.
+
+Cuando un cliente paga, la plataforma:
+
+1. Cobra con tarjeta o PayPal.
+2. Calcula y remite impuestos si actúa como *Merchant of Record*.
+3. Envía el archivo que le subiste: un ZIP con binarios, checksums y documentación.
+4. Te ingresa el dinero menos su comisión.
+
+Lo que **no** hace:
+
+- No genera la licencia Ed25519 de NetDiag.
+- No verifica el SBOM ni la firma minisign.
+- No da soporte técnico.
+- No decide tus bandas de hosts gestionados.
+
+Flujo real con NetDiag:
+
+```text
+pago en la plataforma
+→ correo manual con license.json firmada
+→ activación offline con netdiag license activate
+→ soporte por correo
+```
+
+### Tienda frente a Merchant of Record
+
+| Modelo | Quién es el vendedor | Impuestos | Ejemplos |
+| --- | --- | --- | --- |
+| Tienda | Tú | Parciales o tú | Payhip: UE/UK y US/Canadá |
+| Merchant of Record | La plataforma | La plataforma los gestiona | Paddle, Gumroad, Stripe Managed Payments, FastSpring |
+
+Con MoR pagas más comisión, pero no gestionas impuestos por país ni disputas de pago. Sin MoR tienes más control y menos comisión, pero más trabajo fiscal.
+
+### Ejemplo con 990 € (antes de divisas)
+
+| Plataforma | Comisión aproximada | Recibes aproximadamente |
+| --- | --- | --- |
+| Paddle | 5% + 0,50 $ ≈ 50,00 € | ≈ 940,00 € |
+| Gumroad directo | 10% + 0,50 $ ≈ 99,50 € | ≈ 890,50 € |
+| Payhip plan gratis | 5% + Stripe/PayPal ≈ 78,00 € | ≈ 912,00 € |
+
+Son cálculos orientativos. La plataforma puede añadir conversión de divisa y el VAT puede cambiar el precio final del comprador.
+
+### Qué debes preparar tú siempre
+
+- [ ] ZIP con binarios, `SHA256SUMS`, `SHA256SUMS.minisig`, `public_keys.md`, `RELEASE_NOTES.md` y guía de instalación.
+- [ ] Plantilla `license-unsigned.json` por banda.
+- [ ] La semilla de firma guardada fuera del repo. Ya está en `~/.config/netdiag/license-signing.seed`; **nunca se sube**.
+- [ ] Correo de entrega con la licencia firmada.
+- [ ] Respuesta de soporte por correo.
+- [ ] Datos fiscales y bancarios de la plataforma solo cuando decidas dar el paso.
+
+### Maduración sin crear cuentas
+
+1. **Entender el modelo:** esta sección. Sin prisa.
+2. **Preparar el paquete de prueba:** ZIP y correo con datos ficticios. No subir nada.
+3. **Probar en modo test:** Paddle tiene sandbox; Stripe tiene modo de prueba. Payhip permite cuenta gratis.
+4. **Decidir con calma:** elegir MoR si quieres olvidarte de impuestos; elegir tienda directa si quieres control y factura propia.
+
+Preguntas que conviene responder antes de elegir:
+
+- ¿Vendes solo en España/UE o también en EE. UU.?
+- ¿Quieres factura propia o factura de la plataforma?
+- ¿Prefieres pagar un 5–10% para no gestionar impuestos?
+- ¿Ya tienes alta fiscal y cuenta bancaria para ingresos?
+- ¿Buscas una tienda con tu marca o el marketplace de la plataforma?
+
+Mi recomendación para madurar: empezar por **Payhip o Stripe en modo prueba**, sin cobros reales. Paddle puede esperar a que haya clientes B2B o internacionales.
+
 ## Ruta A — Tienda directa mínima (recomendada ahora)
 
 No hace falta web propia ni backend. Un enlace de pago y un correo bastan.
