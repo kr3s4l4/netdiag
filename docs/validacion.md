@@ -148,6 +148,18 @@ Si tras 6–8 semanas solo hay descargas y silencio:
 - Release preview: <https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.0>, con `netdiag-linux-amd64`, `netdiag-linux-arm64`, `SHA256SUMS` y `SHA256SUMS.minisig`. Marcada como *pre-release*; el resumen está firmado con la clave `netdiag-release` publicada en `docs/public_keys.md`.
 - Discussion: <https://github.com/kr3s4l4/netdiag/discussions/1>. Creado; **queda fijarlo a mano** desde el menú ⋯ → *Pin discussion* porque la API de GitHub no expone esa acción.
 - El repo antiguo `kr3s4l4/Netdiag` (programa anterior) se borró. Su último commit `11fdf866bb9c` sigue intacto en la copia local de referencia.
+- Decisión actual: **los commits se mantienen locales**. `master` está 9 commits por delante de `origin/master`; no se hace push sin instrucción explícita y sin token.
+
+### Verificación técnica final (18/11/2026)
+
+Ejecutada desde un worktree limpio en `1cafe70`, con binarios compilados desde la revision final:
+
+- F35: licencia `pro` firmada, activada y mostrada; una copia con `customer` modificado fue rechazada.
+- F36: `.ndc` construido, inspeccionado y verificado; alterar `payload/` fue rechazado.
+- F37: dos releases con el mismo `SOURCE_DATE_EPOCH` produjeron `SHA256SUMS` y `.ndc` idénticos; `verify-release.sh` validó firma, checksum, contenedor y `versión mínima segura: 1.5.9`; alterar `RELEASE_NOTES.md` devolvió `NO VÁLIDO` y falló.
+- F39: `demo --seed 3 --sites 2 --hosts 30` generó 2 sedes, 30 hosts y 26 hosts gestionados.
+- Se usaron **claves de prueba**; `signing.json` se destruyó con `shred` y el worktree se eliminó. No quedan materiales de firma de prueba en `/tmp/opencode`.
+- Comprobaciones de cierre: `make test`, `gofmt`, `go build`, `go vet`, parseo JS y `git status --short` limpio.
 
 ### Señales públicas reales a 18/11/2026
 
