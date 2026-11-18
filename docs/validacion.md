@@ -169,6 +169,7 @@ Ejecutada desde un worktree limpio en `1cafe70`, con binarios compilados desde l
 - La primera llamada a `GET /api/v1/topology` ejecutó el descubrimiento automático y añadió `192.168.1.0/24` con router `192.168.1.1` (`livebox.home`), confianza 90 y evidencia de traza.
 - `POST /api/v1/discover/neighbors` confirmó 9 candidatos privados y ninguna dirección pública.
 - La vista «Trazas» mostró la red detectada y el formulario de traza en Chromium forzado a `en-US`, con la interfaz en español y sin errores JS.
+- Se corrigió la topología para reutilizar nodos por IP/CIDR: ya no aparece dos veces `192.168.0.1` ni dos veces `192.168.1.0/24`. La arista de traza une directamente `192.168.0.1 → 192.168.1.1`.
 - Motor implementado con UDP + `IP_RECVERR`: funciona sin raw sockets y sin binarios externos.
 
 ### Señales públicas reales a 18/11/2026

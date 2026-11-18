@@ -1,6 +1,7 @@
 package topology
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/kr3s4l4/netdiag/internal/model"
@@ -26,7 +27,7 @@ func TestBuildGraph(t *testing.T) {
 	}
 	g := Build(hosts, neighbors, networks)
 
-	if g.Stats.Nodes != 6 {
+	if g.Stats.Nodes != 5 {
 		t.Fatalf("nodos inesperados: %d (%+v)", g.Stats.Nodes, g.Nodes)
 	}
 	if g.Stats.Edges == 0 {
@@ -34,6 +35,16 @@ func TestBuildGraph(t *testing.T) {
 	}
 	if g.Stats.ByType[string(model.DevRouter)] != 1 || g.Stats.ByType[string(model.DevServer)] != 1 {
 		t.Fatalf("resumen por tipo inesperado: %+v", g.Stats.ByType)
+	}
+	seenIP := map[string]bool{}
+	for _, n := range g.Nodes {
+		if n.IP == "" || strings.Contains(n.IP, "/") {
+			continue
+		}
+		if seenIP[n.IP] {
+			t.Fatalf("IP duplicada en el grafo: %s", n.IP)
+		}
+		seenIP[n.IP] = true
 	}
 
 	ids := map[string]model.GraphNode{}

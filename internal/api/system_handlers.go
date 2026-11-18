@@ -2,10 +2,11 @@ package api
 
 import (
 	"context"
-	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/kr3s4l4/netdiag/internal/config"
@@ -199,7 +200,8 @@ func (s *Server) handleTopology(w http.ResponseWriter, r *http.Request) {
 }
 
 // mergeNeighborTopology adds auto-detected private networks and their routers
-// to the rendered graph. This runs lazily on the first topology request.
+// to the rendered graph. Existing nodes are reused by IP/CIDR so the same
+// device never appears twice, and edges follow the real traced hop sequence.
 func (s *Server) mergeNeighborTopology(ctx context.Context, graph *model.Graph, hosts []model.Host) {
 	local := []string{}
 	ifaces, err := s.systemInterfaces()
@@ -220,99 +222,125 @@ func (s *Server) mergeNeighborTopology(ctx context.Context, graph *model.Graph, 
 		return
 	}
 
-	seen := map[string]bool{}
+	byID := map[string]bool{}
+	byIP := map[string]string{}
+	byCIDR := map[string]string{}
 	for _, n := range graph.Nodes {
-		seen[n.ID] = true
+		byID[n.ID] = true
+		if n.IP == "" {
+			continue
+		}
+		if strings.Contains(n.IP, "/") {
+			if byCIDR[n.IP] == "" {
+				byCIDR[n.IP] = n.ID
+			}
+			continue
+		}
+		if byIP[n.IP] == "" {
+			byIP[n.IP] = n.ID
+		}
 	}
 
-	// Find a local gateway anchor from the inventory or the rendered graph.
-	anchor := ""
-	for _, node := range graph.Nodes {
-		if node.Kind == "gateway" || node.Kind == "network" || node.Kind == "router" {
-			anchor = node.ID
-			break
+	addNode := func(id, kind, label, ip, cidr string, confidence int) string {
+		if id == "" {
+			return ""
 		}
-	}
-	for _, h := range hosts {
-		if h.IsGateway && h.IP != "" {
-			anchor = "host:" + fmt.Sprint(h.ID)
-			break
+		if !byID[id] {
+			byID[id] = true
+			graph.Nodes = append(graph.Nodes, model.GraphNode{
+				ID:         id,
+				Kind:       kind,
+				Label:      label,
+				IP:         ip,
+				Network:    cidr,
+				DeviceType: model.DevRouter,
+				Confidence: confidence,
+			})
+			graph.Stats.Nodes++
+			graph.Stats.ByType[kind]++
 		}
+		if ip != "" && !strings.Contains(ip, "/") && byIP[ip] == "" {
+			byIP[ip] = id
+		}
+		if cidr != "" && byCIDR[cidr] == "" {
+			byCIDR[cidr] = id
+		}
+		return id
 	}
-	if anchor == "" {
-		if ifaces, err := s.systemInterfaces(); err == nil {
-			for _, iface := range ifaces {
-				if iface.Gateway != "" {
-					for _, h := range hosts {
-						if h.IP == iface.Gateway {
-							anchor = "host:" + fmt.Sprint(h.ID)
-							break
-						}
-					}
-					break
-				}
+
+	edgeKeys := map[string]bool{}
+	for _, e := range graph.Edges {
+		edgeKeys[e.Source+"->"+e.Target+"|"+e.Kind] = true
+	}
+	addEdge := func(from, to, kind, label string, confidence int) {
+		if from == "" || to == "" || from == to {
+			return
+		}
+		key := from + "->" + to + "|" + kind
+		if edgeKeys[key] {
+			return
+		}
+		edgeKeys[key] = true
+		graph.Edges = append(graph.Edges, model.GraphEdge{
+			ID:         key,
+			Source:     from,
+			Target:     to,
+			Kind:       kind,
+			Label:      label,
+			Confidence: confidence,
+		})
+		graph.Stats.Edges++
+	}
+	connected := func(a, b string) bool {
+		for _, e := range graph.Edges {
+			if (e.Source == a && e.Target == b) || (e.Source == b && e.Target == a) {
+				return true
 			}
 		}
+		return false
 	}
 
 	for _, nw := range detected.Networks {
-		netID := "neighbor:" + nw.CIDR
-		if !seen[netID] {
-			seen[netID] = true
-			graph.Nodes = append(graph.Nodes, model.GraphNode{
-				ID:         netID,
-				Kind:       "network",
-				Label:      "Red vecina · " + nw.CIDR,
-				IP:         nw.CIDR,
-				Network:    nw.CIDR,
-				DeviceType: model.DevRouter,
-				Confidence: nw.Confidence,
-			})
-			graph.Stats.Nodes++
-			graph.Stats.ByType["network"]++
+		netID := byCIDR[nw.CIDR]
+		if netID == "" {
+			netID = addNode("neighbor:"+nw.CIDR, "network", "Red vecina · "+nw.CIDR, nw.CIDR, nw.CIDR, nw.Confidence)
 		}
-		routerID := "neighbor-router:" + nw.RouterIP
-		if !seen[routerID] {
-			seen[routerID] = true
-			label := nw.RouterIP
-			if nw.RouterHostname != "" {
-				label = nw.RouterHostname
+
+		label := nw.RouterIP
+		if nw.RouterHostname != "" {
+			label = nw.RouterHostname
+		}
+		routerID := byIP[nw.RouterIP]
+		if routerID == "" {
+			routerID = addNode("neighbor-router:"+nw.RouterIP, "router", label, nw.RouterIP, nw.CIDR, nw.Confidence)
+		}
+
+		// Draw the path hop by hop: 192.168.0.1 -> 192.168.1.1.
+		previous := ""
+		for _, hop := range nw.Path {
+			if hop == "" || hop == "*" || net.ParseIP(hop) == nil {
+				continue
 			}
-			graph.Nodes = append(graph.Nodes, model.GraphNode{
-				ID:         routerID,
-				Kind:       "router",
-				Label:      label,
-				IP:         nw.RouterIP,
-				DeviceType: model.DevRouter,
-				Confidence: nw.Confidence,
-			})
-			graph.Stats.Nodes++
-			graph.Stats.ByType[string(model.DevRouter)]++
+			hopID := byIP[hop]
+			if hopID == "" {
+				hopID = addNode("neighbor-router:"+hop, "router", hop, hop, "", nw.Confidence)
+			}
+			if previous != "" {
+				addEdge(previous, hopID, "traced", "traza", nw.Confidence)
+			}
+			previous = hopID
 		}
-		edges := []model.GraphEdge{
-			{
-				ID:         "edge:" + netID + ":" + routerID,
-				Source:     netID,
-				Target:     routerID,
-				Kind:       "gateway",
-				Label:      nw.Evidence,
-				Confidence: nw.Confidence,
-			},
+		if previous != "" && previous != routerID {
+			addEdge(previous, routerID, "traced", "traza", nw.Confidence)
 		}
-		if anchor != "" && anchor != netID {
-			edges = append(edges, model.GraphEdge{
-				ID:         "edge:" + anchor + ":" + netID,
-				Source:     anchor,
-				Target:     netID,
-				Kind:       "routed",
-				Label:      "detectado por traza",
-				Confidence: nw.Confidence,
-			})
+		if !connected(netID, routerID) {
+			addEdge(netID, routerID, "gateway", nw.Evidence, nw.Confidence)
 		}
-		graph.Edges = append(graph.Edges, edges...)
-		graph.Stats.Edges += len(edges)
 	}
+
 	graph.Stats.Isolated = countIsolated(graph)
+	graph.Stats.Nodes = len(graph.Nodes)
+	graph.Stats.Edges = len(graph.Edges)
 }
 
 func countIsolated(g *model.Graph) int {

@@ -65,6 +65,7 @@ func Build(hosts []model.Host, neighbors map[int64][]model.Neighbor, networks []
 	}
 
 	seenNodes := map[string]bool{}
+	nodeIDByHostID := map[int64]string{}
 	addNode := func(n model.GraphNode) {
 		if seenNodes[n.ID] {
 			return
@@ -112,14 +113,22 @@ func Build(hosts []model.Host, neighbors map[int64][]model.Neighbor, networks []
 			node.Confidence = gw.Confidence
 		}
 		addNode(node)
+		if gw != nil {
+			nodeIDByHostID[gw.ID] = nodeID
+		}
 		networkNodeID[nw.ID] = nodeID
 		g.Stats.Nodes++
 	}
 
-	// Host nodes.
+	// Host nodes. A gateway already represented by its network anchor is not
+	// added again: that produced two nodes with the same IP.
 	for i := range hosts {
 		h := &hosts[i]
+		if _, represented := nodeIDByHostID[h.ID]; represented {
+			continue
+		}
 		id := hostNodeID(h.ID)
+		nodeIDByHostID[h.ID] = id
 		label := h.Hostname
 		if label == "" {
 			label = h.IP
@@ -154,6 +163,13 @@ func Build(hosts []model.Host, neighbors map[int64][]model.Neighbor, networks []
 		g.Stats.Nodes++
 	}
 
+	nodeForHost := func(id int64) string {
+		if nodeID, ok := nodeIDByHostID[id]; ok {
+			return nodeID
+		}
+		return hostNodeID(id)
+	}
+
 	seenEdges := map[string]bool{}
 	addEdge := func(e model.GraphEdge) {
 		if e.Source == "" || e.Target == "" || e.Source == e.Target {
@@ -185,9 +201,9 @@ func Build(hosts []model.Host, neighbors map[int64][]model.Neighbor, networks []
 			continue
 		}
 		addEdge(model.GraphEdge{
-			ID:         edgeID(anchor, hostNodeID(h.ID), "subnet"),
+			ID:         edgeID(anchor, nodeForHost(h.ID), "subnet"),
 			Source:     anchor,
-			Target:     hostNodeID(h.ID),
+			Target:     nodeForHost(h.ID),
 			Kind:       "subnet",
 			Label:      "subred",
 			Confidence: 70,
@@ -223,10 +239,7 @@ func Build(hosts []model.Host, neighbors map[int64][]model.Neighbor, networks []
 			if remote == nil || remote.ID == localID {
 				continue
 			}
-			src, dst := hostNodeID(local.ID), hostNodeID(remote.ID)
-			if remote.IsGateway {
-				src, dst = hostNodeID(local.ID), hostNodeID(remote.ID)
-			}
+			src, dst := nodeForHost(local.ID), nodeForHost(remote.ID)
 			addEdge(model.GraphEdge{
 				ID:         edgeID(src, dst, n.Protocol),
 				Source:     src,
