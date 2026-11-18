@@ -149,6 +149,14 @@ Si tras 6–8 semanas solo hay descargas y silencio:
 - Discussion: <https://github.com/kr3s4l4/netdiag/discussions/1>. Creado; **queda fijarlo a mano** desde el menú ⋯ → *Pin discussion* porque la API de GitHub no expone esa acción.
 - El repo antiguo `kr3s4l4/Netdiag` (programa anterior) se borró. Su último commit `11fdf866bb9c` sigue intacto en la copia local de referencia.
 
+### Señales públicas reales a 18/11/2026
+
+- HN: <https://news.ycombinator.com/item?id=50545732>. 1 punto. Comentario inicial `50545733` marcado `[flagged]`; no cuenta como respuesta pública.
+- GitHub: 0 visitas, 0 clones, 0 stars, 0 forks, 0 issues y 0 watchers.
+- Descargas: 2 por binario en la release `v1.5.0`. No sabemos si se ejecutaron.
+- Reddit: la publicación no ha podido verificarse desde esta máquina (HTTP 403). Falta el enlace exacto y el subreddit.
+- Conclusión: **no hay aún evidencia de uso real**. Seguir con F39/F40 y preparar canales alternativos sin instrumentar el binario.
+
 ## Evidencia escrita y puerta de gasto F42
 
 Volcar cada señal en [docs/plantillas/registro-evidencia-f42.md](plantillas/registro-evidencia-f42.md). Una fila por organización, con cita textual y enlace público cuando exista.
