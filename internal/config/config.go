@@ -75,6 +75,7 @@ type Config struct {
 	Storage      Storage      `yaml:"storage" json:"storage"`
 	Security     Security     `yaml:"security" json:"security"`
 	Diagnostics  Diagnostics  `yaml:"diagnostics" json:"diagnostics"`
+	VPN          VPN          `yaml:"vpn" json:"vpn"`
 	Log          Log          `yaml:"log" json:"log"`
 }
 
@@ -179,6 +180,15 @@ type Diagnostics struct {
 	AuthorizedAPs   []string `yaml:"authorized_aps" json:"authorized_aps"`
 }
 
+// VPN controls the periodic heuristic detection of VPN tunnels. Detection is
+// passive: it reads local kernel tables and never injects or decrypts traffic.
+type VPN struct {
+	Enabled       bool     `yaml:"enabled" json:"enabled"`
+	Interval      Duration `yaml:"interval" json:"interval"`
+	MinConfidence int      `yaml:"min_confidence" json:"min_confidence"`
+	StaleAfter    Duration `yaml:"stale_after" json:"stale_after"`
+}
+
 type Log struct {
 	Level  string `yaml:"level" json:"level"`
 	Format string `yaml:"format" json:"format"` // text | json
@@ -252,6 +262,12 @@ func Defaults() *Config {
 			Timeout:      Duration(10 * time.Second),
 			MaxPerMinute: 60,
 			QueueSize:    512,
+		},
+		VPN: VPN{
+			Enabled:       true,
+			Interval:      Duration(5 * time.Minute),
+			MinConfidence: 60,
+			StaleAfter:    Duration(30 * time.Minute),
 		},
 		Storage: Storage{
 			DataDir:        DefaultDataDir(),
@@ -409,6 +425,15 @@ func (c *Config) Normalize() error {
 	if c.Integrations.QueueSize <= 0 {
 		c.Integrations.QueueSize = 512
 	}
+	if c.VPN.Interval.Duration() <= 0 {
+		c.VPN.Interval = Duration(5 * time.Minute)
+	}
+	if c.VPN.MinConfidence <= 0 {
+		c.VPN.MinConfidence = 60
+	}
+	if c.VPN.StaleAfter.Duration() <= 0 {
+		c.VPN.StaleAfter = Duration(30 * time.Minute)
+	}
 	return c.Validate()
 }
 
@@ -475,6 +500,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Integrations.QueueSize < 16 || c.Integrations.QueueSize > 100000 {
 		errs = append(errs, "integrations.queue_size debe estar entre 16 y 100000")
+	}
+	if c.VPN.Interval.Duration() < 30*time.Second {
+		errs = append(errs, "vpn.interval mínimo 30s")
+	}
+	if c.VPN.MinConfidence < 1 || c.VPN.MinConfidence > 100 {
+		errs = append(errs, "vpn.min_confidence debe estar entre 1 y 100")
+	}
+	if c.VPN.StaleAfter.Duration() < time.Minute {
+		errs = append(errs, "vpn.stale_after mínimo 1m")
 	}
 	if (c.Server.TLSCert == "") != (c.Server.TLSKey == "") {
 		errs = append(errs, "server.tls_cert y server.tls_key deben configurarse juntos")
@@ -555,6 +589,14 @@ func applyEnv(c *Config) {
 	set("NETDIAG_MONITOR_INTERVAL", func(v string) {
 		if d, err := time.ParseDuration(v); err == nil {
 			c.Monitor.Interval = Duration(d)
+		}
+	})
+	set("NETDIAG_VPN", func(v string) {
+		c.VPN.Enabled = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+	})
+	set("NETDIAG_VPN_INTERVAL", func(v string) {
+		if d, err := time.ParseDuration(v); err == nil {
+			c.VPN.Interval = Duration(d)
 		}
 	})
 	set("NETDIAG_SNMP", func(v string) {

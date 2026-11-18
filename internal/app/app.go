@@ -24,6 +24,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
+	"github.com/kr3s4l4/netdiag/internal/vpn"
 	"github.com/kr3s4l4/netdiag/internal/webui"
 )
 
@@ -45,6 +46,7 @@ type App struct {
 	auth         *auth.Service
 	alerts       *alerts.Manager
 	integrations *integrations.Manager
+	vpn          *vpn.Manager
 	reports      *report.Generator
 	backups      *backup.Manager
 	engine       *discover.Engine
@@ -108,6 +110,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		auth:         auth.New(st, cfg.Security, log),
 		alerts:       alerts.New(st, cfg.Alerts, log),
 		integrations: integrations.New(st, cfg.Integrations, log),
+		vpn:          vpn.New(st, cfg.VPN, log),
 		reports:      reports,
 		backups:      backup.New(st, cfg, cfgPath, log),
 		engine:       discover.New(),
@@ -122,6 +125,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		Auth:         a.auth,
 		Alerts:       a.alerts,
 		Integrations: a.integrations,
+		VPN:          a.vpn,
 		Reports:      reports,
 		Backups:      a.backups,
 		Scanner:      a,
@@ -174,6 +178,7 @@ func (a *App) Run(ctx context.Context) error {
 
 	a.alerts.Start(ctx)
 	a.integrations.Start(ctx)
+	go a.vpn.Start(ctx)
 	go a.monitorLoop(ctx)
 	go a.maintenanceLoop(ctx)
 	if a.backups != nil {
@@ -270,6 +275,7 @@ func (a *App) UpdateConfig(cfg *config.Config) error {
 	a.cfgMu.Unlock()
 	a.alerts.UpdateConfig(cfg.Alerts)
 	a.integrations.UpdateConfig(cfg.Integrations)
+	a.vpn.UpdateConfig(cfg.VPN)
 	if a.backups != nil {
 		a.backups.UpdateConfig(cfg)
 	}

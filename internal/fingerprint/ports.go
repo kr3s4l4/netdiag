@@ -19,7 +19,7 @@ var QuickPorts = []int{
 // CommonPorts adds the most frequent service ports. ~120 probes per host.
 var CommonPorts = mergePorts(QuickPorts, []int{
 	21, 23, 25, 49, 67, 69, 110, 111, 123, 143, 161, 162, 179, 389, 427,
-	465, 500, 587, 636, 873, 993, 995, 1080, 1194, 1433, 1521, 1723, 1900,
+	465, 500, 587, 636, 873, 993, 995, 1080, 1194, 1433, 1521, 1723, 1900, 4500, 51820,
 	2049, 2181, 2375, 2376, 3000, 3128, 3260, 3306, 3478, 3690, 4000, 4369,
 	5000, 5001, 5432, 5601, 5672, 5900, 5985, 5986, 6379, 6443, 7000, 7001,
 	8008, 8009, 8060, 8081, 8086, 8090, 8123, 8200, 8500, 8880, 9000, 9001,
@@ -137,6 +137,7 @@ var serviceNames = map[int]string{
 	514: "syslog", 515: "lpd", 548: "afp", 554: "rtsp", 587: "submission", 631: "ipp",
 	636: "ldaps", 873: "rsync", 993: "imaps", 995: "pop3s", 1080: "socks", 1194: "openvpn",
 	1433: "mssql", 1521: "oracle", 1723: "pptp", 1883: "mqtt", 1900: "ssdp",
+	4500: "ipsec-nat-t", 51820: "wireguard",
 	2049: "nfs", 2181: "zookeeper", 2375: "docker", 2376: "docker-tls", 3000: "http-alt",
 	3128: "squid", 3260: "iscsi", 3306: "mysql", 3389: "rdp", 3478: "stun",
 	3690: "svn", 4000: "http-alt", 4369: "epmd", 5000: "http-alt", 5001: "https-alt",

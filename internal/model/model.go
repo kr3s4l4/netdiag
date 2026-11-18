@@ -658,6 +658,27 @@ type AlertFilter struct {
 	Limit    int
 }
 
+// VPNTunnel is a heuristic view of a VPN tunnel observed on the host or in
+// the scan inventory. Bytes are cumulative counters when available (local
+// interfaces); remote-only observations report zero with an explicit note.
+type VPNTunnel struct {
+	ID         int64     `json:"id"`
+	SiteID     int64     `json:"site_id"`
+	Identity   string    `json:"-"`
+	Type       string    `json:"type"` // wireguard | openvpn | ipsec | pptp
+	LocalIP    string    `json:"local_ip,omitempty"`
+	RemoteIP   string    `json:"remote_ip,omitempty"`
+	LocalPort  int       `json:"local_port,omitempty"`
+	RemotePort int       `json:"remote_port,omitempty"`
+	BytesSent  int64     `json:"bytes_sent"`
+	BytesRecv  int64     `json:"bytes_recv"`
+	State      string    `json:"state"` // active | observed | stale
+	Evidence   []string  `json:"evidence,omitempty"`
+	Confidence int       `json:"confidence"`
+	FirstSeen  time.Time `json:"first_seen"`
+	LastSeen   time.Time `json:"last_seen"`
+}
+
 // AuditFilter filters audit entries.
 type AuditFilter struct {
 	From   *time.Time

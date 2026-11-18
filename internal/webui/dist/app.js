@@ -406,6 +406,7 @@ const NAV = [
   { view: 'hosts', label: 'Dispositivos', icon: 'hosts' },
   { view: 'topology', label: 'Topología', icon: 'topology' },
   { view: 'diagnostics', label: 'Diagnósticos', icon: 'diagnostics' },
+  { view: 'vpn', label: 'VPN', icon: 'network' },
   { view: 'alerts', label: 'Alertas', icon: 'alerts', badge: true },
   { section: 'Historial' },
   { view: 'scans', label: 'Escaneos', icon: 'scans' },
@@ -519,6 +520,7 @@ const PAGE_META = {
   hosts: ['Dispositivos', 'Inventario'],
   topology: ['Topología', 'Mapa de red'],
   diagnostics: ['Diagnósticos', 'Problemas empresariales'],
+  vpn: ['VPN', 'Túneles detectados'],
   alerts: ['Alertas', 'Reglas y canales'],
   scans: ['Escaneos', 'Historial y ejecución'],
   reports: ['Informes', 'Exportación'],
@@ -670,7 +672,7 @@ async function route(silent = false) {
   if (!state.me) return;
   const raw = (location.hash || '#/dashboard').replace(/^#\/?/, '');
   const [view, ...rest] = raw.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'diagnostics', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  state.view = ['dashboard', 'hosts', 'topology', 'diagnostics', 'vpn', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
   if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
   updateNav();
   const content = $('#content');
@@ -687,6 +689,7 @@ async function route(silent = false) {
         break;
       case 'topology': await renderTopology(); break;
       case 'diagnostics': await renderDiagnostics(); break;
+      case 'vpn': await renderVPN(); break;
       case 'alerts': await renderAlerts(rest[0]); break;
       case 'scans': await renderScans(); break;
       case 'reports': await renderReports(); break;
@@ -1130,6 +1133,13 @@ document.addEventListener('click', async (e) => {
       case 'modal-close': closeModal(); break;
       case 'reload': route(); break;
       case 'refresh-diagnostics': await renderDiagnostics(); break;
+      case 'vpn-scan':
+        try {
+          const r = await api('/vpn/scan', { method: 'POST' });
+          toast(`${r.stored} ${t('túneles observados')}`, { type: 'ok' });
+          await renderVPN();
+        } catch (err) { toast(err.message || t('No se pudo observar'), { type: 'err' }); }
+        break;
       case 'logout': logout(); break;
       case 'theme': toggleTheme(); break;
       case 'lang': if (window.NetDiagI18n) window.NetDiagI18n.toggle(); break;

@@ -345,6 +345,59 @@ async function renderDiagnostics() {
     </div>`;
 }
 
+const VPN_TYPE_LABELS = { wireguard: 'WireGuard', openvpn: 'OpenVPN', ipsec: 'IPsec/IKE', pptp: 'PPTP' };
+
+async function renderVPN() {
+  setPageTitle('vpn');
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  const data = await api('/vpn/tunnels');
+  const items = data.items || [];
+  const cfg = data.config || {};
+  const active = items.filter((t) => t.state === 'active').length;
+
+  const rows = items.length ? items.map((t) => `
+    <tr>
+      <td><b>${esc(tr(VPN_TYPE_LABELS[t.type] || t.type))}</b></td>
+      <td>${t.local_ip ? `<span class="mono-ip">${esc(t.local_ip)}</span>${t.local_port ? `:${t.local_port}` : ''}` : '<span class="muted">—</span>'}</td>
+      <td>${t.remote_ip ? `<span class="mono-ip">${esc(t.remote_ip)}</span>${t.remote_port ? `:${t.remote_port}` : ''}` : '<span class="muted">—</span>'}</td>
+      <td><span class="badge ${t.state === 'active' ? 'ok' : t.state === 'stale' ? 'muted' : 'info'}">${esc(tr(t.state === 'active' ? 'Activo' : t.state === 'stale' ? 'Obsoleto' : 'Observado'))}</span></td>
+      <td><div class="tiny mono">${fmtBytes(t.bytes_recv)} ↓ / ${fmtBytes(t.bytes_sent)} ↑</div></td>
+      <td>${diagConfidenceBar(t.confidence)}</td>
+      <td class="right nowrap"><details class="diag-details"><summary>${esc(tr('Evidencia'))}</summary>
+        <div class="diag-evidence">${(t.evidence || []).map((e) => `<div>· ${esc(e)}</div>`).join('')}</div>
+      </details></td>
+    </tr>`).join('') : `<tr><td colspan="7"><div class="empty">${icon('network')}<div><b>${esc(tr('Sin túneles detectados'))}</b>
+      <div class="tiny">${esc(tr('No se encontraron indicios de VPN en las tablas locales ni en los puertos conocidos.'))}</div></div></div></td></tr>`;
+
+  content.innerHTML = `
+    <div class="spread mb">
+      <div class="muted small">${esc(tr('Detección pasiva y heurística a partir de tablas del kernel (sockets e interfaces) y puertos conocidos. No se inspecciona ni descifra tráfico.'))}</div>
+      <button class="btn sm" data-action="vpn-scan">${icon('radar')} ${esc(tr('Observar ahora'))}</button>
+    </div>
+    <div class="grid cols-4 mb">
+      ${statCard({ label: tr('Túneles'), value: fmtNum(items.length), hint: tr('observaciones persistentes'), icon: 'network', tone: 'violet' })}
+      ${statCard({ label: tr('Activos'), value: fmtNum(active), hint: tr('con endpoints o tráfico'), icon: 'check', tone: 'green' })}
+      ${statCard({ label: tr('Confianza mínima'), value: String(cfg.min_confidence !== undefined ? cfg.min_confidence : 60), hint: tr('umbral configurado'), icon: 'shield', tone: 'accent' })}
+      ${statCard({ label: tr('Intervalo'), value: esc(cfg.interval || '5m0s'), hint: tr('observación periódica'), icon: 'clock', tone: 'amber' })}
+    </div>
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Túneles observados'))}</h3><span class="tiny muted">${esc(tr('Actualizado en cada observación'))}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>${esc(tr('Tipo'))}</th><th>${esc(tr('Local'))}</th><th>${esc(tr('Remoto'))}</th><th>${esc(tr('Estado'))}</th><th>${esc(tr('Tráfico'))}</th><th>${esc(tr('Confianza'))}</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+    <div class="card pad">
+      <div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Limitaciones'))}</h3><span class="badge info">${esc(tr('Heurístico'))}</span></div>
+      <ul class="diag-limits">
+        <li>${esc(tr('Los contadores de interfaz son acumulativos desde el arranque, no tasas instantáneas.'))}</li>
+        <li>${esc(tr('TCP/443 es ambiguo: requiere otra evidencia para confirmar OpenVPN.'))}</li>
+        <li>${esc(tr('Un túnel inactivo o cifrado puede no dejar rastros en las tablas consultadas.'))}</li>
+      </ul>
+    </div>`;
+}
+
 /* ------------------------------------------------------------------ */
 /* Alerts                                                              */
 /* ------------------------------------------------------------------ */

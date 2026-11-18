@@ -18,6 +18,7 @@
 - **Topología interactiva**: SVG con zoom, arrastre y agrupación por subred; enlaces por LLDP/CDP/bridge/ARP con confianza.
 - **Diagnósticos empresariales**: detección heurística de lazos STP, fugas de VLAN, desajustes de dúplex, problemas de MTU, tormentas de broadcast, AP no autorizados e incumplimientos de SLA, con evidencia, confianza y limitaciones explícitas.
 - **Integraciones externas**: exporta eventos (alertas y escaneos) a Elasticsearch, syslog, webhooks firmados, Slack, Discord, MS Teams, Telegram, PagerDuty, Kafka REST Proxy y Redis Streams. Cola acotada, límite global de velocidad, guardia SSRF y secretos cifrados AES-256-GCM.
+- **Detección de VPN (F12)**: observación pasiva de túneles WireGuard, OpenVPN, IPsec y PPTP a partir de sockets e interfaces del kernel, con evidencia, confianza y contadores acumulados.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
@@ -134,6 +135,28 @@ curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -X POST http://127.0.0.1:8080/api/v
 ```
 
 Cada evento se indexa como una operación `index` en `_bulk` (NDJSON) con `kind`, `site_id`, `severity`, `title`, `message`, `host_ip`, `data` y `timestamp`. La prueba envía un evento sintético y guarda `last_test_at`/`last_error`.
+
+## Detección de VPN
+
+La vista **VPN** y `GET /api/v1/vpn/tunnels` muestran los túneles observados en el host donde corre NetDiag. La detección es pasiva y heurística, igual que los diagnósticos F4: lee `/proc/net/{udp,udp6,tcp,tcp6}`, `/proc/net/dev` y `operstate` de sysfs; nunca inyecta ni descifra tráfico. Cada observación guarda tipo, endpoints, contadores acumulados, evidencia y confianza (1–100).
+
+```yaml
+vpn:
+  enabled: true
+  interval: 5m
+  min_confidence: 60
+  stale_after: 30m
+```
+
+Las variables de entorno `NETDIAG_VPN` y `NETDIAG_VPN_INTERVAL` sustituyen a `enabled` e `interval`. El bucle periódico se ejecuta cada `interval` (mínimo 30 s); las observaciones con confianza inferior al umbral se descartan y las no vistas durante `stale_after` pasan a estado `stale`.
+
+```bash
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -X POST \
+  http://127.0.0.1:8080/api/v1/vpn/scan
+curl -sb cookies.txt http://127.0.0.1:8080/api/v1/vpn/tunnels | python3 -m json.tool
+```
+
+`POST /api/v1/vpn/scan` permite a `admin`, `owner` y `operator` forzar una observación; borrar una observación requiere `admin`/`owner`. Los puertos conocidos (`51820` WireGuard, `1194` OpenVPN, `500`/`4500` IPsec, `1723` PPTP) también se reconocen en el inventario de escaneo. Limitaciones: TCP/443 es ambiguo (confianza baja), los contadores son acumulativos desde el arranque y un túnel inactivo o cifrado puede no dejar rastro.
 
 ## Compilación
 

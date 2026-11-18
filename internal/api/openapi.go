@@ -90,6 +90,9 @@ var apiRoutes = []apiRoute{
 
 	{"GET", "/api/v1/topology", "Grafo de topología L2/L3", "Topología", false, false, "", []string{"site_id", "network_id"}, false, false},
 
+	{"GET", "/api/v1/vpn/tunnels", "Listar túneles VPN detectados", "VPN", false, false, "", []string{"site_id"}, false, false},
+	{"POST", "/api/v1/vpn/scan", "Observar túneles VPN ahora", "VPN", false, false, "", []string{"site_id"}, false, false},
+	{"DELETE", "/api/v1/vpn/tunnels/{id}", "Eliminar una observación VPN", "VPN", false, true, "", nil, false, false},
 	{"GET", "/api/v1/diagnostics/enterprise", "Diagnósticos empresariales heurísticos", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 	{"GET", "/api/v1/diagnostics/stp", "Posibles lazos de spanning-tree", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 	{"GET", "/api/v1/diagnostics/vlan", "Posibles fugas de VLAN", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},

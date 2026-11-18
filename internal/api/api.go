@@ -18,6 +18,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
+	"github.com/kr3s4l4/netdiag/internal/vpn"
 )
 
 // ScanRequest is the transport payload for starting a discovery run.
@@ -49,6 +50,7 @@ type Deps struct {
 	Auth         *auth.Service
 	Alerts       *alerts.Manager
 	Integrations *integrations.Manager
+	VPN          *vpn.Manager
 	Reports      *report.Generator
 	Backups      *backup.Manager
 	Scanner      Scanner
@@ -67,6 +69,7 @@ type Server struct {
 	auth         *auth.Service
 	alerts       *alerts.Manager
 	integrations *integrations.Manager
+	vpn          *vpn.Manager
 	reports      *report.Generator
 	backups      *backup.Manager
 	scanner      Scanner
@@ -96,6 +99,7 @@ func New(d Deps) *Server {
 		auth:         d.Auth,
 		alerts:       d.Alerts,
 		integrations: d.Integrations,
+		vpn:          d.VPN,
 		reports:      d.Reports,
 		backups:      d.Backups,
 		scanner:      d.Scanner,
@@ -209,6 +213,11 @@ func (s *Server) register() {
 	m.HandleFunc("PUT /api/v1/integrations/{id}", s.handleUpdateIntegration)
 	m.HandleFunc("DELETE /api/v1/integrations/{id}", s.handleDeleteIntegration)
 	m.HandleFunc("POST /api/v1/integrations/{id}/test", s.handleTestIntegration)
+
+	// ---- F12 VPN tunnels ----
+	m.HandleFunc("GET /api/v1/vpn/tunnels", s.handleListVPNTunnels)
+	m.HandleFunc("POST /api/v1/vpn/scan", s.handleVPNScan)
+	m.HandleFunc("DELETE /api/v1/vpn/tunnels/{id}", s.handleDeleteVPNTunnel)
 
 	// ---- reports ----
 	m.HandleFunc("GET /api/v1/reports", s.handleListReports)

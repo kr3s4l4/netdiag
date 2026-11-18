@@ -233,6 +233,18 @@ curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -X POST \
   http://127.0.0.1:8080/api/v1/integrations/1/test
 ```
 
+### VPN (F12)
+
+Observación pasiva de túneles. La lectura está disponible para cualquier rol autenticado; forzar una observación requiere `canWrite` (`admin`, `owner`, `operator`) y borrar una observación requiere `admin`/`owner`.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/vpn/tunnels` | `{items, total, config}`; cada túnel incluye `type`, endpoints, contadores, `evidence`, `confidence` y `state` (`active`/`observed`/`stale`) |
+| POST | `/vpn/scan` | Fuerza una observación; responde `{ok:true, stored:N}` |
+| DELETE | `/vpn/tunnels/{id}` | Elimina una observación; `204` |
+
+La detección lee tablas del kernel (`/proc/net/{udp,udp6,tcp,tcp6}`, `/proc/net/dev`, sysfs `operstate`) y puertos conocidos de la fase de descubrimiento. Es heurística: cada hallazgo incluye evidencia y confianza. La configuración (`vpn.enabled`, `interval`, `min_confidence`, `stale_after`) se edita en `PUT /system/config`.
+
 ### Topología y sistema
 
 | Método | Ruta | Notas |

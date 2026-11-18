@@ -330,6 +330,27 @@ var migrations = [][]string{
 		)`,
 		`CREATE INDEX idx_integrations_type ON integrations(type)`,
 	},
+	{
+		// v1.5: F12 VPN tunnel observations.
+		`CREATE TABLE vpn_tunnels (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			identity TEXT NOT NULL UNIQUE,
+			type TEXT NOT NULL,
+			local_ip TEXT NOT NULL DEFAULT '',
+			remote_ip TEXT NOT NULL DEFAULT '',
+			local_port INTEGER NOT NULL DEFAULT 0,
+			remote_port INTEGER NOT NULL DEFAULT 0,
+			bytes_sent INTEGER NOT NULL DEFAULT 0,
+			bytes_recv INTEGER NOT NULL DEFAULT 0,
+			state TEXT NOT NULL DEFAULT 'observed',
+			evidence TEXT NOT NULL DEFAULT '[]',
+			confidence INTEGER NOT NULL DEFAULT 0,
+			first_seen INTEGER NOT NULL,
+			last_seen INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_vpn_tunnels_site ON vpn_tunnels(site_id, type)`,
+	},
 }
 
 func (s *Store) migrate() error {

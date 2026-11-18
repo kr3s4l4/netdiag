@@ -48,6 +48,7 @@ func (s *Server) handleSystemInfo(w http.ResponseWriter, r *http.Request) {
 			"alerts":      s.cfg.Alerts.Enabled,
 			"auth":        s.cfg.Security.Auth,
 			"monitor":     s.cfg.Monitor.Enabled,
+			"vpn":         s.cfg.VPN.Enabled,
 		},
 	}
 	writeJSON(w, http.StatusOK, info)

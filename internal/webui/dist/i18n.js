@@ -580,6 +580,33 @@
     'Incumplimiento de SLA': 'SLA breach',
     'Evidencia': 'Evidence',
     'Recomendación': 'Recommendation',
+    'Túneles': 'Tunnels',
+    'Túneles observados': 'Observed tunnels',
+    'túneles observados': 'tunnels observed',
+    'Sin túneles detectados': 'No tunnels detected',
+    'No se encontraron indicios de VPN en las tablas locales ni en los puertos conocidos.':
+      'No VPN traces were found in local tables or well-known ports.',
+    'Observar ahora': 'Observe now',
+    'No se pudo observar': 'Could not observe',
+    'Activo': 'Active',
+    'Activos': 'Active',
+    'Observado': 'Observed',
+    'Obsoleto': 'Stale',
+    'Tráfico': 'Traffic',
+    'Confianza mínima': 'Minimum confidence',
+    'umbral configurado': 'configured threshold',
+    'observación periódica': 'periodic observation',
+    'observaciones persistentes': 'persistent observations',
+    'con endpoints o tráfico': 'with endpoints or traffic',
+    'Detección pasiva y heurística a partir de tablas del kernel (sockets e interfaces) y puertos conocidos. No se inspecciona ni descifra tráfico.':
+      'Passive heuristic detection from kernel tables (sockets and interfaces) and well-known ports. Traffic is neither inspected nor decrypted.',
+    'Los contadores de interfaz son acumulativos desde el arranque, no tasas instantáneas.':
+      'Interface counters are cumulative since boot, not instantaneous rates.',
+    'TCP/443 es ambiguo: requiere otra evidencia para confirmar OpenVPN.':
+      'TCP/443 is ambiguous: additional evidence is required to confirm OpenVPN.',
+    'Un túnel inactivo o cifrado puede no dejar rastros en las tablas consultadas.':
+      'An idle or encrypted tunnel may leave no traces in the inspected tables.',
+    'Actualizado en cada observación': 'Refreshed on every observation',
     'Sin anomalías detectadas': 'No anomalies detected',
     'Las heurísticas no encontraron señales suficientes en la ventana analizada.':
       'The heuristics did not find enough signals in the selected window.',
