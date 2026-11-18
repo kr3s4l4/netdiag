@@ -14,6 +14,16 @@ En una sola carpeta, antes de firmar el contrato:
 6. Plantillas de DPA/EULA, matriz SLA y checklist de compras.
 7. Licencia de prueba de 30 días y acceso al modo demo (F39).
 
+## Declaraciones obligatorias
+
+Se dicen antes de firmar. Sin letra pequeña.
+
+- **SQLite no cifra toda la base por defecto.** Se recomienda cifrado de disco o volumen.
+- **`secret.key` protege los secretos de integraciones.** Tiene permisos `0600` y viaja dentro de la copia ZIP: esa copia es tan sensible como el secreto.
+- **La edición portable no captura 802.11 crudo.** Solo la variante `-tags pcap` lo permite, con permisos y autorización del operador.
+
+Copiar el FAQ completo desde [docs/plantillas/faq-seguridad.md](plantillas/faq-seguridad.md).
+
 ## Whitepaper de seguridad: contenido obligatorio
 
 - **Arquitectura:** binario único Go, SPA embebida, SQLite local, opcional `-tags pcap`.
@@ -109,3 +119,56 @@ El SLA se mide desde la confirmación de recepción en el canal de soporte defin
 - [ ] DPA/EULA firmados o declaración de no subprocesamiento adjunta.
 - [ ] Plan de actualizaciones: espejo oficial o interno.
 - [ ] Contacto de soporte y severidades acordados.
+
+La versión imprimible está en [docs/plantillas/checklist-compras.md](plantillas/checklist-compras.md).
+
+## Guía de endurecimiento
+
+Entregar con el paquete. Resumen para la PoC; detalle completo en [docs/plantillas/guia-endurecimiento.md](plantillas/guia-endurecimiento.md).
+
+1. Verificar firma, SHA256 y contenedor antes de ejecutar.
+2. Usuario dedicado, `<data_dir>` `0700`, `secret.key` `0600`.
+3. Cifrar el disco: la base SQLite no se cifra entera por defecto.
+4. Escuchar en loopback o red interna; HTTPS mediante proxy inverso.
+5. Cambiar contraseña inicial y aplicar roles de menor privilegio.
+6. Proteger `/metrics` con token si sale de loopback.
+7. Revisar `allow_private_targets` antes de autorizar webhooks internos.
+8. Activar copias y probar una restauración.
+9. Fijar retención del plan y no ampliarla sin licencia.
+10. Documentar la autorización de escaneo y las exclusiones.
+
+## Kit de venta F38
+
+| Material | Dónde está |
+| --- | --- |
+| Ficha de precios | Tabla de planes en `docs/comercializacion.md` |
+| One-pager de ROI | [docs/plantillas/one-pager-roi.md](plantillas/one-pager-roi.md) |
+| Demo con datos sintéticos | `netdiag demo --seed 1` (F39); pasos en la PoC guiada |
+| FAQ de seguridad | [docs/plantillas/faq-seguridad.md](plantillas/faq-seguridad.md) |
+| Checklist de compras | [docs/plantillas/checklist-compras.md](plantillas/checklist-compras.md) |
+| Presupuesto y orden de compra | [presupuesto.md](plantillas/presupuesto.md), [orden-compra.md](plantillas/orden-compra.md) |
+| DPA y EULA | [dpa.md](plantillas/dpa.md), [eula.md](plantillas/eula.md) |
+| Política de vulnerabilidades y CRA | `SECURITY.md` |
+
+## Proceso de compra F38
+
+1. Prueba de 30 días: licencia `trial`, sin tarjeta, sin telemetría.
+2. PoC guiada de 45 minutos: los 8 pasos de la sección «Prueba de concepto guiada».
+3. Presupuesto con SKU, banda, sedes, retención, SLA y cobertura real.
+4. Orden de compra y factura anual.
+5. Licencia firmada y alta en soporte.
+6. Verificación por el cliente antes de desplegar.
+
+Si no hay cobertura 24 h, el presupuesto indica P1 con respuesta objetivo de 8 h hábiles. No se promete 1 h sin responsable alterno o retainer.
+
+## Paquete único antes de firmar
+
+- [ ] Licencia firmada.
+- [ ] Factura anual.
+- [ ] SBOM firmado, atestación y notas de versión.
+- [ ] DPA o declaración de no subprocesamiento y EULA.
+- [ ] Matriz SLA y ventana de soporte de seguridad: suscripción + 12 meses.
+- [ ] Pasos de verificación y clave pública con huella contrastada.
+- [ ] Checklist de compras firmada.
+
+**Criterio F38:** el comprador recibe todo lo anterior en una sola carpeta antes de firmar. Plantillas en [docs/plantillas/README.md](plantillas/README.md).

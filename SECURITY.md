@@ -8,6 +8,8 @@
 | 1.4.x | Hasta la siguiente minor, solo correcciones críticas |
 | < 1.4 | No |
 
+**Ventana contractual:** la versión contratada recibe soporte de seguridad durante la suscripción y **12 meses adicionales**. Así consta en `SECURITY.md`, en la orden de compra y en el EULA (`docs/plantillas/orden-compra.md`, `docs/plantillas/eula.md`). La tabla anterior describe el soporte de Community; el contrato prevalece para ediciones de pago.
+
 ## Cómo reportar una vulnerabilidad
 
 **No abras un issue público** con detalles explotables.
@@ -38,6 +40,39 @@ Incluye, si puedes:
 Si hay evidencia fiable de explotación activa o de un incidente grave, se reporta aunque todavía no exista solución. El parche llega después; el aviso no puede esperar.
 
 Si el problema afecta a la clave de firma o al pipeline de publicación, se sigue el procedimiento de revocación de `docs/publicacion-segura.md` de inmediato.
+
+## Runbook de incidentes CRA
+
+**Responsable único:** `[nombre, cargo, correo, teléfono]`.  
+**Suplente:** `[nombre, cargo, correo, teléfono]`.  
+**Cuenta en la Single Reporting Platform de ENISA:** `[ID de organización, usuario, gestor de credenciales]`. Comprobar acceso cada trimestre. Sin estos tres datos, el runbook no está cerrado.
+
+Objetivo F41: aviso preparado en **< 24 h**, notificación oficial en **< 72 h** y release firmada correctiva en **< 7 días**.
+
+Árbol de decisión:
+
+```text
+¿Hay explotación activa O incidente grave?
+├─ SÍ → aviso 24 h + notificación 72 h. No esperar al parche.
+│       Informe final: 14 días tras el parche si hay explotación;
+│       1 mes desde la notificación de 72 h si es incidente grave.
+└─ NO → triaje y corrección en release firmada. Vigilar el criterio.
+        Si cambia a SÍ, entrar en la rama superior de inmediato.
+```
+
+Pasos:
+
+1. Registrar la hora de conocimiento en UTC. Abrir `docs/plantillas/registro-incidentes.md` y `docs/plantillas/registro-responsabilidad.md`.
+2. Decidir si se reporta. Anotar el motivo y quién aprueba la decisión.
+3. Enviar el [aviso de 24 h](docs/plantillas/aviso-cra-24h.md) al CSIRT del Estado miembro del establecimiento principal y a la SRP de ENISA. Guardar el justificante.
+4. Enviar la [notificación de 72 h](docs/plantillas/aviso-cra-72h.md) con la evaluación inicial.
+5. Corregir en una release nueva firmada con SBOM, manifiesto y `min_version` apuntando a la primera versión segura. Si F23 aún no consume `min_version`, retirar el release del espejo y publicar la correctiva.
+6. Comunicar a clientes de pago por correo, notificar en la UI y publicar [REVOCATION.md](docs/plantillas/REVOCATION.md) firmado cuando proceda. En air-gapped se entrega un `.ndc` firmado con el aviso.
+7. Enviar el informe final y cerrar ambos registros.
+
+**Monitorización de dependencias:** cada release lleva SBOM CycloneDX (`sbom.cdx.json`) y atestación de procedencia. Revisar avisos de forma periódica. Un CVE relevante se trata como incidente interno aunque no haya explotación conocida. El productor responde por el producto terminado; después reclama aguas arriba si existe contrato. **Nunca firmar un binario de terceros sin reconstruirlo o verificarlo.** Ver `docs/publicacion-segura.md`.
+
+**EULA reforzado:** el cliente declara que está autorizado a analizar esas redes. Se prohíbe el escaneo de terceros. La responsabilidad se limita con las excepciones legales obligatorias. Plantilla en `docs/plantillas/eula.md`.
 
 ## Obligaciones CRA en la UE
 

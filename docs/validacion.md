@@ -38,6 +38,38 @@ Sin esas capturas, la gente lee 487 líneas de README y aun así se pregunta si 
 
 Los umbrales son orientativos. Sirven para decidir el siguiente paso, no para declarar éxito.
 
+## Fuentes públicas permitidas
+
+Solo estas fuentes. Nunca instrumentar el binario.
+
+- Descargas de assets de GitHub Release.
+- Estrellas y forks.
+- Issues y Discussions.
+- Encuesta voluntaria y escritos del piloto.
+
+Cualquier métrica que exija código dentro del producto queda fuera. La promesa «sin telemetría» no se negocia para medir vanidad.
+
+## Discussion fijado: texto exacto
+
+Fijar el Discussion desde ⋯ → *Pin discussion* (la API de GitHub no expone esa acción).
+
+```text
+Título: ¿Para qué estás usando NetDiag?
+
+1. ¿Dónde lo has desplegado?
+2. ¿Qué fue lo primero que intentaste hacer?
+3. ¿Qué te faltó o te confundió?
+
+Responde con tres líneas. No compartas datos de tu red ni credenciales.
+Leemos todas las respuestas.
+```
+
+Plantillas listas para copiar:
+
+- [Encuesta de 5 preguntas](plantillas/encuesta-5-preguntas.md).
+- [Correo de piloto](plantillas/correo-piloto.md).
+- [Registro de evidencia F42](plantillas/registro-evidencia-f42.md).
+
 ## Fases
 
 ### 1. Observar
@@ -116,3 +148,17 @@ Si tras 6–8 semanas solo hay descargas y silencio:
 - Release preview: <https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.0>, con `netdiag-linux-amd64`, `netdiag-linux-arm64`, `SHA256SUMS` y `SHA256SUMS.minisig`. Marcada como *pre-release*; el resumen está firmado con la clave `netdiag-release` publicada en `docs/public_keys.md`.
 - Discussion: <https://github.com/kr3s4l4/netdiag/discussions/1>. Creado; **queda fijarlo a mano** desde el menú ⋯ → *Pin discussion* porque la API de GitHub no expone esa acción.
 - El repo antiguo `kr3s4l4/Netdiag` (programa anterior) se borró. Su último commit `11fdf866bb9c` sigue intacto en la copia local de referencia.
+
+## Evidencia escrita y puerta de gasto F42
+
+Volcar cada señal en [docs/plantillas/registro-evidencia-f42.md](plantillas/registro-evidencia-f42.md). Una fila por organización, con cita textual y enlace público cuando exista.
+
+Antes de contratar seguro, espejo privado, SLA o demo completa:
+
+- [ ] 3 instalaciones reales con 7 días de uso.
+- [ ] 2 casos de uso concretos escritos por usuarios.
+- [ ] 1 disposición a pagar o carta de intención.
+
+Sin esos tres puntos no se activa estructura comercial. Si faltan, se sigue observando y se revisa el mensaje y el primer escaneo.
+
+**Criterio F42:** existe evidencia escrita de uso real y de disposición a pagar antes de asumir esos costes. Plantillas en [docs/plantillas/README.md](plantillas/README.md).

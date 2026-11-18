@@ -80,6 +80,33 @@ Las bandas de retención son **7 días / 1 mes / 1 año**, con 7 años en Enterp
 6. **Verificación:** el cliente ejecuta los comandos de `docs/publicacion-segura.md` antes de desplegar.
 7. **Renovación:** recordatorio 30 días antes; el mismo SKU se renueva con un clic o una orden.
 
+### Ficha de precios para el cliente (copiar/pegar)
+
+> NetDiag se factura por host gestionado al año. Un host gestionado es `s<siteID>:<identity>` visto en los últimos 30 días, sin etiquetas `guest` ni `excluded`. No cobramos por informes, alertas, escaneos, usuarios ni hosts detectados.
+>
+> | SKU | Precio anual sin IVA | Hosts | Retención |
+> | --- | ---: | ---: | --- |
+> | `community` | 0 € | Ilimitados para descubrir | 7 días |
+> | `pro-25` | 990 € | 25 | 1 mes |
+> | `pro-100` | 2.490 € | 100 | 1 mes |
+> | `pro-500` | 5.900 € | 500 | 1 año |
+> | `enterprise-500` | 9.900 € | 500 | 7 años |
+> | `enterprise-2000` | 19.900 € | 2.000 | 7 años |
+> | `enterprise-custom` | A medida | Ilimitados | Según contrato |
+>
+> Facturación anual por adelantado. Sin renovación automática sin confirmación escrita. Soporte de seguridad: versión contratada durante la suscripción + 12 meses. Ver `docs/comercializacion.md` para sedes y soporte por SKU.
+
+### Documentos de la venta F38
+
+- Presupuesto: [docs/plantillas/presupuesto.md](plantillas/presupuesto.md).
+- Orden de compra: [docs/plantillas/orden-compra.md](plantillas/orden-compra.md).
+- Checklist previa: [docs/plantillas/checklist-compras.md](plantillas/checklist-compras.md).
+- One-pager de ROI: [docs/plantillas/one-pager-roi.md](plantillas/one-pager-roi.md).
+- FAQ de seguridad: [docs/plantillas/faq-seguridad.md](plantillas/faq-seguridad.md).
+- DPA/EULA: [docs/plantillas/dpa.md](plantillas/dpa.md) y [docs/plantillas/eula.md](plantillas/eula.md).
+
+La orden de compra y el EULA repiten la ventana de soporte de seguridad. Las condiciones de SLA y cobertura se trasladan desde el presupuesto, sin prometer 1 h sin cobertura real.
+
 ## Qué le decimos al comprador
 
 > NetDiag no cobra por mirar más ni por generar más pruebas. Paga por un sistema predecible que mantiene su inventario y su evidencia durante el tiempo que su auditoría exige, con actualizaciones verificadas, soporte con SLA y documentación que su equipo de seguridad puede revisar. Si deja de pagar, sus datos siguen ahí y el producto sigue funcionando como Community.
@@ -92,4 +119,4 @@ Las bandas de retención son **7 días / 1 mes / 1 año**, con 7 años en Enterp
 | «No queremos depender de internet» | La licencia se activa offline y el producto no llama a casa. El espejo de actualizaciones es opcional y puede ser interno. |
 | «¿Qué pasa si crecemos?» | Cambias de banda en la renovación. No hay sobrecoste automático ni factura por picos. |
 | «¿Por qué pagar si el código es abierto?» | Por retención larga, actualizaciones firmadas operadas por nosotros, SLA, soporte, paquete legal/seguridad y previsibilidad presupuestaria. |
-| «¿Necesitamos un agente en cada host?» | No. NetDiag observa la red desde puntos de monitorsaje; el cobro es por hosts gestionados, no por agentes desplegados. |
+| «¿Necesitamos un agente en cada host?» | No. NetDiag observa la red desde puntos de monitoreo; el cobro es por hosts gestionados, no por agentes desplegados. |
