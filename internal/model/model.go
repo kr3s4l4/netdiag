@@ -309,6 +309,20 @@ type DiagnosticAnomaly struct {
 	DetectedAt     time.Time `json:"detected_at"`
 }
 
+// ARPObservation is one IP→MAC binding seen during a scan. It is the raw
+// evidence used to detect ARP conflicts and possible L2 impersonation without
+// capturing packets or requiring privileged access.
+type ARPObservation struct {
+	ID         int64     `json:"id"`
+	SiteID     int64     `json:"site_id"`
+	IP         string    `json:"ip"`
+	MAC        string    `json:"mac"`
+	Hostname   string    `json:"hostname,omitempty"`
+	IsGateway  bool      `json:"is_gateway,omitempty"`
+	ScanID     int64     `json:"scan_id,omitempty"`
+	ObservedAt time.Time `json:"observed_at"`
+}
+
 // DiagnosticsReport is the result of an enterprise diagnostics run.
 type DiagnosticsReport struct {
 	SiteID          int64               `json:"site_id"`

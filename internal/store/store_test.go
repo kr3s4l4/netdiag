@@ -229,15 +229,15 @@ func TestAlertsDedupeAndStats(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rules) != 6 {
-		t.Fatalf("se esperaban 6 reglas integradas, hay %d", len(rules))
+	if len(rules) != 7 {
+		t.Fatalf("se esperaban 7 reglas integradas, hay %d", len(rules))
 	}
 	// Idempotente.
 	if err := st.EnsureBuiltinRules(); err != nil {
 		t.Fatal(err)
 	}
 	rules, _ = st.ListRules()
-	if len(rules) != 6 {
+	if len(rules) != 7 {
 		t.Fatalf("las reglas se duplicaron: %d", len(rules))
 	}
 

@@ -269,6 +269,10 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 		a.hub.Broadcast(event, h)
 	}
 
+	if result.Err == nil && !result.Canceled {
+		a.recordARPObservations(scan.SiteID, scan.ID, result.Hosts, now)
+	}
+
 	if fullScan && network.ID > 0 && !result.Canceled {
 		missing, err := a.st.MarkMissingHosts(network.ID, seen)
 		if err != nil {

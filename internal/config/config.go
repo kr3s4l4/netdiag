@@ -197,6 +197,8 @@ type Diagnostics struct {
 	MaxAnomalies    int      `yaml:"max_anomalies" json:"max_anomalies"`
 	StormHosts      int      `yaml:"storm_hosts" json:"storm_hosts"`
 	AuthorizedAPs   []string `yaml:"authorized_aps" json:"authorized_aps"`
+	ARPHistoryDays  int      `yaml:"arp_history_days" json:"arp_history_days"`
+	MACIPLimit      int      `yaml:"mac_ip_limit" json:"mac_ip_limit"`
 }
 
 // VPN controls the periodic heuristic detection of VPN tunnels. Detection is
@@ -335,6 +337,8 @@ func Defaults() *Config {
 			MaxRTTMS:        200,
 			MaxAnomalies:    200,
 			StormHosts:      3,
+			ARPHistoryDays:  30,
+			MACIPLimit:      5,
 		},
 		Log: Log{Level: "info", Format: "text"},
 	}

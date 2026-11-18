@@ -179,7 +179,9 @@ curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -F 'file=@sede.json' \
 | PUT/DELETE | `/alerts/channels/{id}` | |
 | POST | `/alerts/channels/{id}/test` | Envía una notificación de prueba |
 
-Reglas: `host_down`, `host_new`, `latency_high`, `port_opened`, `port_closed`, `service_changed`, `device_changed`, `subnet_usage`, `scan_failed`.
+Reglas: `host_down`, `host_new`, `latency_high`, `port_opened`, `port_closed`, `service_changed`, `device_changed`, `subnet_usage`, `scan_failed`, `anomaly`, `dhcp_rogue`.
+
+La regla `anomaly` dispara alertas para los hallazgos de diagnóstico. Su configuración admite `min_confidence` (75 por defecto) y `category` (vacía = todas; por ejemplo `arp`). El campo `dhcp_rogue` queda reservado para la detección de servidores DHCP no autorizados. El historial IP→MAC y sus anomalías se consultan en `GET /diagnostics/arp` (ver "Diagnósticos empresariales").
 
 Canales: `webhook`, `slack`, `discord`, `telegram`, `pagerduty`, `smtp`, `syslog`. Los campos secretos se devuelven como `********`; enviar ese valor conserva el secreto.
 
@@ -201,10 +203,11 @@ Análisis heurístico sin captura de paquetes. Todas las rutas aceptan `site_id`
 | GET | `/diagnostics/enterprise` | Informe completo: `anomalies`, `counts`, `stp`, `vlan`, `duplex`, `mtu`, `limitations` |
 | GET | `/diagnostics/stp` | `{loops, anomalies, limitations}` con los ciclos L2 detectados |
 | GET | `/diagnostics/vlan` | `{leaks, anomalies, limitations}` con las posibles fugas |
+| GET | `/diagnostics/arp` | `{anomalies, observations, limitations}` con cambios IP→MAC y su evidencia |
 
-Tipos de anomalía: `stp_loop`, `vlan_leak`, `duplex_mismatch`, `mtu_problem`, `broadcast_storm`, `rogue_ap`, `sla_breach`. Con `diagnostics.enterprise_mode: false` solo se emiten `sla_breach`. El parámetro `diagnostics.min_confidence` filtra los detectores y `max_anomalies` limita el tamaño del informe.
+Tipos de anomalía: `stp_loop`, `vlan_leak`, `duplex_mismatch`, `mtu_problem`, `broadcast_storm`, `rogue_ap`, `sla_breach`, `arp_gateway_mac_changed`, `arp_ip_mac_changed`, `arp_mac_multi_ip`, `arp_ip_multi_mac`. Con `diagnostics.enterprise_mode: false` solo se emiten `sla_breach`. El parámetro `diagnostics.min_confidence` filtra los detectores y `max_anomalies` limita el tamaño del informe.
 
-**Señales y límites.** Los ciclos se deducen del grafo LLDP/CDP/FDB; las fugas de VLAN de puertos L2 con hosts en subredes distintas; el dúplex de velocidades IF-MIB incompatibles; el MTU de interfaces locales bajas con pérdida; las tormentas de pérdida y latencia simultáneas en una subred; los AP de `diagnostics.authorized_aps` o de baja confianza de fingerprint; y el SLA de muestras `up`/`rtt_ms`. No hay BPDUs, VLAN IDs, OID de dúplex ni contadores broadcast/fragmentación, por lo que ningún hallazgo constituye una confirmación protocolaria.
+**Señales y límites.** Los ciclos se deducen del grafo LLDP/CDP/FDB; las fugas de VLAN de puertos L2 con hosts en subredes distintas; el dúplex de velocidades IF-MIB incompatibles; el MTU de interfaces locales bajas con pérdida; las tormentas de pérdida y latencia simultáneas en una subred; los AP de `diagnostics.authorized_aps` o de baja confianza de fingerprint; y el SLA de muestras `up`/`rtt_ms`. Las anomalías `arp_*` comparan los pares IP→MAC guardados en cada escaneo: un cambio de MAC en el gateway se marca crítico como posible MITM; una MAC con más de `diagnostics.mac_ip_limit` IPs (5 por defecto) y una IP con varias MAC se marcan como avisos. El histórico usa `diagnostics.arp_history_days` (30 por defecto). No hay BPDUs, VLAN IDs, OID de dúplex, contadores broadcast/fragmentación ni captura ARP en vivo, por lo que ningún hallazgo constituye una confirmación protocolaria.
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'

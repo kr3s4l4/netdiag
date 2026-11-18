@@ -447,6 +447,23 @@ var migrations = [][]string{
 		)`,
 		`CREATE INDEX idx_saved_views_user ON saved_views(user_id, kind, site_id)`,
 	},
+	{
+		// v1.5.6: F43 IP→MAC history from scans. It powers the ARP anomaly
+		// detectors without privileged packet capture. Bindings are raw
+		// evidence: the detector, not this table, decides what is suspicious.
+		`CREATE TABLE arp_observations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			ip TEXT NOT NULL,
+			mac TEXT NOT NULL,
+			hostname TEXT NOT NULL DEFAULT '',
+			is_gateway INTEGER NOT NULL DEFAULT 0,
+			scan_id INTEGER NOT NULL DEFAULT 0,
+			observed_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_arp_observations_ip ON arp_observations(site_id, ip, observed_at DESC)`,
+		`CREATE INDEX idx_arp_observations_mac ON arp_observations(site_id, mac, observed_at DESC)`,
+	},
 }
 
 func (s *Store) migrate() error {
@@ -668,7 +685,8 @@ func ValidateIntegrationType(typ string) bool {
 func ValidateRuleType(typ string) bool {
 	switch typ {
 	case "host_down", "host_new", "latency_high", "port_opened", "port_closed",
-		"service_changed", "device_changed", "subnet_usage", "scan_failed":
+		"service_changed", "device_changed", "subnet_usage", "scan_failed",
+		"anomaly", "dhcp_rogue":
 		return true
 	}
 	return false
@@ -694,6 +712,7 @@ func (s *Store) EnsureBuiltinRules() error {
 		{"Puerto abierto", "port_opened", model.SeverityWarning, `{"ignore_ephemeral":true}`, 300},
 		{"Servicio cambiado", "service_changed", model.SeverityWarning, `{}`, 600},
 		{"Uso de subred", "subnet_usage", model.SeverityWarning, `{"percent":90}`, 3600},
+		{"Anomalía de red", "anomaly", model.SeverityCritical, `{"min_confidence":75}`, 3600},
 	}
 	for _, r := range rules {
 		if _, err := s.db.Exec(`INSERT INTO alert_rules(name,type,enabled,severity,config,channel_ids,cooldown_sec,builtin,created_at,updated_at)

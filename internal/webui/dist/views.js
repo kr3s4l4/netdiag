@@ -396,6 +396,10 @@ const DIAG_TYPE_LABELS = {
   broadcast_storm: 'Tormenta de broadcast',
   rogue_ap: 'AP no autorizado',
   sla_breach: 'Incumplimiento de SLA',
+  arp_gateway_mac_changed: 'Posible MITM: cambió la MAC del gateway',
+  arp_ip_mac_changed: 'Cambio de MAC de un dispositivo',
+  arp_mac_multi_ip: 'Una MAC reclama muchas IPs',
+  arp_ip_multi_mac: 'Una IP tiene varias MAC',
 };
 
 function diagConfidenceBar(value) {
@@ -409,7 +413,10 @@ async function renderDiagnostics() {
   setPageTitle('diagnostics');
   const content = document.getElementById('content');
   content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-  const report = await api('/diagnostics/enterprise');
+  const [report, arp] = await Promise.all([
+    api('/diagnostics/enterprise'),
+    api('/diagnostics/arp').catch(() => ({ observations: [] })),
+  ]);
   const anomalies = report.anomalies || [];
   const counts = report.counts || {};
   const windowLabel = `${fmtDate(report.from)} — ${fmtDate(report.to)}`;
@@ -428,13 +435,13 @@ async function renderDiagnostics() {
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
       <div class="tiny">${esc(tr('Las heurísticas no encontraron señales suficientes en la ventana analizada.'))}</div></div></div></td></tr>`;
 
-  const categoryCounts = ['stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
+  const categoryCounts = ['arp', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
     .map((k) => [k, counts[k] || 0]).filter(([, v]) => v > 0);
   const hasEnterprise = report.enterprise_mode !== false;
 
   content.innerHTML = `
     <div class="spread mb">
-      <div class="muted small">${esc(tr('Análisis heurístico a partir de vecindades LLDP/CDP/FDB, IF-MIB, inventario y muestras de disponibilidad. Cada hallazgo incluye evidencia, confianza y limitaciones.'))}</div>
+      <div class="muted small">${esc(tr('Análisis heurístico a partir del histórico IP→MAC, vecindades LLDP/CDP/FDB, IF-MIB, inventario y muestras de disponibilidad. Cada hallazgo incluye evidencia, confianza y limitaciones.'))}</div>
       <button class="btn sm" data-action="refresh-diagnostics">${icon('refresh')} ${esc(tr('Actualizar'))}</button>
     </div>
     <div class="grid cols-4 mb">
@@ -454,6 +461,17 @@ async function renderDiagnostics() {
     </div>
     ${categoryCounts.length ? `<div class="card pad mb"><div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Por categoría'))}</h3></div>
       <div class="kpi-mini">${categoryCounts.map(([k, v]) => `<div><b>${v}</b><span>${esc(tr(k))}</span></div>`).join('')}</div></div>` : ''}
+    ${(arp.observations || []).length ? `<div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Histórico IP→MAC'))}</h3><span class="tiny muted">${esc(tr('últimas observaciones de escaneo'))}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>IP</th><th>MAC</th><th>${esc(tr('Equipo'))}</th><th>${esc(tr('Gateway'))}</th><th>${esc(tr('Escaneo'))}</th><th>${esc(tr('Visto'))}</th></tr></thead>
+        <tbody>${arp.observations.slice(-12).reverse().map((o) => `<tr>
+          <td class="mono-ip">${esc(o.ip)}</td><td class="mono">${esc(o.mac)}</td>
+          <td>${esc(o.hostname || '—')}</td><td>${o.is_gateway ? esc(tr('Sí')) : '—'}</td>
+          <td class="mono">${esc(String(o.scan_id || '—'))}</td><td class="tiny muted">${fmtDate(o.observed_at)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>` : ''}
     <div class="card pad">
       <div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Limitaciones del análisis'))}</h3><span class="badge info">${esc(tr('Heurístico'))}</span></div>
       <ul class="diag-limits">${(report.limitations || []).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
@@ -1205,6 +1223,7 @@ const RULE_TYPE_OPTIONS = [
   ['device_changed', 'Dispositivo cambiado'],
   ['subnet_usage', 'Uso de subred'],
   ['scan_failed', 'Escaneo fallido'],
+  ['anomaly', 'Anomalía de red'],
 ];
 
 function ruleConfigFieldsHTML(type, cfg) {
@@ -1226,6 +1245,17 @@ function ruleConfigFieldsHTML(type, cfg) {
       return `<label class="check"><input type="checkbox" name="cfg_ignore_ephemeral" ${cfg.ignore_ephemeral !== false ? 'checked' : ''}> Ignorar puertos efímeros (>= 32768)</label>`;
     case 'subnet_usage':
       return num('percent', 'Porcentaje de ocupación', cfg.percent !== undefined ? cfg.percent : 90, 'Alerta cuando la subred supera este uso.');
+    case 'anomaly':
+      return `<div class="form-grid">
+        ${num('min_confidence', 'Confianza mínima', cfg.min_confidence !== undefined ? cfg.min_confidence : 75, 'Solo dispara hallazgos con esta confianza o superior.')}
+        <div class="field"><label>Categoría</label>
+          <select class="select" name="cfg_category">
+            <option value="">Todas</option>
+            ${['arp', 'stp', 'vlan', 'wireless', 'performance', 'sla'].map((v) => `<option value="${v}" ${cfg.category === v ? 'selected' : ''}>${esc(tr(v))}</option>`).join('')}
+          </select>
+          <span class="help">Filtra qué familias de hallazgos disparan la regla.</span>
+        </div>
+      </div>`;
     default:
       return `<div class="notice"><span>Esta regla no necesita parámetros adicionales.</span></div>`;
   }
@@ -1286,13 +1316,18 @@ async function submitRule(form) {
   const fd = new FormData(form);
   const type = String(fd.get('type') || '');
   const cfg = Object.assign({}, state.ruleEditingConfig || {});
-  const numeric = ['down_after_sec', 'threshold_ms', 'consecutive', 'percent'];
+  const numeric = ['down_after_sec', 'threshold_ms', 'consecutive', 'percent', 'min_confidence'];
   numeric.forEach((key) => {
     const raw = fd.get('cfg_' + key);
     if (raw !== null && String(raw).trim() !== '') cfg[key] = Number(raw);
     else delete cfg[key];
   });
   if (type === 'port_opened') cfg.ignore_ephemeral = fd.get('cfg_ignore_ephemeral') === 'on';
+  if (type === 'anomaly') {
+    const category = String(fd.get('cfg_category') || '');
+    if (category) cfg.category = category;
+    else delete cfg.category;
+  }
   const channelIDs = fd.getAll('channel').map(Number).filter((n) => n > 0);
   const id = Number(form.dataset.id || 0);
   const payload = {

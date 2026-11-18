@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/kr3s4l4/netdiag/internal/config"
@@ -50,6 +51,14 @@ func (s *Server) diagnosticsInput(r *http.Request) (diagnostics.Input, time.Time
 	if err != nil {
 		in.Interfaces = nil
 	}
+	arpDays := cfg.ARPHistoryDays
+	if arpDays < 1 {
+		arpDays = 30
+	}
+	in.ARP, err = s.st.ListARPObservations(siteID, to.AddDate(0, 0, -arpDays), 50000)
+	if err != nil {
+		in.ARP = nil
+	}
 	return in, from, to
 }
 
@@ -80,6 +89,25 @@ func (s *Server) handleVLANDiagnostics(w http.ResponseWriter, r *http.Request) {
 		"site_id": in.SiteID, "generated_at": report.GeneratedAt,
 		"from": report.From, "to": report.To,
 		"leaks": report.VLAN, "anomalies": filterAnomalies(report.Anomalies, "vlan_leak"),
+		"limitations": report.Limitations,
+	})
+}
+
+// handleARPDiagnostics returns the IP→MAC findings plus their raw history so
+// the operator can contrast each alert with the evidence behind it.
+func (s *Server) handleARPDiagnostics(w http.ResponseWriter, r *http.Request) {
+	in, from, to := s.diagnosticsInput(r)
+	report := diagnostics.Analyzer{}.Analyze(in)
+	findings := make([]model.DiagnosticAnomaly, 0)
+	for _, a := range report.Anomalies {
+		if strings.HasPrefix(a.Type, "arp_") {
+			findings = append(findings, a)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"site_id": in.SiteID, "generated_at": report.GeneratedAt,
+		"from": from, "to": to,
+		"anomalies": findings, "observations": in.ARP,
 		"limitations": report.Limitations,
 	})
 }

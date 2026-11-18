@@ -185,17 +185,37 @@ Inventario de solo lectura del repo histórico. No se borró código: el activo 
 
 | Capacidad original | Estado actual |
 | --- | --- |
-| Captura pasiva y `AnomalyDetector` (ICMP redirect, GARP, IP→MAC, MAC→muchas IPs, TTL anómalo) | No |
-| Detección de MITM por cambio de MAC del gateway y duplicados IP/MAC | No |
+| Captura pasiva y `AnomalyDetector` (ICMP redirect, GARP, IP→MAC, MAC→muchas IPs, TTL anómalo) | Parcial (F43: IP→MAC y MAC→muchas IPs desde escaneos; sin GARP, ICMP redirect ni TTL) |
+| Detección de MITM por cambio de MAC del gateway y duplicados IP/MAC | Sí (F43: histórico entre escaneos; sin captura ARP en vivo) |
 | DHCP rogue (OFFERs, sonda DISCOVER, regla `!IsGateway && >1 servidor`) | No |
 | Escaneos entrantes, DNS tunneling y protocolos en claro | No |
 | Contexto DHCP y reducción de falsos positivos | No |
-| Reglas de alerta `anomaly` y `dhcp_rogue` | No |
+| Reglas de alerta `anomaly` y `dhcp_rogue` | Parcial (F43: `anomaly` implementada; `dhcp_rogue` reservada) |
 | SNMP profundo: sweep de communities, IP-MIB, Q-BRIDGE, correlación ARP↔FDB↔LLDP | Parcial |
 | Escaneo de puertos y banners | Sí (parcial: no distingue `closed`/`filtered`) |
 | WiFi y VPN | Sí (en el original solo eran roadmap) |
 
-Nota: el «DNS spoofing» histórico era un contador de consultas UDP/53, no validación de respuestas. Prioridad propuesta: anomalías ARP/MITM → DHCP rogue → alertas de seguridad → SNMP profundo.
+Nota: el «DNS spoofing» histórico era un contador de consultas UDP/53, no validación de respuestas. Prioridad propuesta: ~~anomalías ARP/MITM~~ (hecho en F43) → DHCP rogue → alertas de seguridad dedicadas → SNMP profundo.
+
+### F43 — Histórico IP→MAC y detección de MITM (18/11/2026)
+
+Primera fase de seguridad añadida al activo. Sin captura de paquetes, sin raw sockets y sin binarios externos: toda la evidencia sale de los escaneos ya realizados.
+
+- Migración SQLite v1.5.6: tabla `arp_observations` append-only con índices por IP y MAC. Retención `diagnostics.arp_history_days` (30 días por defecto).
+- Hook en `runScan`: cada escaneo guarda el par IP→MAC de los hosts descubiertos, incluido `is_gateway` y `scan_id`.
+- Detector `DetectARP`: exige al menos dos escaneos y emite `arp_gateway_mac_changed` (crítico, confianza 95), `arp_ip_mac_changed` (75), `arp_mac_multi_ip` (80) y `arp_ip_multi_mac` (85). Descarta MACs vacías, broadcast, multicast y de todos ceros.
+- Regla de alerta `anomaly` con `min_confidence` y `category`; dedupe por hallazgo y resolución del host del inventario para que la alerta aparezca en listas filtradas por sede. Tipo `dhcp_rogue` admitido pero aún sin detector.
+- Endpoint `GET /api/v1/diagnostics/arp`: `{anomalies, observations, limitations}`. Documentado en OpenAPI y `docs/api.md`.
+- UI: `#/diagnostics` muestra las anomalías ARP y las últimas 12 observaciones IP→MAC con equipo, gateway, escaneo y fecha.
+
+Verificación real en `127.0.0.1:18780` con datos de la red `192.168.0.0/24`:
+
+- Escaneo real guardó 4 observaciones IP→MAC (gateway `d4:6e:0e:57:68:8a`).
+- Se insertó una observación antigua sintética del gateway con otra MAC para simular suplantación; el endpoint devolvió `arp_gateway_mac_changed` crítico con confianza 95 y su evidencia.
+- Tras otro escaneo se creó la alerta `Posible MITM: cambió la MAC del gateway`, severidad crítica, regla `Anomalía de red`, host `192.168.0.1` (ID 4) y visible con `site_id=1`.
+- Chromium headless confirmó en el DOM `Histórico IP→MAC`, la anomalía y las filas de observaciones.
+
+Límite importante: es una pista basada en el histórico, no una confirmación de spoofing activo. Sin captura L2 no se distinguen GARP, ICMP redirect ni respuestas ARP duplicadas en vivo.
 
 ### Señales públicas reales a 18/11/2026
 

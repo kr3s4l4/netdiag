@@ -19,6 +19,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
 | F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
+| F43 | Implementado y verificado: histórico IP→MAC, anomalías ARP y regla `anomaly` |
 | Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -272,6 +273,16 @@ Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantilla
 
 **Esfuerzo:** 4–6 h de plantillas y seguimiento; la gestión es continua pero ligera.
 
+### F43 — Histórico ARP y detección de MITM — **implementado y verificado con binario real**
+
+Primera fase de seguridad del activo, sin captura de paquetes ni raw sockets. Cada escaneo guarda su par IP→MAC en `arp_observations` (v1.5.6, retención 30 días) y el detector compara lotes para emitir `arp_gateway_mac_changed`, `arp_ip_mac_changed`, `arp_mac_multi_ip` y `arp_ip_multi_mac`. La regla de alerta `anomaly` dispara avisos con `min_confidence` y `category`, con dedupe y host del inventario resuelto. Endpoint `GET /diagnostics/arp` y tabla `Histórico IP→MAC` en `#/diagnostics`.
+
+Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación sintética antigua del gateway con otra MAC, anomalía crítica confianza 95 y alerta `Posible MITM` visible con `site_id=1`. Detalle en `docs/validacion.md`. El tipo `dhcp_rogue` queda admitido pero sin detector; siguen pendientes DHCP rogue, alertas de seguridad dedicadas y SNMP profundo.
+
+**Criterio de cierre:** dos escaneos con MAC distinta para una misma IP generan un hallazgo con evidencia, y la alerta aparece filtrando por sede. Sin captura L2 no se confirma spoofing activo: es una pista para investigar.
+
+**Esfuerzo:** 6–10 h de implementación y verificación.
+
 ## Dependencias y orden recomendado
 
 | Fase | Depende de | Prioridad |
@@ -287,6 +298,7 @@ Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantilla
 | F40 | F29 | Media: retención de usuarios |
 | F41 | F33, F37, F38 | Alta: obligación legal y contractual |
 | F42 | Ninguna | Alta: se ejecuta antes de F35/F37/F38 |
+| F43 | Ninguna | Media: valor de seguridad sin permisos ni captura |
 
 ## Cierre de salida al mercado
 

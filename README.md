@@ -110,8 +110,9 @@ La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan 
 | Tormentas | Pérdida y latencia simultáneas en varios hosts de una misma subred |
 | AP no autorizados | Puntos de acceso fuera de `diagnostics.authorized_aps` o sin identidad SNMP suficiente |
 | SLA | Disponibilidad y latencia media por host frente a los umbrales configurados |
+| ARP / MITM | Cambio de MAC del gateway o de cualquier IP entre escaneos, una MAC con muchas IPs y una IP con varias MAC |
 
-**Limitaciones:** NetDiag no captura BPDUs ni tramas 802.1Q, no lee OID de VLAN/dúplex ni contadores broadcast o de fragmentación. Por tanto, los hallazgos son heurísticos: orientan la investigación, pero no sustituyen la comprobación en el equipo de red. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados.
+**Limitaciones:** NetDiag no captura BPDUs ni tramas 802.1Q, no lee OID de VLAN/dúplex ni contadores broadcast o de fragmentación, y no captura tramas ARP en vivo. Los hallazgos ARP se infieren del histórico IP→MAC de escaneos: son pistas para investigar, no confirmación de spoofing activo. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados. El histórico y sus anomalías también están en `GET /api/v1/diagnostics/arp`.
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
@@ -426,6 +427,8 @@ diagnostics:
   max_anomalies: 200        # tope de hallazgos por informe
   storm_hosts: 3            # hosts simultáneos para sospechar tormenta
   authorized_aps: []        # MAC/BSSID de puntos de acceso autorizados
+  arp_history_days: 30      # retención del histórico IP→MAC entre escaneos
+  mac_ip_limit: 5           # IPs a partir de las cuales una MAC se marca sospechosa
 integrations:
   enabled: true             # exportación de eventos
   timeout: 10s              # por entrega (1s–1m)

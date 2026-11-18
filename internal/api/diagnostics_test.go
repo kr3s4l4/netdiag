@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/kr3s4l4/netdiag/internal/model"
 )
@@ -41,6 +42,46 @@ func TestEnterpriseDiagnosticsEndpoint(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("esperaba rogue_ap en el informe: %+v", report.Anomalies)
+	}
+}
+
+func TestARPDiagnosticsEndpoint(t *testing.T) {
+	s := newMetricsServer(t)
+	now := time.Now()
+	err := s.st.SaveARPObservations([]model.ARPObservation{
+		{SiteID: 1, ScanID: 1, IP: "192.168.0.1", MAC: "aa:bb:cc:dd:ee:01", IsGateway: true, ObservedAt: now.Add(-48 * time.Hour)},
+		{SiteID: 1, ScanID: 2, IP: "192.168.0.1", MAC: "aa:bb:cc:dd:ee:02", IsGateway: true, ObservedAt: now},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	s.handleARPDiagnostics(rec, httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/arp?site_id=1", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("código %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Observations []model.ARPObservation    `json:"observations"`
+		Anomalies    []model.DiagnosticAnomaly `json:"anomalies"`
+		Limitations  []string                  `json:"limitations"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Observations) != 2 {
+		t.Fatalf("esperaba 2 observaciones: %+v", body.Observations)
+	}
+	found := false
+	for _, a := range body.Anomalies {
+		if a.Type == "arp_gateway_mac_changed" && a.Severity == model.SeverityCritical {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("esperaba arp_gateway_mac_changed crítico: %+v", body.Anomalies)
+	}
+	if len(body.Limitations) == 0 {
+		t.Fatal("faltan limitaciones del análisis ARP")
 	}
 }
 

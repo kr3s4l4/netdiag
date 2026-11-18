@@ -306,6 +306,52 @@ func (m *Manager) EvaluateScanFailure(scan model.Scan) {
 	}
 }
 
+// EvaluateAnomalies raises alerts for heuristic findings such as ARP conflicts.
+// It returns the number of rules that fired; dedupe and cooldown are handled by
+// raise, so repeated scans do not flood the operator.
+func (m *Manager) EvaluateAnomalies(findings []model.DiagnosticAnomaly) int {
+	if !m.enabled() || len(findings) == 0 {
+		return 0
+	}
+	raised := 0
+	for _, rule := range m.Rules() {
+		if !rule.Enabled || rule.Type != "anomaly" {
+			continue
+		}
+		minConf := int(floatConfig(rule.Config, "min_confidence", 75))
+		category := stringConfig(rule.Config, "category", "")
+		for _, a := range findings {
+			if a.Confidence < minConf {
+				continue
+			}
+			if category != "" && a.Category != category {
+				continue
+			}
+			ip := firstAnomalyIP(a.HostIPs)
+			host := model.Host{IP: ip, Hostname: a.Title}
+			// Resolve the inventory host so the alert inherits its site and
+			// appears in site-scoped lists and host timelines.
+			if found, err := m.st.GetHostByIP(ip); err == nil && found != nil {
+				host.ID = found.ID
+				host.SiteID = found.SiteID
+				if found.Hostname != "" {
+					host.Hostname = found.Hostname
+				}
+			}
+			m.raise(rule, host, firstNonEmpty(rule.Severity, a.Severity), a.Title, a.Detail, "anomaly:"+a.ID)
+			raised++
+		}
+	}
+	return raised
+}
+
+func firstAnomalyIP(ips []string) string {
+	if len(ips) == 0 {
+		return ""
+	}
+	return ips[0]
+}
+
 func (m *Manager) raise(rule model.AlertRule, host model.Host, severity, title, message, dedupe string) {
 	if severity == "" {
 		severity = model.SeverityWarning
@@ -437,6 +483,16 @@ func firstNonEmpty(vals ...string) string {
 		}
 	}
 	return ""
+}
+
+func stringConfig(cfg map[string]any, key, def string) string {
+	if cfg == nil {
+		return def
+	}
+	if v, ok := cfg[key].(string); ok && v != "" {
+		return v
+	}
+	return def
 }
 
 func floatConfig(cfg map[string]any, key string, def float64) float64 {

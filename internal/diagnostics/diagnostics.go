@@ -24,6 +24,7 @@ type Input struct {
 	Networks   []model.Network
 	Metrics    []model.Metric
 	Interfaces []model.SystemInterface
+	ARP        []model.ARPObservation
 	Config     config.Diagnostics
 }
 
@@ -72,6 +73,7 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 			"Sin OID de VLAN ni contadores broadcast: las fugas y tormentas se infieren de adyacencias L2 y muestras de pérdida/latencia.",
 			"Sin OID de dúplex ni contadores de error: la discrepancia se compara entre velocidades IF-MIB de ambos extremos.",
 			"Sin sondeo de fragmentación activo: los problemas de MTU se correlacionan con interfaces locales de MTU bajo y pérdida observada.",
+			"Sin captura ARP en vivo: los cambios IP→MAC se infieren del histórico de escaneos y son pistas, no confirmación de spoofing activo.",
 		},
 	}
 
@@ -99,6 +101,11 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 	detectBroadcastStorms(in, report)
 	detectRogueAPs(in, report)
 	detectSLABreaches(in, report)
+	if cfg.EnterpriseMode {
+		for _, a := range DetectARP(in.ARP, cfg) {
+			add(report, a)
+		}
+	}
 
 	severityRank := map[string]int{model.SeverityCritical: 0, model.SeverityWarning: 1, model.SeverityInfo: 2}
 	sort.SliceStable(report.Anomalies, func(i, j int) bool {
