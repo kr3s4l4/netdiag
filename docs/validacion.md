@@ -44,6 +44,7 @@ Los umbrales son orientativos. Sirven para decidir el siguiente paso, no para de
 
 Publicar el tag y la documentación. No hace falta espejo oficial ni SLA.
 
+- Textos adaptados a cada canal en [docs/divulgacion.md](divulgacion.md).
 - Usar contadores de GitHub Releases.
 - Fijar un Discussion: “¿Para qué estás usando NetDiag?”.
 - Añadir una plantilla de issue “Caso de uso real”.
