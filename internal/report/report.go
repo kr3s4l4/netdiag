@@ -20,6 +20,7 @@ import (
 // Request describes a report to render.
 type Request struct {
 	SiteID  int64
+	Demo    bool   // marks synthetic data in every exported format
 	Kind    string // inventory | executive | alerts
 	Format  string // pdf | csv | json | html
 	Title   string
@@ -74,7 +75,11 @@ func (g *Generator) Generate(req Request) (*model.Report, error) {
 		req.Title = defaultTitle(req.Kind)
 	}
 	stamp := time.Now().Format("20060102-150405")
-	base := fmt.Sprintf("netdiag-%s-%s.%s", req.Kind, stamp, req.Format)
+	prefix := "netdiag-"
+	if req.Demo {
+		prefix = "netdiag-demo-"
+	}
+	base := fmt.Sprintf("%s%s-%s.%s", prefix, req.Kind, stamp, req.Format)
 	path := filepath.Join(g.Dir, base)
 
 	var err error
@@ -157,6 +162,12 @@ func writePDF(path string, req Request) error {
 	pdf.CellFormat(180, 7, tr(company), "", 1, "L", false, 0, "")
 	pdf.SetX(14)
 	pdf.CellFormat(180, 7, tr(req.To.Format("02/01/2006 15:04")), "", 1, "L", false, 0, "")
+	if req.Demo {
+		pdf.SetX(14)
+		pdf.SetFont("Helvetica", "B", 11)
+		pdf.CellFormat(180, 7, tr("DATOS SINTÉTICOS · DEMO"), "", 1, "L", false, 0, "")
+		pdf.SetFont("Helvetica", "", 11)
+	}
 
 	pdf.SetTextColor(30, 30, 30)
 	pdf.SetY(82)
@@ -286,22 +297,22 @@ func writeCSV(path string, req Request) error {
 	w := csv.NewWriter(f)
 	defer w.Flush()
 	if req.Kind == "alerts" {
-		_ = w.Write([]string{"id", "fecha", "severidad", "estado", "regla", "titulo", "mensaje", "ip", "host"})
+		_ = w.Write([]string{"id", "fecha", "severidad", "estado", "regla", "titulo", "mensaje", "ip", "host", "demo"})
 		for _, a := range req.Alerts {
 			_ = w.Write([]string{
 				strconv.FormatInt(a.ID, 10), a.CreatedAt.Format(time.RFC3339), a.Severity, a.Status,
-				a.RuleName, a.Title, a.Message, a.HostIP, a.HostName,
+				a.RuleName, a.Title, a.Message, a.HostIP, a.HostName, strconv.FormatBool(req.Demo),
 			})
 		}
 		return w.Error()
 	}
-	_ = w.Write([]string{"ip", "mac", "hostname", "tipo", "fabricante", "modelo", "so", "estado", "puertos_abiertos", "puertos", "latencia_ms", "primera_vez", "ultima_vez", "etiquetas"})
+	_ = w.Write([]string{"ip", "mac", "hostname", "tipo", "fabricante", "modelo", "so", "estado", "puertos_abiertos", "puertos", "latencia_ms", "primera_vez", "ultima_vez", "etiquetas", "demo"})
 	for _, h := range req.Hosts {
 		_ = w.Write([]string{
 			h.IP, h.MAC, h.Hostname, fingerprint.TypeLabel(h.DeviceType), h.Vendor, h.Model, h.OS,
 			statusLabel(h.Status), strconv.Itoa(h.OpenPortCount), portList(h.Ports),
 			strconv.FormatFloat(h.LatencyMS, 'f', 2, 64), h.FirstSeen.Format(time.RFC3339), h.LastSeen.Format(time.RFC3339),
-			strings.Join(h.Tags, ","),
+			strings.Join(h.Tags, ","), strconv.FormatBool(req.Demo),
 		})
 	}
 	return w.Error()
@@ -310,6 +321,7 @@ func writeCSV(path string, req Request) error {
 func writeJSON(path string, req Request) error {
 	payload := map[string]any{
 		"generated_at": time.Now(),
+		"demo":         req.Demo,
 		"title":        req.Title,
 		"company":      req.Company,
 		"from":         req.From,
@@ -341,7 +353,11 @@ tr:nth-child(even){background:#f8f9fb}
 .sev-critical{color:#b91c1c;font-weight:600}.sev-warning{color:#b45309}.sev-info{color:#1d4ed8}`)
 	b.WriteString("</style></head><body>")
 	b.WriteString("<h1>" + html.EscapeString(req.Title) + "</h1>")
-	b.WriteString("<small>" + html.EscapeString(req.Company) + " · " + req.To.Format("02/01/2006 15:04") + "</small>")
+	b.WriteString("<small>" + html.EscapeString(req.Company) + " · " + req.To.Format("02/01/2006 15:04"))
+	if req.Demo {
+		b.WriteString(" · <b>DATOS SINTÉTICOS (DEMO)</b>")
+	}
+	b.WriteString("</small>")
 	b.WriteString("<div class=\"grid\">")
 	for _, item := range [][2]string{
 		{"Dispositivos", strconv.Itoa(req.Stats.HostsTotal)},

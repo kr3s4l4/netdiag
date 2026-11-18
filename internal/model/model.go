@@ -589,6 +589,7 @@ type InterfaceAddr struct {
 
 // SystemInfo is returned by /system/info.
 type SystemInfo struct {
+	Demo         bool              `json:"demo,omitempty"`
 	Version      string            `json:"version"`
 	Commit       string            `json:"commit"`
 	BuildDate    string            `json:"build_date"`
@@ -606,6 +607,7 @@ type SystemInfo struct {
 
 // Hello is returned by /auth/status before login.
 type AuthStatus struct {
+	Demo          bool   `json:"demo,omitempty"`
 	SetupRequired bool   `json:"setup_required"`
 	AuthEnabled   bool   `json:"auth_enabled"`
 	Authenticated bool   `json:"authenticated"`

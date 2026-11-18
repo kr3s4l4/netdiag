@@ -402,6 +402,7 @@ func (s *Server) clearCookie(w http.ResponseWriter) {
 
 func (s *Server) sessionStatus(r *http.Request) model.AuthStatus {
 	st := model.AuthStatus{
+		Demo:          s.isDemo(),
 		SetupRequired: s.auth.SetupRequired(),
 		AuthEnabled:   s.cfg.Security.Auth,
 		Version:       s.version,

@@ -211,16 +211,18 @@ Paquete en `docs/confianza-empresarial.md`, `docs/comercializacion.md` y `docs/p
 
 **Esfuerzo:** 10–16 h (mayormente documentación y plantillas).
 
-### F39 — Modo demo con datos sintéticos
+### F39 — Modo demo con datos sintéticos — **implementado y verificado con binario real**
+
+Uso: `netdiag demo --seed 1 --sites 3 --hosts 120 [--data-dir RUTA] [--json]` y, a continuación, `netdiag serve --data-dir <data_dir>/demo`. El marcador `<data_dir>/demo/demo.json` activa la marca `demo: true` en `/auth/status`, `/system/info`, la barra superior, la tarjeta de acceso y los informes (`netdiag-demo-*.json/pdf/csv/html` con `demo: true`).
 
 - `netdiag demo --seed 1 [--sites 3] [--hosts 120]` genera sedes, hosts, puertos, alertas, métricas, topología y snapshots de auditoría ficticios.
 - No ejecuta escaneos reales ni abre sockets hacia la red; los datos se marcan con `demo: true` en la UI y en exportaciones.
 - Se usa para demostraciones, documentación, pruebas de UI y evaluaciones sin exponer inventario real.
 - Opción de reiniciar el dataset demo sin borrar datos reales: base separada bajo `<data_dir>/demo/netdiag.db`.
 
-**Criterio de cierre:** una demo de 5 minutos muestra panel, topología, diagnósticos e informe ejecutivo sin tocar la red ni un dato real.
+**Criterio de cierre (cumplido):** e2e con binario real: `demo --seed 11 --sites 3 --hosts 90` generó 3 sedes, 90 hosts, 1080 métricas, 6 alertas y 79 hosts gestionados tras excluir `guest`/`excluded`. Al servir `<data_dir>/demo`, `/auth/status` y `/system/info` devolvieron `demo: true`, la licencia Community mostró esos 79 hosts y el informe ejecutivo JSON se guardó como `netdiag-demo-executive-*.json` con `demo: true` y 90 hosts. La base real en `<data_dir>/netdiag.db` quedó intacta. Los tests cubren marcador, determinismo por semilla y aislamiento.
 
-**Esfuerzo:** 6–10 h.
+**Esfuerzo:** 6–10 h (realizado).
 
 ### F40 — Filtros y vistas guardadas
 

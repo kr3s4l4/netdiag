@@ -36,6 +36,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/container"
+	"github.com/kr3s4l4/netdiag/internal/demo"
 	"github.com/kr3s4l4/netdiag/internal/discover"
 	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
@@ -91,6 +92,8 @@ func run(args []string) int {
 		return licenseCmd(rest)
 	case "container":
 		return containerCmd(rest)
+	case "demo":
+		return demoCmd(rest)
 	case "update", "updates":
 		return updateCmd(rest)
 	default:
@@ -117,6 +120,7 @@ Comandos:
   backup                Crea una copia de seguridad completa en ZIP
   license show|activate|clear|sign  Gestiona la licencia offline
   container inspect|verify|build  Inspecciona o verifica contenedores .ndc
+  demo                  Genera datos sintéticos en <data_dir>/demo
   update check|apply|rollback|commit  Gestiona actualizaciones firmadas
   version               Muestra la versión
   help                  Muestra esta ayuda
@@ -131,6 +135,7 @@ Ejemplos:
   netdiag scan 10.0.0.0/24 --profile full --snmp --wait
   netdiag serve --listen 0.0.0.0:8080
   netdiag report --kind inventory --format pdf
+  netdiag demo --seed 1 --sites 3 --hosts 120
   netdiag backup --out /var/backups/netdiag.zip
   netdiag doctor
 `)
@@ -664,6 +669,7 @@ func reportCmd(args []string) int {
 	gen := report.New(filepath.Join(cfg.Storage.DataDir, "reports"), "NetDiag", "NetDiag")
 	rec, err := gen.Generate(report.Request{
 		Kind:   *kind,
+		Demo:   demo.Active(cfg.Storage.DataDir),
 		Format: *format,
 		Title:  *title,
 		Hosts:  hosts,
@@ -1299,6 +1305,49 @@ func printContainerReport(rep *container.Report, verified bool, problem string) 
 	for _, warning := range rep.Warnings {
 		fmt.Printf("Aviso: %s\n", warning)
 	}
+}
+
+func demoCmd(args []string) int {
+	fs := flag.NewFlagSet("demo", flag.ExitOnError)
+	seed := fs.Int64("seed", 1, "semilla determinista")
+	sites := fs.Int("sites", 3, "número de sedes sintéticas (1-20)")
+	hosts := fs.Int("hosts", 120, "número total de hosts sintéticos (1-5000)")
+	dataDir := fs.String("data-dir", "", "directorio base de datos; se creará <data_dir>/demo")
+	asJSON := fs.Bool("json", false, "salida JSON")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, `Uso: netdiag demo [opciones]
+
+Genera un dataset sintético en <data_dir>/demo/netdiag.db. No escanea la red,
+no abre sockets y no toca la base de datos real.
+
+Opciones:
+  --seed N        Semilla determinista (por defecto 1)
+  --sites N       Sedes sintéticas (por defecto 3)
+  --hosts N       Hosts totales (por defecto 120)
+  --data-dir RUTA Directorio base (por defecto el.data_dir de la configuración)
+  --json          Salida JSON`)
+	}
+	if err := parseFlags(fs, args); err != nil {
+		return 2
+	}
+	res, err := demo.Generate(demo.Options{
+		Seed: *seed, Sites: *sites, Hosts: *hosts, DataDir: *dataDir,
+	})
+	if err != nil {
+		return fail("%v", err)
+	}
+	if *asJSON {
+		printUpdateJSON(res)
+		return 0
+	}
+	fmt.Println("Dataset demo creado. Datos sintéticos: no se ha escaneado ninguna red.")
+	fmt.Printf("  Base:            %s\n", res.DBPath)
+	fmt.Printf("  Marcador:        %s\n", filepath.Join(res.DemoDir, demo.MarkerName))
+	fmt.Printf("  Sedes / hosts:   %d / %d\n", res.Sites, res.Hosts)
+	fmt.Printf("  Alertas / metrics: %d / %d\n", res.Alerts, res.Metrics)
+	fmt.Printf("  Hosts gestionados (30 días): %d\n", res.ManagedHosts)
+	fmt.Printf("\nPara verlo:\n  netdiag serve --data-dir %s\n", res.DemoDir)
+	return 0
 }
 
 func containerCmd(args []string) int {

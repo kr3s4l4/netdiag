@@ -77,6 +77,7 @@ func (s *Server) handleCreateReport(w http.ResponseWriter, r *http.Request) {
 	}
 	rec, err := gen.Generate(report.Request{
 		SiteID:  req.SiteID,
+		Demo:    s.isDemo(),
 		Kind:    req.Kind,
 		Format:  req.Format,
 		Title:   req.Title,
