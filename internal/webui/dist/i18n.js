@@ -663,6 +663,7 @@
       'SSIDs can be spoofed: an authorized BSSID is the strongest evidence; known SSIDs carry less confidence.',
     'El solape en 2,4 GHz agrupa canales con separación inferior a cinco; en 5/6 GHz solo se considera el mismo canal.':
       '2.4 GHz overlap groups channels closer than five; on 5/6 GHz only the same channel is considered.',
+    'Paneles': 'Dashboards',
     'Dashboards': 'Dashboards',
     'Vistas personalizadas': 'Custom views',
     'Crea vistas con hasta 16 widgets. Arrastra una tarjeta para reordenarla; la rejilla tiene 12 columnas.':
