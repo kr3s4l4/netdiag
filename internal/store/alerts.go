@@ -606,6 +606,34 @@ func (s *Store) AllNeighbors() (map[int64][]model.Neighbor, error) {
 	return out, rows.Err()
 }
 
+// NeighborsForSite returns adjacency rows restricted to one site (0 = all).
+func (s *Store) NeighborsForSite(siteID int64) (map[int64][]model.Neighbor, error) {
+	query := `SELECT n.local_host_id, n.protocol, n.remote_name, n.remote_ip, n.remote_mac, n.remote_port,
+		n.local_port, n.remote_chassis, n.remote_sys_desc, n.confidence
+		FROM neighbors n`
+	args := []any{}
+	if siteID > 0 {
+		query += ` JOIN hosts h ON h.id = n.local_host_id AND h.site_id = ?`
+		args = append(args, siteID)
+	}
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64][]model.Neighbor{}
+	for rows.Next() {
+		var hostID int64
+		var n model.Neighbor
+		if err := rows.Scan(&hostID, &n.Protocol, &n.RemoteName, &n.RemoteIP, &n.RemoteMAC, &n.RemotePort,
+			&n.LocalPort, &n.RemoteChassis, &n.RemoteSysDesc, &n.Confidence); err != nil {
+			return nil, err
+		}
+		out[hostID] = append(out[hostID], n)
+	}
+	return out, rows.Err()
+}
+
 // --- reports ---
 
 // AddReport records a generated report.

@@ -67,13 +67,14 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // Config is the root configuration document.
 type Config struct {
-	Server   Server   `yaml:"server" json:"server"`
-	Scan     Scan     `yaml:"scan" json:"scan"`
-	Monitor  Monitor  `yaml:"monitor" json:"monitor"`
-	Alerts   Alerts   `yaml:"alerts" json:"alerts"`
-	Storage  Storage  `yaml:"storage" json:"storage"`
-	Security Security `yaml:"security" json:"security"`
-	Log      Log      `yaml:"log" json:"log"`
+	Server      Server      `yaml:"server" json:"server"`
+	Scan        Scan        `yaml:"scan" json:"scan"`
+	Monitor     Monitor     `yaml:"monitor" json:"monitor"`
+	Alerts      Alerts      `yaml:"alerts" json:"alerts"`
+	Storage     Storage     `yaml:"storage" json:"storage"`
+	Security    Security    `yaml:"security" json:"security"`
+	Diagnostics Diagnostics `yaml:"diagnostics" json:"diagnostics"`
+	Log         Log         `yaml:"log" json:"log"`
 }
 
 // Server holds HTTP server settings.
@@ -155,6 +156,18 @@ type Security struct {
 }
 
 // Log holds logging settings.
+// Diagnostics tunes the enterprise heuristics. They never sniff raw frames:
+// all findings are derived from adjacency, IF-MIB, inventory and metrics.
+type Diagnostics struct {
+	EnterpriseMode  bool     `yaml:"enterprise_mode" json:"enterprise_mode"`
+	MinConfidence   int      `yaml:"min_confidence" json:"min_confidence"`
+	MinAvailability float64  `yaml:"min_availability" json:"min_availability"`
+	MaxRTTMS        float64  `yaml:"max_rtt_ms" json:"max_rtt_ms"`
+	MaxAnomalies    int      `yaml:"max_anomalies" json:"max_anomalies"`
+	StormHosts      int      `yaml:"storm_hosts" json:"storm_hosts"`
+	AuthorizedAPs   []string `yaml:"authorized_aps" json:"authorized_aps"`
+}
+
 type Log struct {
 	Level  string `yaml:"level" json:"level"`
 	Format string `yaml:"format" json:"format"` // text | json
@@ -239,6 +252,14 @@ func Defaults() *Config {
 			SessionHours: 12,
 			LoginRate:    5,
 			APIRate:      600,
+		},
+		Diagnostics: Diagnostics{
+			EnterpriseMode:  true,
+			MinConfidence:   60,
+			MinAvailability: 99,
+			MaxRTTMS:        200,
+			MaxAnomalies:    200,
+			StormHosts:      3,
 		},
 		Log: Log{Level: "info", Format: "text"},
 	}
@@ -339,6 +360,29 @@ func (c *Config) Normalize() error {
 		}
 		c.Security.AllowedHosts = hosts
 	}
+	if c.Diagnostics.MinConfidence <= 0 {
+		c.Diagnostics.MinConfidence = 60
+	}
+	if c.Diagnostics.MinAvailability <= 0 {
+		c.Diagnostics.MinAvailability = 99
+	}
+	if c.Diagnostics.MaxRTTMS <= 0 {
+		c.Diagnostics.MaxRTTMS = 200
+	}
+	if c.Diagnostics.MaxAnomalies <= 0 {
+		c.Diagnostics.MaxAnomalies = 200
+	}
+	if c.Diagnostics.StormHosts <= 0 {
+		c.Diagnostics.StormHosts = 3
+	}
+	aps := make([]string, 0, len(c.Diagnostics.AuthorizedAPs))
+	for _, mac := range c.Diagnostics.AuthorizedAPs {
+		mac = strings.ToLower(strings.TrimSpace(mac))
+		if mac != "" {
+			aps = append(aps, mac)
+		}
+	}
+	c.Diagnostics.AuthorizedAPs = aps
 	return c.Validate()
 }
 
@@ -381,6 +425,21 @@ func (c *Config) Validate() error {
 		if c.Storage.BackupKeep < 1 || c.Storage.BackupKeep > 365 {
 			errs = append(errs, "storage.backup_keep debe estar entre 1 y 365")
 		}
+	}
+	if c.Diagnostics.MinConfidence < 1 || c.Diagnostics.MinConfidence > 100 {
+		errs = append(errs, "diagnostics.min_confidence debe estar entre 1 y 100")
+	}
+	if c.Diagnostics.MinAvailability < 1 || c.Diagnostics.MinAvailability > 100 {
+		errs = append(errs, "diagnostics.min_availability debe estar entre 1 y 100")
+	}
+	if c.Diagnostics.MaxRTTMS < 1 || c.Diagnostics.MaxRTTMS > 60000 {
+		errs = append(errs, "diagnostics.max_rtt_ms debe estar entre 1 y 60000")
+	}
+	if c.Diagnostics.MaxAnomalies < 1 || c.Diagnostics.MaxAnomalies > 1000 {
+		errs = append(errs, "diagnostics.max_anomalies debe estar entre 1 y 1000")
+	}
+	if c.Diagnostics.StormHosts < 2 || c.Diagnostics.StormHosts > 100 {
+		errs = append(errs, "diagnostics.storm_hosts debe estar entre 2 y 100")
 	}
 	if (c.Server.TLSCert == "") != (c.Server.TLSKey == "") {
 		errs = append(errs, "server.tls_cert y server.tls_key deben configurarse juntos")

@@ -47,7 +47,7 @@ Todas las sedes comparten una única base SQLite. El parámetro `site_id` está 
 
 | Operación | Dónde se envía `site_id` |
 | --- | --- |
-| `GET /dashboard`, `/hosts`, `/networks`, `/scans`, `/alerts`, `/topology`, `/reports`, `/metrics` | Query string |
+| `GET /dashboard`, `/hosts`, `/networks`, `/scans`, `/alerts`, `/topology`, `/diagnostics/*`, `/reports`, `/metrics` | Query string |
 | `POST /scans`, `/networks`, `/reports` | Cuerpo JSON |
 | `GET /hosts/{id}`, `/scans/{id}`, `/reports/{id}/download` | Se deriva del registro, no se envía |
 
@@ -191,6 +191,25 @@ Canales: `webhook`, `slack`, `discord`, `telegram`, `pagerduty`, `smtp`, `syslog
 | POST | `/reports` | `site_id`, `kind` (`inventory\|executive\|alerts`), `format` (`pdf\|csv\|json\|html`), `title` |
 | GET | `/reports/{id}/download` | Descarga autenticada |
 | DELETE | `/reports/{id}` | Elimina registro y archivo |
+
+### Diagnósticos empresariales
+
+Análisis heurístico sin captura de paquetes. Todas las rutas aceptan `site_id` (0 = todas las sedes) y `from`/`to` (RFC 3339 o ventana relativa como `24h`, `7d`, `30d`; por defecto 24 h). Las respuestas son de solo lectura y están disponibles para cualquier rol autenticado. Los hallazgos son pistas para investigar: incluyen `evidence`, `confidence` (1–100) y `recommendation`, y el informe enumera sus `limitations`.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/diagnostics/enterprise` | Informe completo: `anomalies`, `counts`, `stp`, `vlan`, `duplex`, `mtu`, `limitations` |
+| GET | `/diagnostics/stp` | `{loops, anomalies, limitations}` con los ciclos L2 detectados |
+| GET | `/diagnostics/vlan` | `{leaks, anomalies, limitations}` con las posibles fugas |
+
+Tipos de anomalía: `stp_loop`, `vlan_leak`, `duplex_mismatch`, `mtu_problem`, `broadcast_storm`, `rogue_ap`, `sla_breach`. Con `diagnostics.enterprise_mode: false` solo se emiten `sla_breach`. El parámetro `diagnostics.min_confidence` filtra los detectores y `max_anomalies` limita el tamaño del informe.
+
+**Señales y límites.** Los ciclos se deducen del grafo LLDP/CDP/FDB; las fugas de VLAN de puertos L2 con hosts en subredes distintas; el dúplex de velocidades IF-MIB incompatibles; el MTU de interfaces locales bajas con pérdida; las tormentas de pérdida y latencia simultáneas en una subred; los AP de `diagnostics.authorized_aps` o de baja confianza de fingerprint; y el SLA de muestras `up`/`rtt_ms`. No hay BPDUs, VLAN IDs, OID de dúplex ni contadores broadcast/fragmentación, por lo que ningún hallazgo constituye una confirmación protocolaria.
+
+```bash
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/vlan?site_id=1'
+```
 
 ### Topología y sistema
 

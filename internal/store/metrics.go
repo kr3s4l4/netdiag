@@ -153,6 +153,43 @@ func (s *Store) GlobalHistory(from, to time.Time, maxPoints int) (*model.HostHis
 	return out, rows.Err()
 }
 
+// MetricsForSite returns recent samples for one site (0 = all sites), newest
+// first. It is used by the enterprise diagnostics analyzers.
+func (s *Store) MetricsForSite(siteID int64, since time.Time, limit int) ([]model.Metric, error) {
+	if limit < 1 {
+		limit = 5000
+	}
+	if limit > 50000 {
+		limit = 50000
+	}
+	query := `SELECT m.host_id, m.ts, m.rtt_ms, m.up, m.loss FROM metrics m`
+	args := []any{}
+	if siteID > 0 {
+		query += ` JOIN hosts h ON h.id = m.host_id AND h.site_id = ?`
+		args = append(args, siteID)
+	}
+	query += ` WHERE m.ts >= ? ORDER BY m.ts DESC LIMIT ?`
+	args = append(args, since.UnixMilli(), limit)
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.Metric
+	for rows.Next() {
+		var m model.Metric
+		var ts int64
+		var up int
+		if err := rows.Scan(&m.HostID, &ts, &m.RTTMS, &up, &m.Loss); err != nil {
+			return nil, err
+		}
+		m.TS = time.UnixMilli(ts)
+		m.Up = up == 1
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
 // FleetSummary returns availability and average RTT since a time.
 func (s *Store) FleetSummary(since time.Time) (availability, avgRTT float64, err error) {
 	return s.FleetSummaryForSite(0, since)

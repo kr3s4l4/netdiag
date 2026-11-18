@@ -524,6 +524,49 @@
     'Tamaño': 'Size',
     'Creada': 'Created',
 
+    // ---- diagnósticos empresariales ----
+    'Diagnósticos': 'Diagnostics',
+    'Problemas empresariales': 'Enterprise issues',
+    'Lazo STP': 'STP loop',
+    'Fuga de VLAN': 'VLAN leak',
+    'Desajuste de dúplex': 'Duplex mismatch',
+    'Problema de MTU': 'MTU problem',
+    'Tormenta de broadcast': 'Broadcast storm',
+    'AP no autorizado': 'Rogue AP',
+    'Incumplimiento de SLA': 'SLA breach',
+    'Evidencia': 'Evidence',
+    'Recomendación': 'Recommendation',
+    'Sin anomalías detectadas': 'No anomalies detected',
+    'Las heurísticas no encontraron señales suficientes en la ventana analizada.':
+      'The heuristics did not find enough signals in the selected window.',
+    'Análisis heurístico a partir de vecindades LLDP/CDP/FDB, IF-MIB, inventario y muestras de disponibilidad. Cada hallazgo incluye evidencia, confianza y limitaciones.':
+      'Heuristic analysis based on LLDP/CDP/FDB adjacency, IF-MIB, inventory and availability samples. Every finding includes evidence, confidence and limitations.',
+    'Anomalías': 'Anomalies',
+    'hosts analizados': 'hosts analyzed',
+    'Críticas': 'Critical',
+    'requieren atención inmediata': 'need immediate attention',
+    'Avisos': 'Warnings',
+    'requieren revisión': 'need review',
+    'Muestras': 'Samples',
+    'en la ventana': 'in the window',
+    'Modo empresarial desactivado': 'Enterprise mode disabled',
+    'Solo se evalúan los umbrales de SLA; configura diagnostics.enterprise_mode: true para el resto de detectores.':
+      'Only SLA thresholds are evaluated; set diagnostics.enterprise_mode: true to enable the remaining detectors.',
+    'Hosts': 'Hosts',
+    'Confianza': 'Confidence',
+    'Detectado': 'Detected',
+    'Por categoría': 'By category',
+    'stp': 'STP',
+    'vlan': 'VLAN',
+    'duplex': 'Duplex',
+    'performance': 'Performance',
+    'wireless': 'Wireless',
+    'sla': 'SLA',
+    'Limitaciones del análisis': 'Analysis limitations',
+    'Heurístico': 'Heuristic',
+    'Un hallazgo es una pista para investigar, no una confirmación del protocolo. Confirma siempre en el equipo de red.':
+      'A finding is a lead to investigate, not a protocol confirmation. Always verify on the network device.',
+
     // ---- document title ----
     'NetDiag · Inventario y monitoreo de red': 'NetDiag · Network inventory and monitoring',
   };

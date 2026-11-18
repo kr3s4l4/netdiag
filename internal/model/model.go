@@ -232,6 +232,101 @@ type Metric struct {
 	Loss   float64   `json:"loss"`
 }
 
+// The enterprise diagnostics types below describe heuristics built from the
+// data NetDiag already collects (LLDP/CDP/FDB adjacency, IF-MIB, inventory and
+// availability samples). NetDiag does not sniff raw 802.1D/802.1Q frames, so
+// "protocol" and "flags" are normalized from observed evidence rather than
+// decoded from BPDUs. Every finding carries its evidence and confidence.
+
+// BPDU is a normalized spanning-tree announcement reconstructed from L2
+// adjacency and device inventory, not from a captured frame.
+type BPDU struct {
+	Protocol string   `json:"protocol,omitempty"` // stp | rstp | mstp | unknown
+	RootID   string   `json:"root_id,omitempty"`
+	BridgeID string   `json:"bridge_id,omitempty"`
+	Port     string   `json:"port,omitempty"`
+	Cost     int      `json:"cost,omitempty"`
+	Flags    []string `json:"flags,omitempty"`
+}
+
+// STPLoop is a cycle observed in the high-confidence L2 adjacency graph.
+type STPLoop struct {
+	BridgeIDs     []string `json:"bridge_ids"`
+	AffectedPorts []string `json:"affected_ports"`
+	Rate          float64  `json:"rate"`
+	Confidence    int      `json:"confidence"`
+	Evidence      []string `json:"evidence,omitempty"`
+}
+
+// VLANLeak is an L2 port that reaches devices in different monitored subnets.
+type VLANLeak struct {
+	VlanSrc    string   `json:"vlan_src"`
+	VlanDst    string   `json:"vlan_dst"`
+	Count      int      `json:"count"`
+	SourceMAC  string   `json:"source_mac,omitempty"`
+	HostIDs    []int64  `json:"host_ids,omitempty"`
+	Port       string   `json:"port,omitempty"`
+	Confidence int      `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
+// DuplexMismatch compares the advertised speed of both ends of an L2 link.
+type DuplexMismatch struct {
+	Port       string   `json:"port"`
+	SpeedA     int64    `json:"speed_a,omitempty"`
+	SpeedB     int64    `json:"speed_b,omitempty"`
+	DuplexA    string   `json:"duplex_a,omitempty"`
+	DuplexB    string   `json:"duplex_b,omitempty"`
+	HostA      int64    `json:"host_a"`
+	HostB      int64    `json:"host_b"`
+	Confidence int      `json:"confidence"`
+	Evidence   []string `json:"evidence,omitempty"`
+}
+
+// MTUProblem flags a low-MTU local path together with loss symptoms.
+type MTUProblem struct {
+	Src             string   `json:"src"`
+	Dst             string   `json:"dst"`
+	MTUPath         int      `json:"mtu_path"`
+	FragmentedCount int      `json:"fragmented_count"`
+	Confidence      int      `json:"confidence"`
+	Evidence        []string `json:"evidence,omitempty"`
+}
+
+// DiagnosticAnomaly is the common envelope emitted by every detector.
+type DiagnosticAnomaly struct {
+	ID             string    `json:"id"`
+	Type           string    `json:"type"`
+	Category       string    `json:"category"`
+	Severity       string    `json:"severity"`
+	Title          string    `json:"title"`
+	Detail         string    `json:"detail"`
+	HostIDs        []int64   `json:"host_ids,omitempty"`
+	HostIPs        []string  `json:"host_ips,omitempty"`
+	Confidence     int       `json:"confidence"`
+	Evidence       []string  `json:"evidence,omitempty"`
+	Recommendation string    `json:"recommendation,omitempty"`
+	DetectedAt     time.Time `json:"detected_at"`
+}
+
+// DiagnosticsReport is the result of an enterprise diagnostics run.
+type DiagnosticsReport struct {
+	SiteID          int64               `json:"site_id"`
+	GeneratedAt     time.Time           `json:"generated_at"`
+	From            time.Time           `json:"from"`
+	To              time.Time           `json:"to"`
+	EnterpriseMode  bool                `json:"enterprise_mode"`
+	HostsAnalyzed   int                 `json:"hosts_analyzed"`
+	SamplesAnalyzed int                 `json:"samples_analyzed"`
+	Anomalies       []DiagnosticAnomaly `json:"anomalies"`
+	Counts          map[string]int      `json:"counts"`
+	STP             []STPLoop           `json:"stp"`
+	VLAN            []VLANLeak          `json:"vlan"`
+	Duplex          []DuplexMismatch    `json:"duplex"`
+	MTU             []MTUProblem        `json:"mtu"`
+	Limitations     []string            `json:"limitations"`
+}
+
 // SeriesPoint is a downsampled metric point for charts.
 type SeriesPoint struct {
 	TS    time.Time `json:"ts"`

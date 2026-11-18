@@ -79,6 +79,7 @@ const ICONS = {
   dashboard: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   hosts: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
   topology: '<circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/><path d="M10.6 7.2 6.4 15.6M13.4 7.2l4.2 8.4M7.6 18h8.8"/>',
+  diagnostics: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2M8.5 11h5M11 8.5v5"/>',
   alerts: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/>',
   scans: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
   reports: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
@@ -118,6 +119,7 @@ const ICONS = {
   eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>',
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
   warn: '<path d="M12 3 2 21h20z"/><path d="M12 9v5M12 18h.01"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   arrowUp: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   arrowDown: '<path d="M12 5v14M6 13l6 6 6-6"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/>',
@@ -399,6 +401,7 @@ const NAV = [
   { view: 'dashboard', label: 'Panel', icon: 'dashboard' },
   { view: 'hosts', label: 'Dispositivos', icon: 'hosts' },
   { view: 'topology', label: 'Topología', icon: 'topology' },
+  { view: 'diagnostics', label: 'Diagnósticos', icon: 'diagnostics' },
   { view: 'alerts', label: 'Alertas', icon: 'alerts', badge: true },
   { section: 'Historial' },
   { view: 'scans', label: 'Escaneos', icon: 'scans' },
@@ -511,6 +514,7 @@ const PAGE_META = {
   dashboard: ['Panel', 'Resumen operativo'],
   hosts: ['Dispositivos', 'Inventario'],
   topology: ['Topología', 'Mapa de red'],
+  diagnostics: ['Diagnósticos', 'Problemas empresariales'],
   alerts: ['Alertas', 'Reglas y canales'],
   scans: ['Escaneos', 'Historial y ejecución'],
   reports: ['Informes', 'Exportación'],
@@ -662,7 +666,7 @@ async function route(silent = false) {
   if (!state.me) return;
   const raw = (location.hash || '#/dashboard').replace(/^#\/?/, '');
   const [view, ...rest] = raw.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  state.view = ['dashboard', 'hosts', 'topology', 'diagnostics', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
   if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
   updateNav();
   const content = $('#content');
@@ -678,6 +682,7 @@ async function route(silent = false) {
         else await renderHosts();
         break;
       case 'topology': await renderTopology(); break;
+      case 'diagnostics': await renderDiagnostics(); break;
       case 'alerts': await renderAlerts(rest[0]); break;
       case 'scans': await renderScans(); break;
       case 'reports': await renderReports(); break;
@@ -1120,6 +1125,7 @@ document.addEventListener('click', async (e) => {
     switch (action) {
       case 'modal-close': closeModal(); break;
       case 'reload': route(); break;
+      case 'refresh-diagnostics': await renderDiagnostics(); break;
       case 'logout': logout(); break;
       case 'theme': toggleTheme(); break;
       case 'lang': if (window.NetDiagI18n) window.NetDiagI18n.toggle(); break;

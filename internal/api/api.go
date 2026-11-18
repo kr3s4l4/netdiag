@@ -208,6 +208,11 @@ func (s *Server) register() {
 	// ---- topology ----
 	m.HandleFunc("GET /api/v1/topology", s.handleTopology)
 
+	// ---- enterprise diagnostics ----
+	m.HandleFunc("GET /api/v1/diagnostics/enterprise", s.handleEnterpriseDiagnostics)
+	m.HandleFunc("GET /api/v1/diagnostics/stp", s.handleSTPDiagnostics)
+	m.HandleFunc("GET /api/v1/diagnostics/vlan", s.handleVLANDiagnostics)
+
 	// ---- system ----
 	m.HandleFunc("GET /api/v1/system/info", s.handleSystemInfo)
 	m.HandleFunc("GET /api/v1/system/interfaces", s.handleSystemInterfaces)

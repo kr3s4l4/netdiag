@@ -84,6 +84,10 @@ var apiRoutes = []apiRoute{
 
 	{"GET", "/api/v1/topology", "Grafo de topología L2/L3", "Topología", false, false, "", []string{"site_id", "network_id"}, false, false},
 
+	{"GET", "/api/v1/diagnostics/enterprise", "Diagnósticos empresariales heurísticos", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
+	{"GET", "/api/v1/diagnostics/stp", "Posibles lazos de spanning-tree", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
+	{"GET", "/api/v1/diagnostics/vlan", "Posibles fugas de VLAN", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
+
 	{"GET", "/api/v1/system/info", "Información del sistema y capacidades", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/interfaces", "Interfaces de red locales", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/config", "Leer la configuración", "Sistema", false, true, "", nil, false, false},
@@ -185,7 +189,7 @@ func buildOpenAPI(version, commit, buildDate string) map[string]any {
 			{"name": "Autenticación"}, {"name": "Usuarios"}, {"name": "Panel"},
 			{"name": "Sedes"}, {"name": "Dispositivos"}, {"name": "Redes"}, {"name": "Escaneos"},
 			{"name": "Alertas"}, {"name": "Informes"}, {"name": "Topología"},
-			{"name": "Sistema"}, {"name": "Tiempo real"},
+			{"name": "Diagnósticos"}, {"name": "Sistema"}, {"name": "Tiempo real"},
 		},
 		"components": map[string]any{
 			"securitySchemes": map[string]any{

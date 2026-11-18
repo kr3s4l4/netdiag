@@ -1,6 +1,6 @@
 # NetDiag — build, test and packaging helpers.
 
-VERSION   ?= 1.2.0
+VERSION   ?= 1.3.0
 COMMIT    := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 BUILD_DATE:= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS   := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildDate=$(BUILD_DATE)

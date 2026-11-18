@@ -269,6 +269,83 @@ async function renderTopology() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Enterprise diagnostics                                              */
+/* ------------------------------------------------------------------ */
+
+const DIAG_TYPE_LABELS = {
+  stp_loop: 'Lazo STP',
+  vlan_leak: 'Fuga de VLAN',
+  duplex_mismatch: 'Desajuste de dúplex',
+  mtu_problem: 'Problema de MTU',
+  broadcast_storm: 'Tormenta de broadcast',
+  rogue_ap: 'AP no autorizado',
+  sla_breach: 'Incumplimiento de SLA',
+};
+
+function diagConfidenceBar(value) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  const tone = v >= 85 ? 'var(--red)' : v >= 70 ? 'var(--amber)' : 'var(--accent)';
+  return `<span class="bar" style="width:74px"><i style="width:${v}%;background:${tone}"></i></span>
+    <span class="tiny mono">${v}%</span>`;
+}
+
+async function renderDiagnostics() {
+  setPageTitle('diagnostics');
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  const report = await api('/diagnostics/enterprise');
+  const anomalies = report.anomalies || [];
+  const counts = report.counts || {};
+  const windowLabel = `${fmtDate(report.from)} — ${fmtDate(report.to)}`;
+
+  const rows = anomalies.length ? anomalies.map((a) => `
+    <tr>
+      <td><span class="badge ${esc(a.severity)}">${esc(tr(SEV_LABELS[a.severity] || a.severity))}</span></td>
+      <td><div class="name-cell"><b>${esc(tr(DIAG_TYPE_LABELS[a.type] || a.type))}</b><span>${esc(a.detail)}</span></div></td>
+      <td>${(a.host_ips || []).length ? (a.host_ips || []).slice(0, 3).map((ip) => `<span class="mono-ip">${esc(ip)}</span>`).join('<br>') : '<span class="muted">—</span>'}</td>
+      <td>${diagConfidenceBar(a.confidence)}</td>
+      <td class="tiny muted">${fmtDate(a.detected_at)}</td>
+      <td class="right nowrap"><details class="diag-details"><summary>${esc(tr('Evidencia'))}</summary>
+        <div class="diag-evidence">${(a.evidence || []).map((e) => `<div>· ${esc(e)}</div>`).join('')}
+        ${a.recommendation ? `<div class="mt"><b>${esc(tr('Recomendación'))}:</b> ${esc(a.recommendation)}</div>` : ''}</div>
+      </details></td>
+    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
+      <div class="tiny">${esc(tr('Las heurísticas no encontraron señales suficientes en la ventana analizada.'))}</div></div></div></td></tr>`;
+
+  const categoryCounts = ['stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
+    .map((k) => [k, counts[k] || 0]).filter(([, v]) => v > 0);
+  const hasEnterprise = report.enterprise_mode !== false;
+
+  content.innerHTML = `
+    <div class="spread mb">
+      <div class="muted small">${esc(tr('Análisis heurístico a partir de vecindades LLDP/CDP/FDB, IF-MIB, inventario y muestras de disponibilidad. Cada hallazgo incluye evidencia, confianza y limitaciones.'))}</div>
+      <button class="btn sm" data-action="refresh-diagnostics">${icon('refresh')} ${esc(tr('Actualizar'))}</button>
+    </div>
+    <div class="grid cols-4 mb">
+      ${statCard({ label: tr('Anomalías'), value: fmtNum(anomalies.length), hint: `${fmtNum(report.hosts_analyzed)} ${tr('hosts analizados')}`, icon: 'diagnostics', tone: 'violet' })}
+      ${statCard({ label: tr('Críticas'), value: fmtNum(counts.critical || 0), hint: tr('requieren atención inmediata'), icon: 'warn', tone: 'red' })}
+      ${statCard({ label: tr('Avisos'), value: fmtNum(counts.warning || 0), hint: tr('requieren revisión'), icon: 'alerts', tone: 'amber' })}
+      ${statCard({ label: tr('Muestras'), value: fmtNum(report.samples_analyzed), hint: tr('en la ventana'), icon: 'clock', tone: 'accent' })}
+    </div>
+    ${!hasEnterprise ? `<div class="notice mb">${icon('info')}<div><b>${esc(tr('Modo empresarial desactivado'))}</b>
+      <div class="tiny">${esc(tr('Solo se evalúan los umbrales de SLA; configura diagnostics.enterprise_mode: true para el resto de detectores.'))}</div></div></div>` : ''}
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Hallazgos'))}</h3><span class="tiny muted">${esc(windowLabel)}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>${esc(tr('Severidad'))}</th><th>${esc(tr('Hallazgo'))}</th><th>${esc(tr('Hosts'))}</th><th>${esc(tr('Confianza'))}</th><th>${esc(tr('Detectado'))}</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+    ${categoryCounts.length ? `<div class="card pad mb"><div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Por categoría'))}</h3></div>
+      <div class="kpi-mini">${categoryCounts.map(([k, v]) => `<div><b>${v}</b><span>${esc(tr(k))}</span></div>`).join('')}</div></div>` : ''}
+    <div class="card pad">
+      <div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Limitaciones del análisis'))}</h3><span class="badge info">${esc(tr('Heurístico'))}</span></div>
+      <ul class="diag-limits">${(report.limitations || []).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+      <div class="tiny muted mt">${esc(tr('Un hallazgo es una pista para investigar, no una confirmación del protocolo. Confirma siempre en el equipo de red.'))}</div>
+    </div>`;
+}
+
+/* ------------------------------------------------------------------ */
 /* Alerts                                                              */
 /* ------------------------------------------------------------------ */
 

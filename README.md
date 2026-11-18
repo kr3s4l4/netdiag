@@ -16,6 +16,7 @@
 - **Portabilidad por sede**: exporta una sede a un paquete JSON e impórtala en otra sede o en otra instancia, en modo `merge` (conservar) o `replace` (reemplazar).
 - **Inventario rico**: fabricante por OUI, tipo de dispositivo con puntuación y evidencia, sistema operativo probable, puertos, servicios, certificados y modelo SNMP.
 - **Topología interactiva**: SVG con zoom, arrastre y agrupación por subred; enlaces por LLDP/CDP/bridge/ARP con confianza.
+- **Diagnósticos empresariales**: detección heurística de lazos STP, fugas de VLAN, desajustes de dúplex, problemas de MTU, tormentas de broadcast, AP no autorizados e incumplimientos de SLA, con evidencia, confianza y limitaciones explícitas.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
@@ -75,6 +76,28 @@ curl -b cookies.txt http://127.0.0.1:8080/api/v1/hosts?site_id=2
 curl -b cookies.txt http://127.0.0.1:8080/api/v1/sites/2/export -o sucursal.json
 curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -F 'file=@sucursal.json' \
   'http://127.0.0.1:8080/api/v1/sites/3/import?mode=merge'
+```
+
+## Diagnósticos empresariales
+
+La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan los datos ya recogidos por NetDiag para señalar problemas típicos de redes corporativas. Cada hallazgo incluye tipo, severidad, hosts implicados, evidencia, confianza (1–100) y una recomendación. Los detectores exigen varias señales simultáneas para evitar falsos positivos y respetan `site_id` y la ventana `from`/`to`.
+
+| Categoría | Señales utilizadas |
+| --- | --- |
+| Lazos STP | Ciclos en el grafo L2 de vecindades LLDP/CDP/FDB con confianza suficiente |
+| Fugas de VLAN | Un mismo puerto L2 que alcanza hosts de redes distintas, o adyacencia bridge entre dispositivos L2 de subredes distintas |
+| Dúplex | Velocidades IF-MIB incompatibles en ambos extremos de un enlace LLDP/CDP |
+| MTU | Interfaz local con MTU bajo correlacionada con pérdida en su red |
+| Tormentas | Pérdida y latencia simultáneas en varios hosts de una misma subred |
+| AP no autorizados | Puntos de acceso fuera de `diagnostics.authorized_aps` o sin identidad SNMP suficiente |
+| SLA | Disponibilidad y latencia media por host frente a los umbrales configurados |
+
+**Limitaciones:** NetDiag no captura BPDUs ni tramas 802.1Q, no lee OID de VLAN/dúplex ni contadores broadcast o de fragmentación. Por tanto, los hallazgos son heurísticos: orientan la investigación, pero no sustituyen la comprobación en el equipo de red. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados.
+
+```bash
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/stp?site_id=1'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/vlan?site_id=1'
 ```
 
 ## Compilación
@@ -182,6 +205,14 @@ security:
   login_rate: 5
   trust_proxy: false
   metrics_token: ""         # si se define, /metrics exige Bearer
+diagnostics:
+  enterprise_mode: true     # activa todos los detectores; false solo evalúa SLA
+  min_confidence: 60        # confianza mínima para publicar un hallazgo
+  min_availability: 99      # SLA de disponibilidad por host
+  max_rtt_ms: 200           # SLA de latencia media por host
+  max_anomalies: 200        # tope de hallazgos por informe
+  storm_hosts: 3            # hosts simultáneos para sospechar tormenta
+  authorized_aps: []        # MAC/BSSID de puntos de acceso autorizados
 ```
 
 La mayoría de cambios se aplican en caliente desde **Ajustes**; los de escucha, TLS, rutas de datos y nivel de registro requieren reiniciar.
@@ -231,4 +262,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.2**: inventario, escaneos, topología, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de canales, clasificación, utilidades de red, topología, política de contraseñas, roles, copias, endpoints públicos y aislamiento entre sedes. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.3**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de canales, clasificación, utilidades de red, topología, diagnósticos, política de contraseñas, roles, copias, endpoints públicos y aislamiento entre sedes. Las contribuciones y los informes de errores son bienvenidos.

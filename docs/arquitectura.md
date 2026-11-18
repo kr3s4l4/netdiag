@@ -22,6 +22,7 @@ NetDiag se compila en un único binario que contiene la API HTTP, la SPA, el mot
           │ snmp         │ │        │ │              │
           │ fingerprint  │ │        │ │              │
           │ topology     │ │        │ │              │
+          │ diagnostics  │ │        │ │              │
           └───────┬──────┘ └───┬────┘ └──────┬───────┘
                   └────────────┴─────────────┘
                                │
@@ -33,7 +34,7 @@ NetDiag se compila en un único binario que contiene la API HTTP, la SPA, el mot
 
 ### `internal/api`
 
-Router `net/http` con patrones de método (`GET /api/v1/hosts/{id}`). Cada escritura exige sesión y token CSRF. Los permisos tienen tres niveles: `admin`/`owner` (todo, incluidas sedes), `operator` (operación e importación de sedes; sin configuración, usuarios ni gestión de sedes) y `viewer` (solo lectura). Las rutas de sedes (`/api/v1/sites`) son administrativas salvo la importación. La capa inyecta `site_id` en los filtros de panel, inventario, redes, escaneos, alertas, topología, informes y métricas. El hub WebSocket mantiene una cola por cliente y descarta mensajes si el cliente se retrasa, para no bloquear los escaneos. La especificación OpenAPI 3.1 se genera en el propio paquete y las métricas Prometheus se sirven desde `/metrics`.
+Router `net/http` con patrones de método (`GET /api/v1/hosts/{id}`). Cada escritura exige sesión y token CSRF. Los permisos tienen tres niveles: `admin`/`owner` (todo, incluidas sedes), `operator` (operación e importación de sedes; sin configuración, usuarios ni gestión de sedes) y `viewer` (solo lectura). Las rutas de sedes (`/api/v1/sites`) son administrativas salvo la importación. La capa inyecta `site_id` en los filtros de panel, inventario, redes, escaneos, alertas, topología, diagnósticos, informes y métricas. El hub WebSocket mantiene una cola por cliente y descarta mensajes si el cliente se retrasa, para no bloquear los escaneos. La especificación OpenAPI 3.1 se genera en el propio paquete y las métricas Prometheus se sirven desde `/metrics`.
 
 ### `internal/app`
 
@@ -81,6 +82,10 @@ Cliente propio sobre `gosnmp` con soporte v1, v2c y v3 (MD5/SHA-1/SHA-2 y DES/AE
 ### `internal/topology`
 
 Construye un grafo determinista a partir de hosts, redes y vecinos. Crea un nodo ancla por red (preferentemente la puerta de enlace), enlaza hosts por subred y añade aristas LLDP/CDP/bridge/ARP con confianza. Marca nodos aislados y resume por tipo.
+
+### `internal/diagnostics`
+
+Analizador puro (sin E/S) que recibe un snapshot por sede y ventana: hosts, vecinos resueltos, redes, muestras de métricas, interfaces locales y la configuración `diagnostics`. Produce un `DiagnosticsReport` con anomalías comunes (`DiagnosticAnomaly`: id, tipo, categoría, severidad, evidencia, confianza y recomendación) y vistas tipadas para STP, VLAN, dúplex y MTU. Los detectores exigen varias señales o confianza alta: el grafo L2 solo usa LLDP/CDP/FDB, las fugas de VLAN requieren un puerto compartido o una adyacencia bridge entre subredes, y las tormentas exigen hosts simultáneos en la misma red. SLA se evalúa siempre; el resto solo con `enterprise_mode: true`. Las carencias de datos (sin BPDUs, VLAN IDs, OID de dúplex ni contadores broadcast/fragmentación) se documentan en `report.limitations`.
 
 ### `internal/alerts`
 
