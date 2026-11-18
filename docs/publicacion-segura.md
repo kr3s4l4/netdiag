@@ -151,9 +151,24 @@ Si cualquiera de estos pasos falla, el cliente no ejecuta el binario y reporta e
 
 La licencia Enterprise no exige conectividad; el espejo es una decisión operativa del cliente.
 
+## Dependencias de terceros
+
+El productor responde ante el cliente y ante el regulador por el producto terminado, incluso cuando el defecto esté en una dependencia incluida. Eso no significa pagar todo de tu bolsillo en exclusiva: significa que **tú gestionas el aviso, el parche y la comunicación**, y después reclamas aguas arriba si tienes contrato con el proveedor.
+
+Reglas operativas:
+
+- `go.sum`, SBOM y `go version -m` identifican exactamente qué versión de cada dependencia se entregó.
+- Monitorizar avisos de seguridad de dependencias de forma periódica; un CVE relevante se trata como incidente interno aunque aún no haya explotación conocida.
+- **Nunca firmar un binario de terceros tal cual.** Si un componente se distribuye junto a NetDiag, se reconstruye o se verifica y se documenta su procedencia antes de incluirlo en un artefacto firmado.
+- La corrección se entrega como **release nueva de NetDiag** con su manifiesto firmado. El cliente no debe tener que parchear dependencias por su cuenta.
+- Si el proveedor no corrige, se sustituye la dependencia o se documenta la excepción con fecha de revisión. No se silencia el hallazgo.
+
 ## Incidentes y revocación
 
 - Si se sospecha compromiso de la clave de release: revocar el artefacto, publicar `REVOCATION.md` firmado por la raíz y rotar la clave de release.
 - Marcar versiones afectadas con `min_version` en el manifiesto para forzar salto a la siguiente segura.
-- `SECURITY.md` define el canal privado y los plazos de respuesta.
+- Retirar el release del espejo: no borrar el objeto, sino dejar de servirlo como oficial y publicar la versión correctiva.
+- Comunicar a clientes de pago por correo, notificación `update.available`/`update.applied` y entrada en el centro de notificaciones. En air-gapped se entrega un `.ndc` firmado con el aviso.
+- Si hay explotación activa o incidente grave, reportar en **24 h / 72 h** según `SECURITY.md` y el CRA; no esperar a tener parche.
+- `SECURITY.md` define el canal privado, los plazos de respuesta y el responsable de la notificación.
 - Nunca se reemplaza un archivo publicado: se publica una versión nueva. Eso preserva la cadena de custodia.

@@ -28,11 +28,29 @@ Incluye, si puedes:
 | Fase | Plazo objetivo |
 | --- | --- |
 | Confirmación de recepción | 3 días hábiles |
-| Triaje y clasificación | 10 días hábiles |
-| Parche para severidad alta/crítica | 30 días naturales o coordinado con el reportante |
-| Publicación | Notas firmadas y aviso en este archivo |
+| Triaje y clasificación | 10 días hábiles; inmediato si hay indicios de explotación activa |
+| Aviso CRA cuando aplique | 24 h (early warning) y 72 h (notificación completa); **no se espera a tener parche** |
+| Parche para vulnerabilidad crítica explotada | objetivo 72 h–7 días |
+| Parche para severidad alta no explotada | objetivo 30 días |
+| Severidad media/baja | siguiente versión, objetivo 90 días |
+| Publicación | notas firmadas, aviso en este archivo y comunicación a clientes de pago |
+
+Si hay evidencia fiable de explotación activa o de un incidente grave, se reporta aunque todavía no exista solución. El parche llega después; el aviso no puede esperar.
 
 Si el problema afecta a la clave de firma o al pipeline de publicación, se sigue el procedimiento de revocación de `docs/publicacion-segura.md` de inmediato.
+
+## Obligaciones CRA en la UE
+
+Desde el **11 de septiembre de 2026**, NetDiag como producto con elementos digitales está sujeto a las obligaciones de notificación del Cyber Resilience Act (Reglamento UE 2024/2847):
+
+- **24 h:** aviso temprano al CSIRT del Estado miembro del establecimiento principal y a ENISA a través de la Single Reporting Platform.
+- **72 h:** notificación completa con evaluación inicial.
+- **14 días tras el parche:** informe final para vulnerabilidades explotadas activamente.
+- **1 mes tras la notificación de 72 h:** informe final para incidentes graves.
+
+Esto aplica también a versiones puestas en el mercado antes del 11 de diciembre de 2027. El resto de obligaciones del CRA —documentación técnica, evaluación de conformidad, instrucciones de uso, periodo de soporte y marcado cuando proceda— llegan el **11 de diciembre de 2027**.
+
+La responsabilidad es del **fabricante**, es decir, de quien comercializa NetDiag bajo su nombre o marca. Que una vulnerabilidad esté en una dependencia de terceros no traslada esa responsabilidad al cliente: se gestiona en nuestro producto y se reclama aguas arriba si existe contrato.
 
 ## Divulgación
 

@@ -223,6 +223,19 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 
 **Esfuerzo:** 4–6 h.
 
+### F41 — Cumplimiento CRA y responsabilidad por terceros
+
+- Política de soporte de seguridad publicada: versión contratada durante la suscripción + 12 meses. Debe aparecer en `SECURITY.md`, en la orden de compra y en el EULA.
+- Runbook de incidentes: responsable único, cuenta en la Single Reporting Platform de ENISA, árbol de decisión «¿explotación activa o incidente grave?» y plantillas de aviso 24 h / 72 h.
+- Monitorización de dependencias: SBOM por release, revisión periódica de avisos, parche entregado como release nueva firmada. Nunca firmar un binario de terceros sin reconstruirlo o verificarlo.
+- Registro de responsabilidad: fecha de conocimiento, versiones afectadas, decisión de reportar, parche, comunicación al cliente y cierre.
+- EULA reforzado: el cliente declara que está autorizado a analizar esas redes; se prohíbe escaneo de terceros; se limita responsabilidad con las excepciones legales obligatorias.
+- Comunicación: correo a clientes de pago, notificación en la UI y `REVOCATION.md` firmado; `min_version` en el manifiesto F23 para saltar versiones inseguras.
+
+**Criterio de cierre:** ante un CVE explotado en una dependencia, en menos de 24 h existe aviso preparado, en menos de 72 h notificación oficial y en menos de 7 días una release firmada que lo corrige, con el cliente informado.
+
+**Esfuerzo:** 8–12 h de proceso y plantillas, más la gestión continua.
+
 ## Dependencias y orden recomendado
 
 | Fase | Depende de | Prioridad |
@@ -236,6 +249,7 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 | F38 | F33–F37 | Alta: es el paquete que se entrega al comprador |
 | F39 | F27, F28 para lucir la demo | Media: ventas y documentación |
 | F40 | F29 | Media: retención de usuarios |
+| F41 | F33, F37, F38 | Alta: obligación legal y contractual |
 
 ## Cierre de salida al mercado
 
@@ -246,4 +260,5 @@ NetDiag se considera listo para vender cuando:
 3. Una licencia de prueba de 30 días puede emitirse y activarse sin red.
 4. Existe una reproducción completa del flujo: demo → PoC → presupuesto → factura → licencia → soporte → renovación.
 5. El paquete Enterprise incluye SBOM, atestación, DPA/EULA, SLA y guía de verificación.
-6. `SECURITY.md` define canal privado de reporte, plazos de respuesta y proceso de rotación de claves.
+6. `SECURITY.md` define canal privado de reporte, plazos de respuesta, obligaciones CRA 24/72 h y proceso de rotación de claves.
+7. Existe un responsable identificado para la Single Reporting Platform y se ha ensayado el runbook de CVE en dependencia de terceros.

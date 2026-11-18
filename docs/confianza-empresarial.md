@@ -24,6 +24,10 @@ En una sola carpeta, antes de firmar el contrato:
 - **Exposición:** CSP, `X-Frame-Options: DENY`, `nosniff`, HSTS opcional, `/metrics` con token opcional; recomendación de no publicar sin TLS y proxy inverso.
 - **Salidas:** webhooks firmados HMAC e integraciones salientes; guardia SSRF que bloquea rangos privados salvo autorización explícita.
 - **Actualizaciones:** manifiesto firmado, SHA256, verificación ELF, instalación atómica y rollback automático (F23).
+- **Dependencias de terceros:** se entregan con SBOM; las vulnerabilidades de dependencias se gestionan como propias y se corrigen en una release nueva firmada. El productor responde por el producto terminado.
+- **Periodo de soporte:** actualizaciones de seguridad para la versión contratada durante la suscripción y 12 meses más. No se promete soporte indefinido.
+- **Contenedores `.ndc`:** dan integridad y procedencia, **no confidencialidad**. Para secreto, cifrar el archivo o el soporte donde se guarda.
+- **Copias de seguridad:** el ZIP incluye `secret.key`; quien tenga esa copia puede descifrar secretos de integraciones. Debe almacenarse con permisos y cifrado equivalentes al dato original.
 - **Limitaciones honestas:** diagnósticos heurísticos con evidencia/confianza; el binario portable no captura 802.11; TLS 1.3 limita inspección de aplicaciones; no se hace threat intel externo.
 
 ## Modelo de amenazas (resumen)
@@ -37,6 +41,10 @@ En una sola carpeta, antes de firmar el contrato:
 | Binario | Sustitución por versión maliciosa | Manifiesto minisign + SHA256 + ELF + rollback | Clave de release comprometida (mitigado por rotación) |
 | Base SQLite | Modificación directa | Permisos del SO, copias automáticas, auditoría | Acceso root al host |
 | Datos de red | Falsa sensación de precisión | Evidencia, confianza y `limitations` en cada hallazgo | Requiere validación del operador |
+| Red monitorizada | Escaneo sature equipos antiguos o dispare IDS | Perfiles conservadores, concurrencia acotada, exclusiones y ventana de mantenimiento | Requiere autorización y prudencia del operador |
+| Copia ZIP de backup | `secret.key` incluido permite descifrar secretos | Permisos 0600, almacenamiento cifrado y acceso restringido | Compromiso del almacén de backups |
+| Dependencias | CVE en librería incluida | SBOM, monitorización y release correctiva firmada | Periodo corto entre aviso y parche |
+| Cliente | Uso fuera de su autorización (redes ajenas) | EULA, clave de autorización en el onboarding y auditoría de escaneos | No se puede impedir físicamente; sí documentar y bloquear soporte |
 
 El documento completo debe ampliarse con diagramas de flujo y una sesión de preguntas con el equipo de seguridad del cliente.
 

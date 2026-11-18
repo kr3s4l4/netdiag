@@ -43,6 +43,7 @@ Las bandas de retención son **7 días / 1 mes / 1 año**, con 7 años en Enterp
 - Filtros y vistas guardadas (F40).
 - Acceso a artefactos firmados, SBOM y notas de versión verificables.
 - Licencia offline firmada; sin dependencia de servidor de licencias.
+- Actualizaciones de seguridad durante la suscripción y 12 meses adicionales; después se ofrece renovación, no se abandona sin aviso.
 
 ### Solo Enterprise
 
