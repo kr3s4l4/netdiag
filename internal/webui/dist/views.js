@@ -1036,6 +1036,7 @@ const SETTINGS_TABS = [
   ['general', 'General'],
   ['escaneo', 'Escaneo'],
   ['alertas', 'Alertas'],
+  ['integraciones', 'Integraciones'],
   ['seguridad', 'Seguridad'],
   ['almacenamiento', 'Almacenamiento'],
   ['redes', 'Redes'],
@@ -1075,7 +1076,7 @@ function cfgInput(label, name, value, opts = {}) {
 
 function configFormBody(cfg) {
   const s = cfg.server || {}, sc = cfg.scan || {}, mon = cfg.monitor || {}, al = cfg.alerts || {},
-    st = cfg.storage || {}, sec = cfg.security || {}, log = cfg.log || {};
+    intg = cfg.integrations || {}, st = cfg.storage || {}, sec = cfg.security || {}, log = cfg.log || {};
   const tab = state.settingsTab;
   let fields = '';
   let extra = '';
@@ -1137,6 +1138,17 @@ function configFormBody(cfg) {
         <label class="check"><input type="checkbox" name="alerts.smtp_insecure" ${al.smtp_insecure ? 'checked' : ''}> Omitir verificación TLS (no recomendado)</label></div>
     </div>
     <div class="notice mt"><span>Los canales y las reglas se gestionan desde la sección Alertas.</span></div>`;
+  } else if (tab === 'integraciones') {
+    fields = `<div class="form-grid">
+      <div class="field"><label>Motor de integraciones</label>
+        <label class="check"><input type="checkbox" name="integrations.enabled" ${intg.enabled !== false ? 'checked' : ''}> Exportar eventos</label></div>
+      ${cfgInput('Timeout de entrega', 'integrations.timeout', intg.timeout || '10s', { placeholder: '10s', help: 'Entre 1s y 1m.' })}
+      ${cfgInput('Máximo de eventos por minuto', 'integrations.max_per_minute', intg.max_per_minute || 60, { type: 'number', min: 1, max: 10000, help: 'Límite global compartido por todas las integraciones.' })}
+      ${cfgInput('Tamaño de la cola', 'integrations.queue_size', intg.queue_size || 512, { type: 'number', min: 16, max: 100000, help: 'Eventos en memoria; si se llena se descartan con aviso.' })}
+      <div class="field"><label>Destinos privados</label>
+        <label class="check"><input type="checkbox" name="integrations.allow_private_targets" ${intg.allow_private_targets ? 'checked' : ''}> Permitir Elasticsearch/Kafka/Redis/syslog locales</label>
+        <span class="help">Necesario para 127.0.0.1, 10/8, 172.16/12 y 192.168/16. Bloquea siempre metadatos cloud.</span></div>
+    </div>`;
   } else if (tab === 'seguridad') {
     fields = `<div class="form-grid">
       <div class="field"><label>Autenticación</label>
@@ -1173,7 +1185,7 @@ function configFormBody(cfg) {
       ${cfgInput('Copias a conservar', 'storage.backup_keep', st.backup_keep, { type: 'number', min: 1, max: 365 })}
     </div>`;
   }
-  const wrapForm = ['general', 'escaneo', 'alertas', 'seguridad', 'almacenamiento'].includes(tab);
+  const wrapForm = ['general', 'escaneo', 'alertas', 'integraciones', 'seguridad', 'almacenamiento'].includes(tab);
   if (!wrapForm) return '';
   return `<form data-form="config" data-tab="${tab}">
     ${fields}
@@ -1198,7 +1210,8 @@ function readConfigForm(form, current) {
       return;
     }
     if (['server.max_body_mb', 'scan.concurrency', 'scan.port_concurrency', 'scan.max_hosts',
-      'alerts.max_per_minute', 'security.session_hours', 'security.login_rate', 'security.api_rate',
+      'alerts.max_per_minute', 'integrations.max_per_minute', 'integrations.queue_size',
+      'security.session_hours', 'security.login_rate', 'security.api_rate',
       'storage.retention_days', 'storage.metrics_days', 'storage.audit_days', 'storage.max_scans',
       'storage.backup_keep'].includes(name)) {
       setPath(next, name, Number(value));
@@ -1256,8 +1269,212 @@ async function renderSettings() {
     const res = await api('/system/config');
     state.settingsCfg = res.config;
     body = configFormBody(res.config);
+    if (tab === 'integraciones') body += await settingsIntegrationsBody();
   }
   content.innerHTML = tabsHTML + body;
+}
+
+/* ---------------- external integrations ---------------- */
+
+const INTEGRATION_LABELS = {
+  elasticsearch: 'Elasticsearch', syslog: 'Syslog', webhook: 'Webhook',
+  slack: 'Slack', discord: 'Discord', msteams: 'MS Teams', telegram: 'Telegram',
+  pagerduty: 'PagerDuty', kafka: 'Kafka REST', redis: 'Redis Streams',
+};
+
+const INTEGRATION_FIELDS = {
+  elasticsearch: [
+    ['url', 'URL', 'http://localhost:9200', 'text'],
+    ['index', 'Índice', 'netdiag-events', 'text'],
+    ['api_key', 'API key (opcional)', 'dejar en blanco para conservar', 'secret'],
+    ['username', 'Usuario (opcional)', '', 'secret'],
+    ['password', 'Contraseña (opcional)', 'dejar en blanco para conservar', 'secret'],
+  ],
+  syslog: [
+    ['host', 'Servidor', '127.0.0.1', 'text'],
+    ['port', 'Puerto', '514', 'number'],
+    ['protocol', 'Transporte', 'udp', 'select:udp,tcp'],
+    ['app_name', 'Nombre de aplicación', 'netdiag', 'text'],
+  ],
+  webhook: [
+    ['url', 'URL del webhook', 'https://example.com/hook', 'text'],
+    ['secret', 'Secreto HMAC (opcional)', 'dejar en blanco para conservar', 'secret'],
+  ],
+  slack: [['url', 'Webhook de Slack', 'https://hooks.slack.com/services/…', 'secret']],
+  discord: [['url', 'Webhook de Discord', 'https://discord.com/api/webhooks/…', 'secret']],
+  msteams: [['url', 'Webhook de MS Teams', 'https://outlook.office.com/webhook/…', 'secret']],
+  telegram: [
+    ['token', 'Token del bot', '123456:ABC…', 'secret'],
+    ['chat_id', 'Chat ID', '-1001234567890', 'text'],
+  ],
+  pagerduty: [
+    ['routing_key', 'Routing key', 'Clave de integración', 'secret'],
+    ['url', 'URL de eventos (opcional)', 'https://events.pagerduty.com/v2/enqueue', 'text'],
+  ],
+  kafka: [
+    ['url', 'URL del REST Proxy', 'http://localhost:8082', 'text'],
+    ['topic', 'Topic', 'netdiag.events', 'text'],
+    ['token', 'Token Bearer (opcional)', 'dejar en blanco para conservar', 'secret'],
+  ],
+  redis: [
+    ['addr', 'Dirección', '127.0.0.1:6379', 'text'],
+    ['stream', 'Stream', 'netdiag:events', 'text'],
+    ['username', 'Usuario ACL (opcional)', '', 'secret'],
+    ['password', 'Contraseña (opcional)', 'dejar en blanco para conservar', 'secret'],
+    ['max_len', 'MAXLEN approximado', '10000', 'number'],
+  ],
+};
+
+function integrationConfigFieldsHTML(type, cfg) {
+  cfg = cfg || {};
+  return (INTEGRATION_FIELDS[type] || []).map(([key, label, placeholder, kind]) => {
+    const value = cfg[key];
+    if (kind.startsWith('select:')) {
+      const options = kind.slice(7).split(',');
+      return `<div class="field"><label>${esc(label)}</label>
+        <select class="select" name="ig_${key}">${options.map((o) => `<option value="${o}" ${String(value) === o ? 'selected' : ''}>${o.toUpperCase()}</option>`).join('')}</select></div>`;
+    }
+    if (kind === 'secret') {
+      return `<div class="field full"><label>${esc(label)}</label>
+        <input class="input" name="ig_${key}" autocomplete="new-password" value="${esc(value === '********' ? '' : value || '')}" placeholder="${esc(placeholder)}">
+        <span class="help">Se cifra en la base de datos; déjalo en blanco para conservar el valor actual.</span></div>`;
+    }
+    return `<div class="field"><label>${esc(label)}</label>
+      <input class="input" name="ig_${key}" ${kind === 'number' ? 'type="number"' : ''} value="${esc(value === undefined || value === null ? '' : value)}" placeholder="${esc(placeholder)}"></div>`;
+  }).join('');
+}
+
+async function settingsIntegrationsBody() {
+  if (!state.integrationsLoaded) {
+    const res = await api('/integrations');
+    state.integrations = res.items || [];
+    state.integrationMeta = { types: res.types || [], secret_fields: res.secret_fields || {} };
+    state.integrationsLoaded = true;
+  }
+  const items = state.integrations || [];
+  const rows = items.length ? items.map((it) => `
+    <tr>
+      <td><span class="toggle ${it.enabled ? 'on' : ''}" data-action="integration-toggle" data-id="${it.id}" data-enabled="${it.enabled}" style="cursor:pointer"></span></td>
+      <td><div class="name-cell"><b>${esc(it.name)}</b><span>${esc(INTEGRATION_LABELS[it.type] || it.type)}</span></div></td>
+      <td>${it.has_secret ? '<span class="badge up">Credencial cifrada</span>' : '<span class="badge unknown">Sin secreto</span>'}</td>
+      <td class="tiny muted">${it.last_test_at ? fmtDate(it.last_test_at) : 'Nunca'}</td>
+      <td class="tiny" style="color:var(--red)">${esc(it.last_error || '')}</td>
+      <td class="right nowrap">
+        <button class="btn sm" data-action="integration-test" data-id="${it.id}">${icon('test')} Probar</button>
+        <button class="btn sm" data-action="integration-edit" data-id="${it.id}">${icon('edit')} Editar</button>
+        <button class="btn sm danger" data-action="integration-delete" data-id="${it.id}">${icon('trash')}</button>
+      </td>
+    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('plus')}Sin integraciones configuradas</div></td></tr>`;
+  return `<div class="card mt">
+    <div class="spread mb">
+      <div class="muted small">Exporta alertas y escaneos a sistemas externos. Los secretos se cifran con AES-256-GCM y nunca se muestran después de guardarlos.</div>
+      <button class="btn primary" data-action="integration-new">${icon('plus')} Nueva integración</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Activo</th><th>Integración</th><th>Credencial</th><th>Última prueba</th><th>Último error</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function openIntegrationModal(id) {
+  const it = id ? (state.integrations || []).find((x) => x.id === id) : null;
+  const type = it ? it.type : 'elasticsearch';
+  state.integrationEditingType = type;
+  const body = `<form data-form="integration" data-id="${it ? it.id : ''}">
+    <div class="form-grid">
+      <div class="field"><label>Nombre</label>
+        <input class="input" name="name" required maxlength="80" value="${esc(it ? it.name : '')}" placeholder="Ej.: Elasticsearch local"></div>
+      <div class="field"><label>Tipo</label>
+        <select class="select" name="type" id="integration-type">
+          ${Object.keys(INTEGRATION_FIELDS).map((t) => `<option value="${t}" ${type === t ? 'selected' : ''}>${esc(INTEGRATION_LABELS[t] || t)}</option>`).join('')}
+        </select></div>
+      <div class="field full"><label>Estado</label>
+        <label class="check"><input type="checkbox" name="enabled" ${!it || it.enabled ? 'checked' : ''}> Integración activa</label></div>
+    </div>
+    <div class="divider"></div>
+    <div class="form-grid" id="integration-config">${integrationConfigFieldsHTML(type, it ? it.config : {})}</div>
+  </form>`;
+  openModal(it ? 'Editar integración' : 'Nueva integración', body, {
+    wide: true,
+    footer: `<button class="btn" data-action="modal-close">Cancelar</button>
+      <button class="btn primary" data-action="integration-save" data-id="${it ? it.id : ''}">${icon('check')} Guardar</button>`,
+  });
+  const sel = document.getElementById('integration-type');
+  if (sel) sel.addEventListener('change', () => {
+    const box = document.getElementById('integration-config');
+    if (box) box.innerHTML = integrationConfigFieldsHTML(sel.value, {});
+  });
+}
+
+async function submitIntegration(form) {
+  const fd = new FormData(form);
+  const type = String(fd.get('type') || '');
+  const cfg = {};
+  (INTEGRATION_FIELDS[type] || []).forEach(([key, , , kind]) => {
+    if (kind.startsWith('select:')) { cfg[key] = String(fd.get('ig_' + key) || ''); return; }
+    const raw = fd.get('ig_' + key);
+    if (raw === null) return;
+    const value = String(raw).trim();
+    if (kind === 'number') { if (value) cfg[key] = Number(value); return; }
+    if (value) cfg[key] = value;
+  });
+  const id = Number(form.dataset.id || 0);
+  const payload = {
+    name: String(fd.get('name') || '').trim(), type,
+    enabled: fd.get('enabled') === 'on', config: cfg,
+  };
+  if (!payload.name) throw new Error('El nombre es obligatorio');
+  if (id) await api('/integrations/' + id, { method: 'PUT', body: payload });
+  else await api('/integrations', { method: 'POST', body: payload });
+  closeModal();
+  toast(id ? 'Integración actualizada' : 'Integración creada', { type: 'ok' });
+  state.integrationsLoaded = false;
+  await renderSettings();
+}
+
+async function deleteIntegration(id) {
+  if (!confirm('¿Eliminar esta integración?')) return;
+  await api('/integrations/' + id, { method: 'DELETE' });
+  toast('Integración eliminada', { type: 'ok' });
+  state.integrationsLoaded = false;
+  await renderSettings();
+}
+
+async function toggleIntegration(id, enabled) {
+  const it = (state.integrations || []).find((x) => x.id === id);
+  if (!it) return;
+  await api('/integrations/' + id, { method: 'PUT', body: { enabled: !enabled } });
+  toast(enabled ? 'Integración deshabilitada' : 'Integración habilitada', { type: 'ok' });
+  state.integrationsLoaded = false;
+  await renderSettings();
+}
+
+async function saveIntegrationFromModal(id) {
+  const form = document.querySelector('form[data-form="integration"]');
+  if (!form) return;
+  const btn = document.querySelector('[data-action="integration-save"]');
+  if (btn) btn.disabled = true;
+  try {
+    await submitIntegration(form);
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    throw e;
+  }
+}
+
+async function testIntegration(id, btn) {
+  const previous = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Probando…'; }
+  try {
+    const res = await api('/integrations/' + id + '/test', { method: 'POST' });
+    if (res && res.ok) toast('Evento de prueba enviado', { type: 'ok' });
+    else toast((res && res.error) || 'El destino rechazó la prueba', { type: 'err' });
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = previous; }
+    state.integrationsLoaded = false;
+    await renderSettings();
+  }
 }
 
 function siteOptions(selected, includeAll = false) {

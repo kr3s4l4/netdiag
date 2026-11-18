@@ -14,6 +14,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/auth"
 	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
+	"github.com/kr3s4l4/netdiag/internal/integrations"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
@@ -42,34 +43,36 @@ type Scanner interface {
 
 // Deps bundles everything the API needs.
 type Deps struct {
-	Store      *store.Store
-	Config     *config.Config
-	ConfigPath string
-	Auth       *auth.Service
-	Alerts     *alerts.Manager
-	Reports    *report.Generator
-	Backups    *backup.Manager
-	Scanner    Scanner
-	Logger     *slog.Logger
-	Version    string
-	Commit     string
-	BuildDate  string
-	StartedAt  time.Time
+	Store        *store.Store
+	Config       *config.Config
+	ConfigPath   string
+	Auth         *auth.Service
+	Alerts       *alerts.Manager
+	Integrations *integrations.Manager
+	Reports      *report.Generator
+	Backups      *backup.Manager
+	Scanner      Scanner
+	Logger       *slog.Logger
+	Version      string
+	Commit       string
+	BuildDate    string
+	StartedAt    time.Time
 }
 
 // Server implements http.Handler for the API.
 type Server struct {
-	st         *store.Store
-	cfg        *config.Config
-	configPath string
-	auth       *auth.Service
-	alerts     *alerts.Manager
-	reports    *report.Generator
-	backups    *backup.Manager
-	scanner    Scanner
-	log        *slog.Logger
-	hub        *Hub
-	limiter    *ipLimiter
+	st           *store.Store
+	cfg          *config.Config
+	configPath   string
+	auth         *auth.Service
+	alerts       *alerts.Manager
+	integrations *integrations.Manager
+	reports      *report.Generator
+	backups      *backup.Manager
+	scanner      Scanner
+	log          *slog.Logger
+	hub          *Hub
+	limiter      *ipLimiter
 
 	version   string
 	commit    string
@@ -87,22 +90,23 @@ func New(d Deps) *Server {
 		log = slog.Default()
 	}
 	s := &Server{
-		st:         d.Store,
-		cfg:        d.Config,
-		configPath: d.ConfigPath,
-		auth:       d.Auth,
-		alerts:     d.Alerts,
-		reports:    d.Reports,
-		backups:    d.Backups,
-		scanner:    d.Scanner,
-		log:        log,
-		hub:        NewHub(log),
-		limiter:    newIPLimiter(rateLimitFor(d.Config)),
-		version:    d.Version,
-		commit:     d.Commit,
-		buildDate:  d.BuildDate,
-		startedAt:  d.StartedAt,
-		mux:        http.NewServeMux(),
+		st:           d.Store,
+		cfg:          d.Config,
+		configPath:   d.ConfigPath,
+		auth:         d.Auth,
+		alerts:       d.Alerts,
+		integrations: d.Integrations,
+		reports:      d.Reports,
+		backups:      d.Backups,
+		scanner:      d.Scanner,
+		log:          log,
+		hub:          NewHub(log),
+		limiter:      newIPLimiter(rateLimitFor(d.Config)),
+		version:      d.Version,
+		commit:       d.Commit,
+		buildDate:    d.BuildDate,
+		startedAt:    d.StartedAt,
+		mux:          http.NewServeMux(),
 	}
 	if s.startedAt.IsZero() {
 		s.startedAt = time.Now()
@@ -198,6 +202,13 @@ func (s *Server) register() {
 	m.HandleFunc("PUT /api/v1/alerts/channels/{id}", s.handleUpdateChannel)
 	m.HandleFunc("DELETE /api/v1/alerts/channels/{id}", s.handleDeleteChannel)
 	m.HandleFunc("POST /api/v1/alerts/channels/{id}/test", s.handleTestChannel)
+
+	// ---- external integrations ----
+	m.HandleFunc("GET /api/v1/integrations", s.handleListIntegrations)
+	m.HandleFunc("POST /api/v1/integrations", s.handleCreateIntegration)
+	m.HandleFunc("PUT /api/v1/integrations/{id}", s.handleUpdateIntegration)
+	m.HandleFunc("DELETE /api/v1/integrations/{id}", s.handleDeleteIntegration)
+	m.HandleFunc("POST /api/v1/integrations/{id}/test", s.handleTestIntegration)
 
 	// ---- reports ----
 	m.HandleFunc("GET /api/v1/reports", s.handleListReports)

@@ -314,6 +314,22 @@ var migrations = [][]string{
 		// exist in several sites without colliding.
 		`UPDATE hosts SET identity = printf('s%d:%s', site_id, identity)`,
 	},
+	{
+		// v1.4: outbound integrations with encrypted credentials.
+		`CREATE TABLE integrations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			type TEXT NOT NULL,
+			enabled INTEGER NOT NULL DEFAULT 1,
+			config_enc BLOB NOT NULL,
+			has_secret INTEGER NOT NULL DEFAULT 0,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL,
+			last_test_at INTEGER,
+			last_error TEXT NOT NULL DEFAULT ''
+		)`,
+		`CREATE INDEX idx_integrations_type ON integrations(type)`,
+	},
 }
 
 func (s *Store) migrate() error {
@@ -490,6 +506,43 @@ func ValidateChannelType(typ string) bool {
 	switch typ {
 	case "webhook", "slack", "discord", "telegram", "pagerduty", "smtp", "syslog":
 		return true
+	}
+	return false
+}
+
+// IntegrationTypes is the canonical list of supported outbound exporters.
+var IntegrationTypes = []string{
+	"elasticsearch", "syslog", "webhook", "slack", "discord", "msteams",
+	"telegram", "pagerduty", "kafka", "redis",
+}
+
+// IntegrationSecretFields lists config keys that must be encrypted and masked.
+func IntegrationSecretFields(typ string) []string {
+	switch typ {
+	case "elasticsearch":
+		return []string{"api_key", "username", "password"}
+	case "webhook", "slack", "discord", "msteams":
+		return []string{"url", "secret"}
+	case "telegram":
+		return []string{"token"}
+	case "pagerduty":
+		return []string{"routing_key"}
+	case "kafka":
+		return []string{"username", "password", "token"}
+	case "redis":
+		return []string{"password", "username"}
+	case "syslog":
+		return nil
+	}
+	return nil
+}
+
+// ValidateIntegrationType reports whether typ is supported.
+func ValidateIntegrationType(typ string) bool {
+	for _, supported := range IntegrationTypes {
+		if typ == supported {
+			return true
+		}
 	}
 	return false
 }

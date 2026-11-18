@@ -20,6 +20,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/cryptoutil"
 	"github.com/kr3s4l4/netdiag/internal/discover"
+	"github.com/kr3s4l4/netdiag/internal/integrations"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
@@ -40,14 +41,15 @@ type App struct {
 	log     *slog.Logger
 	build   BuildInfo
 
-	st      *store.Store
-	auth    *auth.Service
-	alerts  *alerts.Manager
-	reports *report.Generator
-	backups *backup.Manager
-	engine  *discover.Engine
-	api     *api.Server
-	hub     *api.Hub
+	st           *store.Store
+	auth         *auth.Service
+	alerts       *alerts.Manager
+	integrations *integrations.Manager
+	reports      *report.Generator
+	backups      *backup.Manager
+	engine       *discover.Engine
+	api          *api.Server
+	hub          *api.Hub
 
 	mu       sync.Mutex
 	cfgMu    sync.RWMutex
@@ -98,38 +100,45 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 	reports := report.New(filepath.Join(cfg.Storage.DataDir, "reports"), "NetDiag", footer)
 
 	a := &App{
-		cfg:      cfg,
-		cfgPath:  cfgPath,
-		log:      log,
-		build:    build,
-		st:       st,
-		auth:     auth.New(st, cfg.Security, log),
-		alerts:   alerts.New(st, cfg.Alerts, log),
-		reports:  reports,
-		backups:  backup.New(st, cfg, cfgPath, log),
-		engine:   discover.New(),
-		runs:     make(map[int64]*runState),
-		busyCIDR: make(map[string]int64),
-		deepLast: make(map[int64]time.Time),
+		cfg:          cfg,
+		cfgPath:      cfgPath,
+		log:          log,
+		build:        build,
+		st:           st,
+		auth:         auth.New(st, cfg.Security, log),
+		alerts:       alerts.New(st, cfg.Alerts, log),
+		integrations: integrations.New(st, cfg.Integrations, log),
+		reports:      reports,
+		backups:      backup.New(st, cfg, cfgPath, log),
+		engine:       discover.New(),
+		runs:         make(map[int64]*runState),
+		busyCIDR:     make(map[string]int64),
+		deepLast:     make(map[int64]time.Time),
 	}
 	a.api = api.New(api.Deps{
-		Store:      st,
-		Config:     cfg,
-		ConfigPath: cfgPath,
-		Auth:       a.auth,
-		Alerts:     a.alerts,
-		Reports:    reports,
-		Backups:    a.backups,
-		Scanner:    a,
-		Logger:     log,
-		Version:    build.Version,
-		Commit:     build.Commit,
-		BuildDate:  build.BuildDate,
-		StartedAt:  time.Now(),
+		Store:        st,
+		Config:       cfg,
+		ConfigPath:   cfgPath,
+		Auth:         a.auth,
+		Alerts:       a.alerts,
+		Integrations: a.integrations,
+		Reports:      reports,
+		Backups:      a.backups,
+		Scanner:      a,
+		Logger:       log,
+		Version:      build.Version,
+		Commit:       build.Commit,
+		BuildDate:    build.BuildDate,
+		StartedAt:    time.Now(),
 	})
 	a.hub = a.api.Hub()
 	a.alerts.SetNotifier(func(al model.Alert) {
 		a.hub.Broadcast("alert.new", al)
+		a.integrations.Publish(integrations.Event{
+			Kind: "alert", Severity: al.Severity, Data: al.Data,
+			Title: al.Title, Message: al.Message, HostIP: al.HostIP,
+			Timestamp: time.Now(),
+		})
 	})
 	return a, nil
 }
@@ -164,6 +173,7 @@ func (a *App) Run(ctx context.Context) error {
 	defer cancel()
 
 	a.alerts.Start(ctx)
+	a.integrations.Start(ctx)
 	go a.monitorLoop(ctx)
 	go a.maintenanceLoop(ctx)
 	if a.backups != nil {
@@ -204,6 +214,7 @@ func (a *App) Run(ctx context.Context) error {
 		cancel()
 		a.stopScans()
 		a.wg.Wait()
+		a.integrations.Stop()
 		a.alerts.Stop()
 		return err
 	}
@@ -225,6 +236,7 @@ func (a *App) Run(ctx context.Context) error {
 	case <-time.After(20 * time.Second):
 		a.log.Warn("escaneos aún en curso tras el tiempo de espera")
 	}
+	a.integrations.Stop()
 	a.alerts.Stop()
 	return nil
 }
@@ -257,6 +269,7 @@ func (a *App) UpdateConfig(cfg *config.Config) error {
 	a.cfg = cfg
 	a.cfgMu.Unlock()
 	a.alerts.UpdateConfig(cfg.Alerts)
+	a.integrations.UpdateConfig(cfg.Integrations)
 	if a.backups != nil {
 		a.backups.UpdateConfig(cfg)
 	}

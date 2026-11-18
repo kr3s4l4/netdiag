@@ -17,6 +17,7 @@
 - **Inventario rico**: fabricante por OUI, tipo de dispositivo con puntuación y evidencia, sistema operativo probable, puertos, servicios, certificados y modelo SNMP.
 - **Topología interactiva**: SVG con zoom, arrastre y agrupación por subred; enlaces por LLDP/CDP/bridge/ARP con confianza.
 - **Diagnósticos empresariales**: detección heurística de lazos STP, fugas de VLAN, desajustes de dúplex, problemas de MTU, tormentas de broadcast, AP no autorizados e incumplimientos de SLA, con evidencia, confianza y limitaciones explícitas.
+- **Integraciones externas**: exporta eventos (alertas y escaneos) a Elasticsearch, syslog, webhooks firmados, Slack, Discord, MS Teams, Telegram, PagerDuty, Kafka REST Proxy y Redis Streams. Cola acotada, límite global de velocidad, guardia SSRF y secretos cifrados AES-256-GCM.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
@@ -99,6 +100,40 @@ curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/stp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/vlan?site_id=1'
 ```
+
+## Integraciones externas
+
+Cada integración es un destino independiente (`Integration {type, config, enabled}`) que se gestiona desde **Configuración → Integraciones** o mediante la API. Los cambios se aplican en caliente; los secretos se cifran con AES-256-GCM y la API solo devuelve `********`. Los eventos se entregan en segundo plano con una cola acotada y un límite global de eventos por minuto; un destino lento nunca bloquea un escaneo.
+
+| Tipo | Configuración esencial |
+| --- | --- |
+| `elasticsearch` | `url`, `index`, y `api_key` o `username`+`password` |
+| `syslog` | `host`, `port`, `protocol` (`udp`/`tcp`), `app_name` |
+| `webhook` | `url`, `secret` opcional (firma HMAC `X-NetDiag-Signature`) |
+| `slack` / `discord` / `msteams` | `url` del webhook entrante |
+| `telegram` | `token`, `chat_id`, `api_url` opcional |
+| `pagerduty` | `routing_key`, `url` opcional |
+| `kafka` | `url` del REST Proxy, `topic`, `token` opcional |
+| `redis` | `addr`, `stream`, `max_len`, credenciales ACL opcionales |
+
+**Enviar logs a un Elasticsearch local.** El guardia SSRF bloquea destinos privados por defecto, así que hay que autorizarlos explícitamente:
+
+```yaml
+integrations:
+  enabled: true
+  allow_private_targets: true
+  timeout: 10s
+```
+
+```bash
+CSRF=$(curl -sb cookies.txt http://127.0.0.1:8080/api/v1/auth/status | python3 -c 'import json,sys;print(json.load(sys.stdin)["csrf"])')
+curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"name":"Elasticsearch local","type":"elasticsearch","enabled":true,"config":{"url":"http://127.0.0.1:9200","index":"netdiag-events"}}' \
+  http://127.0.0.1:8080/api/v1/integrations
+curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -X POST http://127.0.0.1:8080/api/v1/integrations/1/test
+```
+
+Cada evento se indexa como una operación `index` en `_bulk` (NDJSON) con `kind`, `site_id`, `severity`, `title`, `message`, `host_ip`, `data` y `timestamp`. La prueba envía un evento sintético y guarda `last_test_at`/`last_error`.
 
 ## Compilación
 
@@ -213,6 +248,12 @@ diagnostics:
   max_anomalies: 200        # tope de hallazgos por informe
   storm_hosts: 3            # hosts simultáneos para sospechar tormenta
   authorized_aps: []        # MAC/BSSID de puntos de acceso autorizados
+integrations:
+  enabled: true             # exportación de eventos
+  timeout: 10s              # por entrega (1s–1m)
+  max_per_minute: 60        # límite global compartido
+  queue_size: 512           # eventos en memoria
+  allow_private_targets: false  # necesario para Elasticsearch/syslog/Kafka/Redis locales
 ```
 
 La mayoría de cambios se aplican en caliente desde **Ajustes**; los de escucha, TLS, rutas de datos y nivel de registro requieren reiniciar.
@@ -262,4 +303,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.3**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de canales, clasificación, utilidades de red, topología, diagnósticos, política de contraseñas, roles, copias, endpoints públicos y aislamiento entre sedes. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.4**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos y aislamiento entre sedes. Las contribuciones y los informes de errores son bienvenidos.

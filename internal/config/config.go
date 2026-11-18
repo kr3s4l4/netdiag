@@ -67,14 +67,15 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 // Config is the root configuration document.
 type Config struct {
-	Server      Server      `yaml:"server" json:"server"`
-	Scan        Scan        `yaml:"scan" json:"scan"`
-	Monitor     Monitor     `yaml:"monitor" json:"monitor"`
-	Alerts      Alerts      `yaml:"alerts" json:"alerts"`
-	Storage     Storage     `yaml:"storage" json:"storage"`
-	Security    Security    `yaml:"security" json:"security"`
-	Diagnostics Diagnostics `yaml:"diagnostics" json:"diagnostics"`
-	Log         Log         `yaml:"log" json:"log"`
+	Server       Server       `yaml:"server" json:"server"`
+	Scan         Scan         `yaml:"scan" json:"scan"`
+	Monitor      Monitor      `yaml:"monitor" json:"monitor"`
+	Alerts       Alerts       `yaml:"alerts" json:"alerts"`
+	Integrations Integrations `yaml:"integrations" json:"integrations"`
+	Storage      Storage      `yaml:"storage" json:"storage"`
+	Security     Security     `yaml:"security" json:"security"`
+	Diagnostics  Diagnostics  `yaml:"diagnostics" json:"diagnostics"`
+	Log          Log          `yaml:"log" json:"log"`
 }
 
 // Server holds HTTP server settings.
@@ -128,6 +129,16 @@ type Alerts struct {
 	AllowPrivateTargets bool     `yaml:"allow_private_targets" json:"allow_private_targets"`
 	SMTPInsecure        bool     `yaml:"smtp_insecure" json:"smtp_insecure"`
 	MaxPerMinute        int      `yaml:"max_per_minute" json:"max_per_minute"`
+}
+
+// Integrations configures the outbound event exporters. Credentials are
+// stored encrypted per integration, never in this file.
+type Integrations struct {
+	Enabled             bool     `yaml:"enabled" json:"enabled"`
+	AllowPrivateTargets bool     `yaml:"allow_private_targets" json:"allow_private_targets"`
+	Timeout             Duration `yaml:"timeout" json:"timeout"`
+	MaxPerMinute        int      `yaml:"max_per_minute" json:"max_per_minute"`
+	QueueSize           int      `yaml:"queue_size" json:"queue_size"`
 }
 
 // Storage holds persistence settings.
@@ -235,6 +246,12 @@ func Defaults() *Config {
 			Enabled:        true,
 			WebhookTimeout: Duration(10 * time.Second),
 			MaxPerMinute:   30,
+		},
+		Integrations: Integrations{
+			Enabled:      true,
+			Timeout:      Duration(10 * time.Second),
+			MaxPerMinute: 60,
+			QueueSize:    512,
 		},
 		Storage: Storage{
 			DataDir:        DefaultDataDir(),
@@ -383,6 +400,15 @@ func (c *Config) Normalize() error {
 		}
 	}
 	c.Diagnostics.AuthorizedAPs = aps
+	if c.Integrations.Timeout.Duration() <= 0 {
+		c.Integrations.Timeout = Duration(10 * time.Second)
+	}
+	if c.Integrations.MaxPerMinute <= 0 {
+		c.Integrations.MaxPerMinute = 60
+	}
+	if c.Integrations.QueueSize <= 0 {
+		c.Integrations.QueueSize = 512
+	}
 	return c.Validate()
 }
 
@@ -440,6 +466,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Diagnostics.StormHosts < 2 || c.Diagnostics.StormHosts > 100 {
 		errs = append(errs, "diagnostics.storm_hosts debe estar entre 2 y 100")
+	}
+	if c.Integrations.Timeout.Duration() < time.Second || c.Integrations.Timeout.Duration() > time.Minute {
+		errs = append(errs, "integrations.timeout debe estar entre 1s y 1m")
+	}
+	if c.Integrations.MaxPerMinute < 1 || c.Integrations.MaxPerMinute > 10000 {
+		errs = append(errs, "integrations.max_per_minute debe estar entre 1 y 10000")
+	}
+	if c.Integrations.QueueSize < 16 || c.Integrations.QueueSize > 100000 {
+		errs = append(errs, "integrations.queue_size debe estar entre 16 y 100000")
 	}
 	if (c.Server.TLSCert == "") != (c.Server.TLSKey == "") {
 		errs = append(errs, "server.tls_cert y server.tls_key deben configurarse juntos")

@@ -47,7 +47,7 @@ Todas las sedes comparten una única base SQLite. El parámetro `site_id` está 
 
 | Operación | Dónde se envía `site_id` |
 | --- | --- |
-| `GET /dashboard`, `/hosts`, `/networks`, `/scans`, `/alerts`, `/topology`, `/diagnostics/*`, `/reports`, `/metrics` | Query string |
+| `GET /dashboard`, `/hosts`, `/networks`, `/scans`, `/alerts`, `/integrations`, `/topology`, `/diagnostics/*`, `/reports`, `/metrics` | Query string |
 | `POST /scans`, `/networks`, `/reports` | Cuerpo JSON |
 | `GET /hosts/{id}`, `/scans/{id}`, `/reports/{id}/download` | Se deriva del registro, no se envía |
 
@@ -209,6 +209,28 @@ Tipos de anomalía: `stp_loop`, `vlan_leak`, `duplex_mismatch`, `mtu_problem`, `
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/vlan?site_id=1'
+```
+
+### Integraciones externas
+
+Exportación de eventos (`alert`, `scan.finished`, `integration.test`) a sistemas externos. Las escrituras requieren rol `admin`; la lectura está disponible para cualquier rol autenticado. Los campos sensibles se cifran con AES-256-GCM en la base de datos y la API devuelve `********` en su lugar; enviar ese valor o una cadena vacía al actualizar conserva el secreto almacenado.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/integrations` | `{items, types, secret_fields}`; secretos enmascarados |
+| POST | `/integrations` | Crear; cuerpo `{name, type, enabled?, config}` |
+| PUT | `/integrations/{id}` | Editar; los secretos enmascarados se conservan |
+| DELETE | `/integrations/{id}` | Eliminar |
+| POST | `/integrations/{id}/test` | Envía un evento sintético; responde `{ok:true}` o `{ok:false,error}` |
+
+Tipos: `elasticsearch`, `syslog`, `webhook`, `slack`, `discord`, `msteams`, `telegram`, `pagerduty`, `kafka`, `redis`. La configuración del motor (`integrations.enabled`, `timeout`, `max_per_minute`, `queue_size`, `allow_private_targets`) se edita en `PUT /system/config`. El guardia SSRF bloquea destinos privados y de metadatos salvo `allow_private_targets: true`; es obligatorio para apuntar a un Elasticsearch, syslog, Kafka REST Proxy o Redis local.
+
+```bash
+curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"name":"Elastic local","type":"elasticsearch","config":{"url":"http://127.0.0.1:9200","index":"netdiag-events"}}' \
+  http://127.0.0.1:8080/api/v1/integrations
+curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -X POST \
+  http://127.0.0.1:8080/api/v1/integrations/1/test
 ```
 
 ### Topología y sistema

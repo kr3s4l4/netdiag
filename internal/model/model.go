@@ -347,6 +347,22 @@ type HostHistory struct {
 	Uptime       []SeriesPoint `json:"uptime"`
 }
 
+// Integration is an outbound event exporter (Elasticsearch, webhook, syslog,
+// Kafka REST Proxy, Redis Streams, chat services). Secrets live encrypted in
+// config_enc and are masked before reaching clients.
+type Integration struct {
+	ID         int64          `json:"id"`
+	Name       string         `json:"name"`
+	Type       string         `json:"type"`
+	Enabled    bool           `json:"enabled"`
+	Config     map[string]any `json:"config"`
+	HasSecret  bool           `json:"has_secret"`
+	LastTestAt *time.Time     `json:"last_test_at,omitempty"`
+	LastError  string         `json:"last_error,omitempty"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+}
+
 // AlertRule defines when to raise an alert.
 type AlertRule struct {
 	ID          int64          `json:"id"`

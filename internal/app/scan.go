@@ -9,6 +9,7 @@ import (
 
 	"github.com/kr3s4l4/netdiag/internal/api"
 	"github.com/kr3s4l4/netdiag/internal/discover"
+	"github.com/kr3s4l4/netdiag/internal/integrations"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/netutil"
 	"github.com/kr3s4l4/netdiag/internal/snmp"
@@ -313,6 +314,17 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 		final = scan
 	}
 	a.hub.Broadcast("scan.finished", final)
+	severity := model.SeverityInfo
+	if status == model.ScanError {
+		severity = model.SeverityCritical
+	}
+	a.integrations.Publish(integrations.Event{
+		Kind: "scan.finished", SiteID: final.SiteID, Severity: severity,
+		Title:     "Escaneo finalizado: " + final.CIDR,
+		Message:   fmt.Sprintf("Estado %s · %d dispositivos encontrados", status, result.Found),
+		Data:      map[string]any{"scan_id": scan.ID, "status": status, "found": result.Found, "error": errMsg},
+		Timestamp: now,
+	})
 	if stats, err := a.st.Dashboard(final.SiteID); err == nil {
 		a.hub.Broadcast("dashboard.updated", stats)
 	}

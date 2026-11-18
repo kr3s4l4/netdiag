@@ -24,6 +24,9 @@ NetDiag se compila en un único binario que contiene la API HTTP, la SPA, el mot
           │ topology     │ │        │ │              │
           │ diagnostics  │ │        │ │              │
           └───────┬──────┘ └───┬────┘ └──────┬───────┘
+                        ┌──────▼────────┐
+                        │ integrations  │
+                        └──────┬────────┘
                   └────────────┴─────────────┘
                                │
                      ┌─────────▼─────────┐
@@ -86,6 +89,10 @@ Construye un grafo determinista a partir de hosts, redes y vecinos. Crea un nodo
 ### `internal/diagnostics`
 
 Analizador puro (sin E/S) que recibe un snapshot por sede y ventana: hosts, vecinos resueltos, redes, muestras de métricas, interfaces locales y la configuración `diagnostics`. Produce un `DiagnosticsReport` con anomalías comunes (`DiagnosticAnomaly`: id, tipo, categoría, severidad, evidencia, confianza y recomendación) y vistas tipadas para STP, VLAN, dúplex y MTU. Los detectores exigen varias señales o confianza alta: el grafo L2 solo usa LLDP/CDP/FDB, las fugas de VLAN requieren un puerto compartido o una adyacencia bridge entre subredes, y las tormentas exigen hosts simultáneos en la misma red. SLA se evalúa siempre; el resto solo con `enterprise_mode: true`. Las carencias de datos (sin BPDUs, VLAN IDs, OID de dúplex ni contadores broadcast/fragmentación) se documentan en `report.limitations`.
+
+### `internal/integrations`
+
+Exportadores de eventos independientes y opcionales. Un `Manager` con dos workers consume una cola acotada (`integrations.queue_size`), aplica un límite deslizante global (`integrations.max_per_minute`) y entrega cada evento a las integraciones habilitadas. Los proveedores usan HTTP directo (Elasticsearch `_bulk` en NDJSON, webhooks firmados, Slack, Discord, MS Teams, Telegram, PagerDuty y Kafka REST Proxy), RFC 5424 sobre UDP/TCP (syslog) y RESP mínimo `AUTH`+`XADD` (Redis Streams), sin dependencias de SDK. Todas las conexiones inspeccionan la IP resuelta en `DialContext` para bloquear SSRF, incluidos DNS rebinding y metadatos cloud; los destinos privados requieren `integrations.allow_private_targets: true`. Las definiciones viven en la tabla `integrations` con `config_enc` cifrado por `cryptoutil.Box` y la API expone solo secretos enmascarados. `Test` envía un evento sintético de forma síncrona y registra `last_test_at`/`last_error`. El manager se crea en `app.New`, se inicia/detiene en `App.Run`, se actualiza en `App.UpdateConfig` y recibe los eventos del notificador de alertas y del fin de escaneos.
 
 ### `internal/alerts`
 

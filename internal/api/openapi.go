@@ -77,6 +77,12 @@ var apiRoutes = []apiRoute{
 	{"DELETE", "/api/v1/alerts/channels/{id}", "Eliminar un canal de notificación", "Alertas", false, true, "", nil, false, false},
 	{"POST", "/api/v1/alerts/channels/{id}/test", "Enviar una notificación de prueba", "Alertas", false, true, "", nil, false, false},
 
+	{"GET", "/api/v1/integrations", "Listar integraciones externas", "Integraciones", false, true, "", nil, false, false},
+	{"POST", "/api/v1/integrations", "Crear una integración externa", "Integraciones", false, true, "IntegrationRequest", nil, true, false},
+	{"PUT", "/api/v1/integrations/{id}", "Editar una integración externa", "Integraciones", false, true, "IntegrationRequest", nil, false, false},
+	{"DELETE", "/api/v1/integrations/{id}", "Eliminar una integración externa", "Integraciones", false, true, "", nil, false, false},
+	{"POST", "/api/v1/integrations/{id}/test", "Probar una integración externa", "Integraciones", false, true, "", nil, false, false},
+
 	{"GET", "/api/v1/reports", "Listar informes generados", "Informes", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/reports", "Generar un informe", "Informes", false, false, "ReportRequest", nil, true, false},
 	{"GET", "/api/v1/reports/{id}/download", "Descargar un informe", "Informes", false, false, "", nil, false, false},
@@ -188,7 +194,7 @@ func buildOpenAPI(version, commit, buildDate string) map[string]any {
 		"tags": []map[string]any{
 			{"name": "Autenticación"}, {"name": "Usuarios"}, {"name": "Panel"},
 			{"name": "Sedes"}, {"name": "Dispositivos"}, {"name": "Redes"}, {"name": "Escaneos"},
-			{"name": "Alertas"}, {"name": "Informes"}, {"name": "Topología"},
+			{"name": "Alertas"}, {"name": "Integraciones"}, {"name": "Informes"}, {"name": "Topología"},
 			{"name": "Diagnósticos"}, {"name": "Sistema"}, {"name": "Tiempo real"},
 		},
 		"components": map[string]any{
@@ -339,6 +345,17 @@ func openAPISchemas() map[string]any {
 			"type": "object", "required": []string{"name", "type"},
 			"properties": map[string]any{
 				"name": str, "type": str, "enabled": map[string]any{"type": "boolean"},
+				"config": map[string]any{"type": "object", "additionalProperties": true},
+			},
+		},
+		"IntegrationRequest": map[string]any{
+			"type": "object", "required": []string{"name", "type"},
+			"properties": map[string]any{
+				"name": str, "enabled": map[string]any{"type": "boolean"},
+				"type": map[string]any{"type": "string", "enum": []string{
+					"elasticsearch", "syslog", "webhook", "slack", "discord", "msteams",
+					"telegram", "pagerduty", "kafka", "redis",
+				}},
 				"config": map[string]any{"type": "object", "additionalProperties": true},
 			},
 		},

@@ -26,6 +26,9 @@ const state = {
   rules: [],
   channels: [],
   channelMeta: { types: [], secret_fields: {} },
+  integrations: [],
+  integrationsLoaded: false,
+  integrationMeta: { types: [], secret_fields: {} },
   scanActive: {},
   topo: null,
   topoView: { x: 0, y: 0, k: 1 },
@@ -1181,6 +1184,12 @@ document.addEventListener('click', async (e) => {
       case 'channel-toggle': await toggleChannel(Number(target.dataset.id), target.dataset.enabled !== 'true'); break;
       case 'channel-delete': await deleteChannel(Number(target.dataset.id)); break;
       case 'channel-test': await testChannel(Number(target.dataset.id), target); break;
+      case 'integration-new': openIntegrationModal(); break;
+      case 'integration-edit': openIntegrationModal(Number(target.dataset.id)); break;
+      case 'integration-save': await saveIntegrationFromModal(Number(target.dataset.id) || 0); break;
+      case 'integration-toggle': await toggleIntegration(Number(target.dataset.id), target.dataset.enabled === 'true'); break;
+      case 'integration-delete': await deleteIntegration(Number(target.dataset.id)); break;
+      case 'integration-test': await testIntegration(Number(target.dataset.id), target); break;
       case 'report-new': openReportModal(); break;
       case 'report-create': await createReportFromModal(); break;
       case 'report-delete': await deleteReport(Number(target.dataset.id)); break;
@@ -1286,6 +1295,7 @@ document.addEventListener('submit', async (e) => {
     if (kind === 'scan') { await submitScan(form); return; }
     if (kind === 'rule') { await submitRule(form); return; }
     if (kind === 'channel') { await submitChannel(form); return; }
+    if (kind === 'integration') { await submitIntegration(form); return; }
     if (kind === 'network') { await submitNetwork(form); return; }
     if (kind === 'user') { await submitUser(form); return; }
     if (kind === 'reset-password') { await submitUserPassword(form); return; }
