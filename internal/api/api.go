@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/kr3s4l4/netdiag/internal/alerts"
@@ -17,6 +18,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/integrations"
 	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
+	"github.com/kr3s4l4/netdiag/internal/neighbors"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
 	"github.com/kr3s4l4/netdiag/internal/update"
@@ -93,6 +95,11 @@ type Server struct {
 
 	mux *http.ServeMux
 	ctx context.Context
+
+	neighborMu      sync.RWMutex
+	neighborRes     *neighbors.Result
+	neighborAt      time.Time
+	neighborRunning bool
 }
 
 // New builds the API server.
@@ -281,8 +288,12 @@ func (s *Server) register() {
 	m.HandleFunc("GET /api/v1/reports/{id}/download", s.handleDownloadReport)
 	m.HandleFunc("DELETE /api/v1/reports/{id}", s.handleDeleteReport)
 
-	// ---- topology ----
+	// ---- topology and tracing ----
 	m.HandleFunc("GET /api/v1/topology", s.handleTopology)
+	m.HandleFunc("POST /api/v1/trace", s.handleTrace)
+	// ---- neighbor discovery ----
+	m.HandleFunc("POST /api/v1/discover/neighbors", s.handleNeighborDiscovery)
+	m.HandleFunc("GET /api/v1/discover/neighbors", s.handleListNeighborNetworks)
 
 	// ---- enterprise diagnostics ----
 	m.HandleFunc("GET /api/v1/diagnostics/enterprise", s.handleEnterpriseDiagnostics)

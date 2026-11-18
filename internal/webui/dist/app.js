@@ -413,6 +413,7 @@ const NAV = [
   { view: 'dashboard', label: 'Panel', icon: 'dashboard' },
   { view: 'hosts', label: 'Dispositivos', icon: 'hosts' },
   { view: 'topology', label: 'Topología', icon: 'topology' },
+  { view: 'traces', label: 'Trazas', icon: 'network' },
   { view: 'diagnostics', label: 'Diagnósticos', icon: 'diagnostics' },
   { view: 'dashboards', label: 'Paneles', icon: 'dashboard' },
   { view: 'views', label: 'Vistas guardadas', icon: 'star' },
@@ -536,6 +537,7 @@ const PAGE_META = {
   dashboard: ['Panel', 'Resumen operativo'],
   hosts: ['Dispositivos', 'Inventario'],
   topology: ['Topología', 'Mapa de red'],
+  traces: ['Trazas', 'Rutas y redes vecinas'],
   diagnostics: ['Diagnósticos', 'Problemas empresariales'],
   dashboards: ['Paneles', 'Vistas personalizadas'],
   views: ['Vistas guardadas', 'Filtros y accesos rápidos'],
@@ -751,7 +753,7 @@ async function route(silent = false) {
   const rawQuery = qi >= 0 ? hash.slice(qi + 1) : '';
   state.routeQuery = qi >= 0 ? new URLSearchParams(rawQuery) : null;
   const [view, ...rest] = rawPath.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'views', 'diagnostics', 'wifi', 'vpn', 'alerts', 'compare', 'audits', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  state.view = ['dashboard', 'hosts', 'topology', 'traces', 'dashboards', 'views', 'diagnostics', 'wifi', 'vpn', 'alerts', 'compare', 'audits', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
   if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
   if (state.routeQuery && !silent && typeof applySharedFilters === 'function') {
     applySharedFilters(state.view, state.routeQuery);
@@ -770,6 +772,7 @@ async function route(silent = false) {
         else await renderHosts();
         break;
       case 'topology': await renderTopology(); break;
+      case 'traces': await renderTraces(); break;
       case 'diagnostics': await renderDiagnostics(); break;
       case 'dashboards': await renderDashboards(); break;
       case 'views': await renderSavedViews(); break;
@@ -1422,6 +1425,12 @@ document.addEventListener('click', async (e) => {
       case 'user-save': await saveUserFromModal(); break;
       case 'topo-zoom': zoomTopology(Number(target.dataset.delta)); break;
       case 'topo-reset': resetTopology(); break;
+      case 'trace-host': {
+        const input = document.getElementById('trace-target');
+        if (input) { input.value = target.dataset.ip || ''; input.focus(); }
+        break;
+      }
+      case 'refresh-neighbors': await refreshNeighborView(); break;
       case 'copy-text': await copyText(target.dataset.text); break;
       case 'reload-app': location.reload(); break;
       case 'reauth': logout(); break;
@@ -1515,6 +1524,7 @@ document.addEventListener('submit', async (e) => {
       return;
     }
     if (kind === 'scan') { await submitScan(form); return; }
+    if (kind === 'trace') { await submitTrace(form); return; }
     if (kind === 'rule') { await submitRule(form); return; }
     if (kind === 'channel') { await submitChannel(form); return; }
     if (kind === 'integration') { await submitIntegration(form); return; }
@@ -1622,6 +1632,11 @@ const TOUR_STEPS = [
     selector: '[data-view="topology"]', title: 'Topología', titleEn: 'Topology',
     body: 'Mapa interactivo de enlaces L2/L3 construido con LLDP, CDP, tablas de bridge y ARP. Arrastra, acerca y filtra por subred.',
     bodyEn: 'Interactive L2/L3 link map built from LLDP, CDP, bridge tables and ARP. Drag, zoom and filter by subnet.',
+  },
+  {
+    selector: '[data-view="traces"]', title: 'Trazas', titleEn: 'Traces',
+    body: 'Muestra la ruta real hasta cualquier host y detecta automáticamente redes privadas vecinas sin necesidad de escanearlas antes.',
+    bodyEn: 'Shows the real path to any host and automatically detects neighboring private networks without a prior scan.',
   },
   {
     selector: '[data-view="alerts"]', title: 'Alertas', titleEn: 'Alerts',

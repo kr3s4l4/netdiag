@@ -435,7 +435,10 @@ curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
-| GET | `/topology?site_id=<id>` | Nodos, aristas y estadísticas |
+| GET | `/topology?site_id=<id>` | Nodos, aristas y estadísticas; incluye redes vecinas detectadas |
+| POST | `/trace` | Traza IPv4 con `{target, hops, probes, timeout_ms, resolve}` |
+| POST | `/discover/neighbors` | Fuerza la detección de subredes privadas vecinas |
+| GET | `/discover/neighbors` | Último resultado cacheado (TTL de 15 minutos) |
 | GET | `/system/info` | Versión, capacidades, interfaces, tamaño de la base |
 | GET | `/system/license` | Edición, límites, caducidad y avisos; cualquier rol autenticado |
 | GET | `/system/interfaces` | Interfaces locales |
@@ -448,6 +451,18 @@ curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json
 | GET | `/system/backups/{name}/download` | Admin; descarga el ZIP |
 | DELETE | `/system/backups/{name}` | Admin; elimina una copia |
 | GET | `/ws` | WebSocket de eventos |
+
+La detección de vecinos se ejecuta automáticamente la primera vez que se consulta la topología. Solo prueba direcciones RFC1918 adyacentes a las redes locales y semillas del inventario; nunca sondea direcciones públicas. Cada red detectada aparece en el grafo como un nodo `neighbor:<cidr>` y su router como `neighbor-router:<ip>`, con una arista `routed` etiquetada como «detectado por traza».
+
+Ejemplo de traza:
+
+```bash
+curl -s -X POST http://127.0.0.1:8080/api/v1/trace \
+  -H 'Content-Type: application/json' \
+  -d '{"target":"192.168.1.1","hops":5,"probes":2}' | python3 -m json.tool
+```
+
+También está disponible en terminal: `netdiag trace 192.168.1.1 --hops 5 --probes 2 --json`.
 
 ### Endpoints públicos
 

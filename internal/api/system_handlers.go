@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"runtime"
@@ -192,5 +194,138 @@ func (s *Server) handleTopology(w http.ResponseWriter, r *http.Request) {
 		hosts, networks = filtered, nets
 	}
 	graph := topology.Build(hosts, neighbors, networks)
+	s.mergeNeighborTopology(r.Context(), &graph, hosts)
 	writeJSON(w, http.StatusOK, graph)
+}
+
+// mergeNeighborTopology adds auto-detected private networks and their routers
+// to the rendered graph. This runs lazily on the first topology request.
+func (s *Server) mergeNeighborTopology(ctx context.Context, graph *model.Graph, hosts []model.Host) {
+	local := []string{}
+	ifaces, err := s.systemInterfaces()
+	if err == nil {
+		for _, iface := range ifaces {
+			if iface.Loopback || !iface.Up {
+				continue
+			}
+			for _, a := range iface.Addrs {
+				if a.Family == "ipv4" && a.Private {
+					local = append(local, a.CIDR)
+				}
+			}
+		}
+	}
+	detected := s.ensureNeighbors(ctx, local, neighborSeeds(hosts))
+	if len(detected.Networks) == 0 {
+		return
+	}
+
+	seen := map[string]bool{}
+	for _, n := range graph.Nodes {
+		seen[n.ID] = true
+	}
+
+	// Find a local gateway anchor from the inventory or the rendered graph.
+	anchor := ""
+	for _, node := range graph.Nodes {
+		if node.Kind == "gateway" || node.Kind == "network" || node.Kind == "router" {
+			anchor = node.ID
+			break
+		}
+	}
+	for _, h := range hosts {
+		if h.IsGateway && h.IP != "" {
+			anchor = "host:" + fmt.Sprint(h.ID)
+			break
+		}
+	}
+	if anchor == "" {
+		if ifaces, err := s.systemInterfaces(); err == nil {
+			for _, iface := range ifaces {
+				if iface.Gateway != "" {
+					for _, h := range hosts {
+						if h.IP == iface.Gateway {
+							anchor = "host:" + fmt.Sprint(h.ID)
+							break
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
+	for _, nw := range detected.Networks {
+		netID := "neighbor:" + nw.CIDR
+		if !seen[netID] {
+			seen[netID] = true
+			graph.Nodes = append(graph.Nodes, model.GraphNode{
+				ID:         netID,
+				Kind:       "network",
+				Label:      "Red vecina · " + nw.CIDR,
+				IP:         nw.CIDR,
+				Network:    nw.CIDR,
+				DeviceType: model.DevRouter,
+				Confidence: nw.Confidence,
+			})
+			graph.Stats.Nodes++
+			graph.Stats.ByType["network"]++
+		}
+		routerID := "neighbor-router:" + nw.RouterIP
+		if !seen[routerID] {
+			seen[routerID] = true
+			label := nw.RouterIP
+			if nw.RouterHostname != "" {
+				label = nw.RouterHostname
+			}
+			graph.Nodes = append(graph.Nodes, model.GraphNode{
+				ID:         routerID,
+				Kind:       "router",
+				Label:      label,
+				IP:         nw.RouterIP,
+				DeviceType: model.DevRouter,
+				Confidence: nw.Confidence,
+			})
+			graph.Stats.Nodes++
+			graph.Stats.ByType[string(model.DevRouter)]++
+		}
+		edges := []model.GraphEdge{
+			{
+				ID:         "edge:" + netID + ":" + routerID,
+				Source:     netID,
+				Target:     routerID,
+				Kind:       "gateway",
+				Label:      nw.Evidence,
+				Confidence: nw.Confidence,
+			},
+		}
+		if anchor != "" && anchor != netID {
+			edges = append(edges, model.GraphEdge{
+				ID:         "edge:" + anchor + ":" + netID,
+				Source:     anchor,
+				Target:     netID,
+				Kind:       "routed",
+				Label:      "detectado por traza",
+				Confidence: nw.Confidence,
+			})
+		}
+		graph.Edges = append(graph.Edges, edges...)
+		graph.Stats.Edges += len(edges)
+	}
+	graph.Stats.Isolated = countIsolated(graph)
+}
+
+func countIsolated(g *model.Graph) int {
+	connected := map[string]bool{}
+	for _, e := range g.Edges {
+		connected[e.Source] = true
+		connected[e.Target] = true
+	}
+	n := 0
+	for _, node := range g.Nodes {
+		if !connected[node.ID] {
+			n++
+		}
+	}
+	return n
 }

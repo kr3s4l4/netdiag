@@ -162,6 +162,15 @@ Ejecutada desde un worktree limpio en `1cafe70`, con binarios compilados desde l
 - Se usaron **claves de prueba**; `signing.json` se destruyó con `shred` y el worktree se eliminó. No quedan materiales de firma de prueba en `/tmp/opencode`.
 - Comprobaciones de cierre: `make test`, `gofmt`, `go build`, `go vet`, parseo JS y `git status --short` limpio.
 
+### Trazas y redes vecinas (18/11/2026)
+
+- `netdiag trace 192.168.1.1 --hops 5 --probes 2` devolvió dos saltos: `192.168.0.1` y `192.168.1.1 livebox.home. [destino]`, con RTT ~5,3 ms.
+- `POST /api/v1/trace` devolvió la misma ruta en JSON; un objetivo IPv6 fue rechazado con `400`.
+- La primera llamada a `GET /api/v1/topology` ejecutó el descubrimiento automático y añadió `192.168.1.0/24` con router `192.168.1.1` (`livebox.home`), confianza 90 y evidencia de traza.
+- `POST /api/v1/discover/neighbors` confirmó 9 candidatos privados y ninguna dirección pública.
+- La vista «Trazas» mostró la red detectada y el formulario de traza en Chromium forzado a `en-US`, con la interfaz en español y sin errores JS.
+- Motor implementado con UDP + `IP_RECVERR`: funciona sin raw sockets y sin binarios externos.
+
 ### Señales públicas reales a 18/11/2026
 
 - HN: <https://news.ycombinator.com/item?id=50545732>. 1 punto. Comentario inicial `50545733` marcado `[flagged]`; no cuenta como respuesta pública.

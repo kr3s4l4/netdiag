@@ -42,6 +42,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/netutil"
 	"github.com/kr3s4l4/netdiag/internal/report"
+	"github.com/kr3s4l4/netdiag/internal/trace"
 	"github.com/kr3s4l4/netdiag/internal/update"
 	"gopkg.in/yaml.v3"
 )
@@ -76,6 +77,8 @@ func run(args []string) int {
 		return serveCmd(rest)
 	case "scan":
 		return scanCmd(rest)
+	case "trace", "traceroute":
+		return traceCmd(rest)
 	case "hosts", "ls":
 		return hostsCmd(rest)
 	case "report":
@@ -112,6 +115,7 @@ Uso:
 Comandos:
   serve                 Inicia la interfaz web y el monitor periódico
   scan <CIDR>           Descubre hosts y servicios en una red
+  trace <destino>       Traza la ruta hasta un host (saltos y latencia)
   hosts                 Lista el inventario almacenado
   report                Genera un informe (PDF, CSV, JSON o HTML)
   config                Muestra, valida o crea la configuración
@@ -462,6 +466,70 @@ func scanResult(a *app.App, scan *model.Scan, asJSON bool) int {
 	if scan.Status != model.ScanDone {
 		return 1
 	}
+	return 0
+}
+
+// traceCmd runs an unprivileged traceroute to a target.
+func traceCmd(args []string) int {
+	fs := flag.NewFlagSet("trace", flag.ExitOnError)
+	hops := fs.Int("hops", 20, "número máximo de saltos")
+	probes := fs.Int("probes", 2, "sondas por salto")
+	timeout := fs.Int("timeout", 1200, "timeout por sonda en milisegundos")
+	noResolve := fs.Bool("no-resolve", false, "no resolver nombres inversos")
+	asJSON := fs.Bool("json", false, "salida JSON")
+	fs.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Uso: netdiag trace <destino> [opciones]")
+		fmt.Fprintln(os.Stderr, "     netdiag trace 192.168.1.1 --hops 10 --json")
+	}
+	if err := parseFlags(fs, args); err != nil {
+		return 2
+	}
+	target := strings.TrimSpace(fs.Arg(0))
+	if target == "" {
+		fs.Usage()
+		return 2
+	}
+	opts := trace.Options{
+		MaxHops: *hops,
+		Probes:  *probes,
+		Timeout: time.Duration(*timeout) * time.Millisecond,
+		Resolve: !*noResolve,
+	}
+	res, err := trace.Run(context.Background(), target, opts)
+	if err != nil {
+		return fail("%v", err)
+	}
+	if *asJSON {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(res)
+		return 0
+	}
+	fmt.Printf("Traza a %s (%s) · %d saltos · %.1f ms\n", res.Target, res.TargetIP, len(res.Hops), res.ElapsedMS)
+	tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(tw, "SALTO\tIP\tNOMBRE\tRTT\tPÉRDIDA")
+	for _, h := range res.Hops {
+		name := h.Hostname
+		if name == "" && h.IP != "*" {
+			name = "—"
+		}
+		var rtt string
+		if len(h.RTTMs) > 0 {
+			parts := make([]string, 0, len(h.RTTMs))
+			for _, ms := range h.RTTMs {
+				parts = append(parts, fmt.Sprintf("%.1f ms", ms))
+			}
+			rtt = strings.Join(parts, " / ")
+		} else {
+			rtt = "—"
+		}
+		mark := ""
+		if h.Reached {
+			mark = " [destino]"
+		}
+		fmt.Fprintf(tw, "%d\t%s\t%s%s\t%s\t%d/%d\n", h.TTL, h.IP, name, mark, rtt, h.Loss, res.Probes)
+	}
+	_ = tw.Flush()
 	return 0
 }
 

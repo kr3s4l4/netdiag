@@ -269,6 +269,120 @@ async function renderTopology() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Traces and neighboring networks                                     */
+/* ------------------------------------------------------------------ */
+
+function traceRtt(values) {
+  if (!values || !values.length) return '<span class="muted">—</span>';
+  return values.map((v) => `${Number(v).toFixed(1)} ms`).join(' / ');
+}
+
+async function refreshNeighborView() {
+  await api('/discover/neighbors', { method: 'POST' });
+  await renderTraces();
+}
+
+async function submitTrace(form) {
+  const fd = new FormData(form);
+  const body = {
+    target: String(fd.get('target') || '').trim(),
+    hops: Number(fd.get('hops')) || 20,
+    probes: Number(fd.get('probes')) || 2,
+    timeout_ms: Number(fd.get('timeout_ms')) || 1200,
+    resolve: fd.get('resolve') === 'on',
+  };
+  if (!body.target) { toast(tr('Escribe un destino'), { type: 'err', title: tr('Error') }); return; }
+  const btn = form.querySelector('button[type=submit]');
+  if (btn) btn.disabled = true;
+  try {
+    state.traceResult = await api('/trace', { method: 'POST', body });
+    toast(tr('Traza completada'), { type: 'ok', title: 'NetDiag' });
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+  await renderTraces();
+}
+
+async function renderTraces() {
+  setPageTitle('traces');
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+
+  let detected = await api('/discover/neighbors');
+  const hasRun = detected && detected.run_at && !String(detected.run_at).startsWith('0001-');
+  if (!hasRun) {
+    detected = await api('/discover/neighbors', { method: 'POST' });
+  }
+  const nets = (detected && detected.networks) || [];
+  const result = state.traceResult;
+
+  const netRows = nets.length ? nets.map((n) => `
+    <tr>
+      <td class="mono">${esc(n.cidr)}</td>
+      <td><b>${esc(n.router_hostname || n.router_ip)}</b><div class="tiny muted mono">${esc(n.router_ip)}</div></td>
+      <td class="tiny">${esc(n.evidence || '')}</td>
+      <td>${diagConfidenceBar(n.confidence)}</td>
+      <td class="mono tiny">${esc((n.path || []).join(' → '))}</td>
+      <td class="right nowrap"><button class="btn sm" data-action="trace-host" data-ip="${esc(n.router_ip)}">${esc(tr('Trazar'))}</button></td>
+    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('network')}<div><b>${esc(tr('No hay redes vecinas detectadas'))}</b>
+      <div class="tiny">${esc(tr('NetDiag buscará routers en subredes privadas adyacentes mediante trazas sin privilegios.'))}</div></div></div></td></tr>`;
+
+  const hopRows = result && result.hops && result.hops.length ? result.hops.map((h) => `
+    <tr>
+      <td class="mono">${h.ttl}</td>
+      <td class="mono">${esc(h.ip)}</td>
+      <td>${esc(h.hostname || '—')}</td>
+      <td class="mono tiny">${traceRtt(h.rtt_ms)}</td>
+      <td class="mono">${h.loss}/${result.probes}</td>
+      <td>${h.reached ? `<span class="badge ok">${esc(tr('Destino'))}</span>` : '<span class="muted">—</span>'}</td>
+    </tr>`).join('') : '';
+
+  content.innerHTML = `
+    <div class="notice info mb">
+      ${icon('network')}
+      <div><b>${esc(tr('Detección automática activa'))}</b>
+        <div class="tiny">${esc(tr('Al abrir Topología o Trazas, NetDiag prueba routers privados adyacentes y muestra las redes que aparecen en la ruta. Nunca escanea direcciones públicas.'))}</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn sm" data-action="refresh-neighbors">${icon('refresh')} ${esc(tr('Buscar ahora'))}</button>
+    </div>
+
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Redes vecinas detectadas'))}</h3>
+        <span class="tiny muted">${nets.length} ${esc(tr('redes'))} · ${esc(fmtDate(detected.run_at))}</span></div>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>${esc(tr('Red'))}</th><th>${esc(tr('Router'))}</th><th>${esc(tr('Evidencia'))}</th><th>${esc(tr('Confianza'))}</th><th>${esc(tr('Ruta'))}</th><th></th></tr></thead>
+        <tbody>${netRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Nueva traza'))}</h3></div>
+      <form data-form="trace" class="form-grid">
+        <label class="field grow">
+          <span>${esc(tr('Destino'))}</span>
+          <input id="trace-target" name="target" required placeholder="192.168.1.1" autocomplete="off">
+        </label>
+        <label class="field"><span>${esc(tr('Saltos'))}</span><input name="hops" type="number" min="1" max="64" value="20"></label>
+        <label class="field"><span>${esc(tr('Sondas'))}</span><input name="probes" type="number" min="1" max="5" value="2"></label>
+        <label class="field"><span>${esc(tr('Timeout (ms)'))}</span><input name="timeout_ms" type="number" min="50" max="5000" value="1200"></label>
+        <label class="field check"><input name="resolve" type="checkbox" checked><span>${esc(tr('Resolver nombres'))}</span></label>
+        <div class="row end"><button class="btn primary" type="submit">${icon('radar')} ${esc(tr('Trazar ruta'))}</button></div>
+      </form>
+    </div>
+
+    ${result ? `
+    <div class="card">
+      <div class="card-head"><h3>${esc(tr('Resultado de la traza'))}</h3>
+        <span class="tiny muted">${esc(result.target)} → ${esc(result.target_ip)} · ${result.hops.length} ${esc(tr('saltos'))} · ${Number(result.elapsed_ms).toFixed(1)} ms</span></div>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>#</th><th>IP</th><th>${esc(tr('Nombre'))}</th><th>RTT</th><th>${esc(tr('Pérdida'))}</th><th>${esc(tr('Estado'))}</th></tr></thead>
+        <tbody>${hopRows || `<tr><td colspan="6"><div class="empty">${icon('warn')}<div>${esc(tr('Sin respuesta'))}</div></div></td></tr>`}</tbody>
+      </table></div>
+    </div>` : ''}`;
+}
+
+/* ------------------------------------------------------------------ */
 /* Enterprise diagnostics                                              */
 /* ------------------------------------------------------------------ */
 

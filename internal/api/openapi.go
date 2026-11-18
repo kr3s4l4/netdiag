@@ -100,7 +100,10 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/reports/{id}/download", "Descargar un informe", "Informes", false, false, "", nil, false, false},
 	{"DELETE", "/api/v1/reports/{id}", "Eliminar un informe", "Informes", false, true, "", nil, false, false},
 
-	{"GET", "/api/v1/topology", "Grafo de topología L2/L3", "Topología", false, false, "", []string{"site_id", "network_id"}, false, false},
+	{"GET", "/api/v1/topology", "Grafo de topología L2/L3 con redes vecinas detectadas", "Topología", false, false, "", []string{"site_id", "network_id"}, false, false},
+	{"POST", "/api/v1/trace", "Traza la ruta hasta un destino IPv4", "Topología", false, false, "TraceRequest", nil, false, false},
+	{"POST", "/api/v1/discover/neighbors", "Detecta redes privadas vecinas mediante trazas", "Topología", false, false, "", nil, false, false},
+	{"GET", "/api/v1/discover/neighbors", "Devuelve las redes vecinas detectadas", "Topología", false, false, "", nil, false, false},
 
 	{"GET", "/api/v1/dashboards", "Listar dashboards personalizados", "Dashboards", false, false, "", []string{"site_id"}, false, false},
 	{"GET", "/api/v1/dashboards/catalog", "Catalogo de widgets permitidos", "Dashboards", false, false, "", nil, false, false},
@@ -520,6 +523,17 @@ func openAPISchemas() map[string]any {
 				"kind":    map[string]any{"type": "string", "enum": []string{"inventory", "executive", "alerts"}},
 				"format":  map[string]any{"type": "string", "enum": []string{"pdf", "csv", "json", "html"}},
 				"title":   str,
+			},
+		},
+		"TraceRequest": map[string]any{
+			"type":     "object",
+			"required": []string{"target"},
+			"properties": map[string]any{
+				"target":     str,
+				"hops":       map[string]any{"type": "integer", "minimum": 1, "maximum": 64},
+				"probes":     map[string]any{"type": "integer", "minimum": 1, "maximum": 5},
+				"timeout_ms": map[string]any{"type": "integer", "minimum": 50, "maximum": 5000},
+				"resolve":    map[string]any{"type": "boolean"},
 			},
 		},
 		"Config": map[string]any{"type": "object", "additionalProperties": true},
