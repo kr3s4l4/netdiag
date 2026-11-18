@@ -17,6 +17,30 @@ Enlaces:
 - Release: <https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.0>
 - Clave pública: <https://github.com/kr3s4l4/netdiag/blob/master/docs/public_keys.md>
 
+## Cómo enviarlo (paso a paso)
+
+### Hacker News
+
+1. Verifica el correo de la cuenta.
+2. Abre <https://news.ycombinator.com/submit>.
+3. **Title:** el título de la sección Show HN de abajo, tal cual, empezando por `Show HN:`.
+4. **URL:** `https://github.com/kr3s4l4/netdiag`
+5. Envía.
+6. En la página del post, publica el texto de la sección Show HN como **tu primer comentario**. HN no admite cuerpo en el envío de un link.
+7. Quédate respondiendo durante las primeras 2 h. Si el post tarda en aparecer, es moderación inicial; espera.
+
+### Reddit
+
+1. Verifica el correo y lee la barra lateral de `r/selfhosted` (reglas y flairs).
+2. Abre <https://www.reddit.com/r/selfhosted/submit/>.
+3. **Título:** el de la sección r/selfhosted de abajo.
+4. Si te sale elegir tipo, usa **Link** con `https://github.com/kr3s4l4/netdiag`; si no, usa **Text** y pega el cuerpo directamente.
+5. Elige el flair que indique proyecto si existe (por ejemplo `Project` o `Self-Hosted`). Si no sabes cuál, déjalo vacío antes que elegir uno mal.
+6. Publica y, si usaste Link, añade el cuerpo como primer comentario.
+7. Responde las primeras preguntas tú mismo, con datos y sin insistir.
+
+**No publiques en los dos sitios el mismo día.** Show HN el día 0, Reddit el día 1.
+
 ## Show HN (inglés)
 
 Título:
@@ -24,6 +48,8 @@ Título:
 ```text
 Show HN: NetDiag – self-hosted network inventory and diagnostics, one Go binary, no telemetry
 ```
+
+En HN se envía **título + URL**; este texto va como tu **primer comentario** en el post.
 
 Cuerpo:
 
