@@ -194,6 +194,7 @@ func manifestCmd(args []string) error {
 	url := fs.String("url", "", "URL HTTPS del binario")
 	checksum := fs.String("checksum", "", "SHA256 del binario")
 	notes := fs.String("notes", "", "notas de la release")
+	minVersion := fs.String("min-version", "", "versión mínima segura (F41)")
 	releasedAt := fs.String("released-at", "", "fecha RFC3339 (por defecto, ahora)")
 	keyPath := fs.String("seed-file", "", "JSON con seed y key_id")
 	out := fs.String("out", "", "archivo manifest.json de salida")
@@ -220,6 +221,7 @@ func manifestCmd(args []string) error {
 		Checksum:   *checksum,
 		ReleasedAt: when,
 		Notes:      *notes,
+		MinVersion: strings.TrimSpace(*minVersion),
 	}
 	if err := update.SignRelease(rel, seed, keyID); err != nil {
 		return err

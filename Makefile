@@ -15,6 +15,7 @@ SIGNING_JSON    ?=
 PUBLIC_KEY      ?=
 NOTES_FILE      ?=
 RELEASE_BASE_URL ?=
+MIN_VERSION     ?=
 RELEASE_OUT     ?=
 RELEASE_DIR     ?=
 KEYS_DIR        ?=
@@ -89,6 +90,7 @@ release-secure:
 		$(if $(PUBLIC_KEY),--public-key "$(PUBLIC_KEY)",) \
 		--notes-file "$(NOTES_FILE)" \
 		$(if $(RELEASE_BASE_URL),--base-url "$(RELEASE_BASE_URL)",) \
+		$(if $(MIN_VERSION),--min-version "$(MIN_VERSION)",) \
 		$(if $(RELEASE_OUT),--out "$(RELEASE_OUT)",)
 
 ## verify-release: verifica un release firmado sin red (F37)

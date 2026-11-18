@@ -91,6 +91,8 @@ MANIFEST_VERSION="$(awk -F'"' '/"version"/ {print $4}' "$DIR/manifest.json")"
 [[ -n "$BIN_SUM" ]] || fail "SHA256SUMS no incluye netdiag-linux-amd64"
 [[ "$MANIFEST_SUM" == "$BIN_SUM" ]] || fail "el manifiesto no apunta al binario verificado"
 ok "checksum del manifiesto coincide con el binario"
+MIN_SAFE="$(awk -F'"' '/"min_version"/ {print $4}' "$DIR/manifest.json")"
+[[ -z "$MIN_SAFE" ]] || ok "versión mínima segura: $MIN_SAFE"
 if [[ -n "$VERSION" ]]; then
   [[ "$MANIFEST_VERSION" == "$VERSION" ]] || fail "el manifiesto indica $MANIFEST_VERSION, se esperaba $VERSION"
   ok "versión $VERSION"

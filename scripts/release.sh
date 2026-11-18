@@ -16,6 +16,7 @@ Obligatorias:
 Opcionales:
   --out DIR             Directorio de salida (por defecto dist/release/<versión>)
   --base-url URL        Raíz HTTPS del espejo inmutable
+  --min-version X       Versión mínima segura del manifiesto F23 (F41)
   --pcap                Incluir la variante con libpcap (CGO, no bit a bit reproducible)
   --help                Muestra esta ayuda
 
@@ -30,6 +31,7 @@ PUBKEY=""
 NOTES_FILE=""
 OUT=""
 BASE_URL=""
+MIN_VERSION=""
 WITH_PCAP=0
 
 while [[ $# -gt 0 ]]; do
@@ -40,6 +42,7 @@ while [[ $# -gt 0 ]]; do
     --notes-file) NOTES_FILE="$2"; shift 2 ;;
     --out) OUT="$2"; shift 2 ;;
     --base-url) BASE_URL="$2"; shift 2 ;;
+    --min-version) MIN_VERSION="$2"; shift 2 ;;
     --pcap) WITH_PCAP=1; shift ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Opción desconocida: $1" >&2; usage >&2; exit 2 ;;
@@ -130,14 +133,13 @@ cp "$NOTES_FILE" "$OUT/RELEASE_NOTES.md"
 
 echo "== 5/10 Manifiesto F23 =="
 BIN_SUM="$(hash_file "$OUT/netdiag-linux-amd64")"
-"$TOOLS/netdiag-release" manifest \
-  --version "$VERSION" \
-  --url "$BASE_URL/netdiag-linux-amd64" \
-  --checksum "$BIN_SUM" \
-  --notes "NetDiag $VERSION" \
-  --released-at "$BUILD_DATE" \
-  --seed-file "$SIGNING_JSON" \
-  --out "$OUT/manifest.json"
+MANIFEST_ARGS=(--version "$VERSION" --url "$BASE_URL/netdiag-linux-amd64"
+  --checksum "$BIN_SUM" --notes "NetDiag $VERSION" --released-at "$BUILD_DATE")
+if [[ -n "$MIN_VERSION" ]]; then
+  MANIFEST_ARGS+=(--min-version "$MIN_VERSION")
+fi
+"$TOOLS/netdiag-release" manifest "${MANIFEST_ARGS[@]}" \
+  --seed-file "$SIGNING_JSON" --out "$OUT/manifest.json"
 
 echo "== 6/10 Contenedor .ndc reproducible =="
 (

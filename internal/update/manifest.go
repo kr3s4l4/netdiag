@@ -25,6 +25,7 @@ type Release struct {
 	Checksum   string    `json:"checksum"`
 	ReleasedAt time.Time `json:"released_at"`
 	Notes      string    `json:"notes,omitempty"`
+	MinVersion string    `json:"min_version,omitempty"`
 	Signature  string    `json:"signature"`
 }
 
@@ -37,6 +38,7 @@ type signedManifest struct {
 	Checksum   string `json:"checksum"`
 	ReleasedAt string `json:"released_at"`
 	Notes      string `json:"notes,omitempty"`
+	MinVersion string `json:"min_version,omitempty"`
 }
 
 func (r *Release) canonical() ([]byte, error) {
@@ -47,6 +49,7 @@ func (r *Release) canonical() ([]byte, error) {
 		Checksum:   strings.ToLower(strings.TrimSpace(r.Checksum)),
 		ReleasedAt: r.ReleasedAt.UTC().Format(time.RFC3339),
 		Notes:      r.Notes,
+		MinVersion: r.MinVersion,
 	})
 }
 
@@ -60,6 +63,9 @@ func SignRelease(r *Release, seed, keyID []byte) error {
 	r.Checksum = strings.ToLower(strings.TrimSpace(r.Checksum))
 	r.Version = strings.TrimSpace(r.Version)
 	r.Schema = ManifestSchema
+	if err := validateMinVersion(r); err != nil {
+		return err
+	}
 	msg, err := r.canonical()
 	if err != nil {
 		return err
@@ -104,6 +110,23 @@ func ParseManifest(data []byte, publicKey string) (*Release, error) {
 	return &rel, nil
 }
 
+// validateMinVersion keeps the security floor inside the signed manifest. A
+// manifest may declare older versions unsafe, but never demand a floor newer
+// than the binary it offers.
+func validateMinVersion(rel *Release) error {
+	rel.MinVersion = strings.TrimSpace(rel.MinVersion)
+	if rel.MinVersion == "" {
+		return nil
+	}
+	if !IsNewer(rel.MinVersion, "0.0.0") {
+		return errors.New("min_version no válido")
+	}
+	if CompareVersions(rel.Version, rel.MinVersion) < 0 {
+		return errors.New("min_version no puede ser superior a version")
+	}
+	return nil
+}
+
 func validateRelease(rel *Release) error {
 	if rel.Schema != ManifestSchema {
 		return fmt.Errorf("schema de manifiesto no soportado: %q", rel.Schema)
@@ -111,6 +134,9 @@ func validateRelease(rel *Release) error {
 	rel.Version = strings.TrimSpace(rel.Version)
 	if !IsNewer(rel.Version, "0.0.0") {
 		return errors.New("versión del manifiesto no válida")
+	}
+	if err := validateMinVersion(rel); err != nil {
+		return err
 	}
 	rel.Checksum = strings.ToLower(strings.TrimSpace(rel.Checksum))
 	raw, err := hex.DecodeString(rel.Checksum)

@@ -233,9 +233,9 @@ Paquete en `docs/confianza-empresarial.md`, `docs/comercializacion.md` y `docs/p
 
 **Esfuerzo:** 4–6 h.
 
-### F41 — Cumplimiento CRA y responsabilidad por terceros — **proceso documentado; `min_version` pendiente de código**
+### F41 — Cumplimiento CRA y responsabilidad por terceros — **implementado, pendiente de ensayo y ejecución continua**
 
-Runbook y plantillas en `SECURITY.md` y `docs/plantillas/`. La parte técnica del manifiesto se implementará con F23.
+Runbook y plantillas en `SECURITY.md` y `docs/plantillas/`. `min_version` ya viaja firmado en F23: `Release.MinVersion`, `CheckResult.SecurityUpdate` y evento `update.security`. Se genera con `--min-version` en el pipeline F37.
 
 - Política de soporte de seguridad publicada: versión contratada durante la suscripción + 12 meses. Debe aparecer en `SECURITY.md`, en la orden de compra y en el EULA.
 - Runbook de incidentes: responsable único, cuenta en la Single Reporting Platform de ENISA, árbol de decisión «¿explotación activa o incidente grave?» y plantillas de aviso 24 h / 72 h.
@@ -244,7 +244,7 @@ Runbook y plantillas en `SECURITY.md` y `docs/plantillas/`. La parte técnica de
 - EULA reforzado: el cliente declara que está autorizado a analizar esas redes; se prohíbe escaneo de terceros; se limita responsabilidad con las excepciones legales obligatorias.
 - Comunicación: correo a clientes de pago, notificación en la UI y `REVOCATION.md` firmado; `min_version` en el manifiesto F23 para saltar versiones inseguras.
 
-**Criterio de cierre:** ante un CVE explotado en una dependencia, en menos de 24 h existe aviso preparado, en menos de 72 h notificación oficial y en menos de 7 días una release firmada que lo corrige, con el cliente informado.
+**Criterio de cierre (parte técnica cumplida):** un manifiesto con `min_version` manipulado falla la verificación; una instalación anterior a esa cifra recibe `security_update: true` y el evento `update.security`. Queda pendiente el ensayo humano del runbook con responsable y credenciales SRP reales: aviso preparado en < 24 h, notificación en < 72 h y release firmada en < 7 días.
 
 **Esfuerzo:** 8–12 h de proceso y plantillas, más la gestión continua.
 

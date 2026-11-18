@@ -57,9 +57,12 @@ Si se usa `--pcap`, se añade `netdiag-linux-amd64-pcap`. Esa variante usa CGO y
   "checksum": "<sha256 del binario>",
   "released_at": "2026-11-18T11:40:00Z",
   "notes": "NetDiag 1.5.1",
+  "min_version": "1.5.1",
   "signature": "<minisign sobre el manifiesto canónico>"
 }
 ```
+
+`min_version` es opcional y va dentro de la parte firmada. Marca la primera versión segura: si la versión instalada es anterior, F23 fuerza la actualización y emite `update.security` aunque la comparación de versiones no la marcaría como urgente. No puede ser mayor que `version`. Se genera con `--min-version` en `netdiag-release manifest` o `MIN_VERSION` en `make release-secure`.
 
 La firma interna del manifiesto liga `version:1.5.1` y `sha256:<checksum del binario>`. La firma separada `manifest.json.minisig` liga `version:1.5.1` y `sha256:<checksum del propio manifiesto>`. Ver `internal/update/` para la canonicalización exacta; no se cambia el orden de campos ni se añaden espacios.
 

@@ -45,6 +45,8 @@ type CheckResult struct {
 	CurrentVersion string         `json:"current_version"`
 	LatestVersion  string         `json:"latest_version,omitempty"`
 	Available      bool           `json:"available"`
+	SecurityUpdate bool           `json:"security_update"`
+	MinVersion     string         `json:"min_version,omitempty"`
 	Release        *Release       `json:"release,omitempty"`
 	CheckedAt      time.Time      `json:"checked_at"`
 	Message        string         `json:"message,omitempty"`
@@ -196,8 +198,17 @@ func (m *Manager) checkLocked(ctx context.Context) (*CheckResult, error) {
 	m.latest, m.checkedAt = rel, time.Now()
 	res.CheckedAt = m.checkedAt
 	res.LatestVersion, res.Release = rel.Version, rel
+	res.MinVersion = rel.MinVersion
 	res.Available = IsNewer(rel.Version, m.currentVersion)
-	if res.Available {
+	belowFloor := rel.MinVersion != "" && IsNewer(m.currentVersion, "0.0.0") &&
+		CompareVersions(m.currentVersion, rel.MinVersion) < 0
+	if belowFloor {
+		// An unsafe version must be replaced even if the manifest version
+		// would not look newer under ordinary semver comparison.
+		res.Available = true
+		res.SecurityUpdate = true
+		res.Message = "actualización de seguridad obligatoria: la versión instalada es anterior a la mínima segura"
+	} else if res.Available {
 		res.Message = "hay una versión más reciente disponible"
 	} else {
 		res.Message = "NetDiag está actualizado"
@@ -205,6 +216,9 @@ func (m *Manager) checkLocked(ctx context.Context) (*CheckResult, error) {
 	m.notifyLocked("update.checked", res)
 	if res.Available {
 		m.notifyLocked("update.available", res)
+	}
+	if res.SecurityUpdate {
+		m.notifyLocked("update.security", res)
 	}
 	return res, nil
 }

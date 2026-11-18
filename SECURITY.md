@@ -66,7 +66,7 @@ Pasos:
 2. Decidir si se reporta. Anotar el motivo y quién aprueba la decisión.
 3. Enviar el [aviso de 24 h](docs/plantillas/aviso-cra-24h.md) al CSIRT del Estado miembro del establecimiento principal y a la SRP de ENISA. Guardar el justificante.
 4. Enviar la [notificación de 72 h](docs/plantillas/aviso-cra-72h.md) con la evaluación inicial.
-5. Corregir en una release nueva firmada con SBOM, manifiesto y `min_version` apuntando a la primera versión segura. Si F23 aún no consume `min_version`, retirar el release del espejo y publicar la correctiva.
+5. Corregir en una release nueva firmada con SBOM, manifiesto y `min_version` apuntando a la primera versión segura. F23 marca esas instalaciones con `security_update: true` y emite `update.security`; el cliente ve el aviso aunque la comparación de versiones no parezca urgente.
 6. Comunicar a clientes de pago por correo, notificar en la UI y publicar [REVOCATION.md](docs/plantillas/REVOCATION.md) firmado cuando proceda. En air-gapped se entrega un `.ndc` firmado con el aviso.
 7. Enviar el informe final y cerrar ambos registros.
 

@@ -266,3 +266,90 @@ func TestCommitPendingRollsBackCorruptBinary(t *testing.T) {
 		t.Fatal("no se restauró el binario original")
 	}
 }
+
+func signedManifestWithMin(t *testing.T, seed, keyID []byte, serverURL, version, minVersion string, artifact []byte) []byte {
+	t.Helper()
+	sum := sha256.Sum256(artifact)
+	rel := &Release{
+		Schema:     ManifestSchema,
+		Version:    version,
+		URL:        serverURL + "/netdiag",
+		Checksum:   hex.EncodeToString(sum[:]),
+		ReleasedAt: time.Now().UTC().Truncate(time.Second),
+		MinVersion: minVersion,
+	}
+	if err := SignRelease(rel, seed, keyID); err != nil {
+		t.Fatalf("SignRelease con min_version: %v", err)
+	}
+	data, err := json.Marshal(rel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestMinVersionViajaFirmado(t *testing.T) {
+	seed, keyID, publicKey := testKey()
+	artifact := elfFixture("v160")
+	manifest := signedManifestWithMin(t, seed, keyID, "https://updates.example.net", "1.6.0", "1.6.0", artifact)
+	rel, err := ParseManifest(manifest, publicKey)
+	if err != nil {
+		t.Fatalf("manifiesto con min_version rechazado: %v", err)
+	}
+	if rel.MinVersion != "1.6.0" {
+		t.Fatalf("min_version perdido: %q", rel.MinVersion)
+	}
+
+	var raw map[string]any
+	if err := json.Unmarshal(manifest, &raw); err != nil {
+		t.Fatal(err)
+	}
+	raw["min_version"] = "1.4.0"
+	tampered, _ := json.Marshal(raw)
+	if _, err := ParseManifest(tampered, publicKey); err == nil {
+		t.Fatal("se aceptó un min_version manipulado")
+	}
+
+	bad := &Release{
+		Schema:     ManifestSchema,
+		Version:    "1.5.0",
+		URL:        "https://updates.example.net/netdiag",
+		Checksum:   strings.Repeat("a", 64),
+		ReleasedAt: time.Now().UTC(),
+		MinVersion: "1.6.0",
+	}
+	if err := SignRelease(bad, seed, keyID); err == nil {
+		t.Fatal("se firmó un min_version superior a la versión ofrecida")
+	}
+}
+
+func TestCheckMarcaActualizacionDeSeguridad(t *testing.T) {
+	seed, keyID, publicKey := testKey()
+	exe, dataDir, _ := testPaths(t)
+	artifact := elfFixture("v160")
+	var manifest = []byte("{}")
+	server := dynamicServer(&manifest, &artifact)
+	defer server.Close()
+	manifest = signedManifestWithMin(t, seed, keyID, server.URL, "1.6.0", "1.6.0", artifact)
+	m := testManager(t, server.URL, publicKey, exe, dataDir)
+
+	check, err := m.Check(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !check.Available || !check.SecurityUpdate || check.MinVersion != "1.6.0" {
+		t.Fatalf("check de seguridad incompleto: %+v", check)
+	}
+	if !strings.Contains(check.Message, "obligatoria") {
+		t.Fatalf("mensaje inesperado: %q", check.Message)
+	}
+
+	manifest, _ = signedManifestBytes(t, seed, keyID, server.URL, "1.6.0", artifact)
+	check, err = m.Check(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if check.SecurityUpdate || !check.Available {
+		t.Fatalf("actualización normal marcada como de seguridad: %+v", check)
+	}
+}

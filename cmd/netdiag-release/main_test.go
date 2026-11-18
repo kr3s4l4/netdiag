@@ -70,6 +70,7 @@ func TestManifestCmdYVerify(t *testing.T) {
 		"--url", "https://updates.example/releases/1.5.1/netdiag-linux-amd64",
 		"--checksum", checksum,
 		"--notes", "NetDiag 1.5.1",
+		"--min-version", "1.5.1",
 		"--released-at", "2026-11-18T00:00:00Z",
 		"--seed-file", signing,
 		"--out", out,
@@ -87,7 +88,7 @@ func TestManifestCmdYVerify(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseManifest: %v", err)
 	}
-	if rel.Schema != update.ManifestSchema || rel.Version != "1.5.1" || rel.Checksum != checksum {
+	if rel.Schema != update.ManifestSchema || rel.Version != "1.5.1" || rel.Checksum != checksum || rel.MinVersion != "1.5.1" {
 		t.Fatalf("manifiesto inesperado: %+v", rel)
 	}
 }
