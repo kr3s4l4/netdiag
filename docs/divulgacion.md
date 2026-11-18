@@ -25,8 +25,8 @@ Enlaces:
 2. Abre <https://news.ycombinator.com/submit>.
 3. **Title:** el título de la sección Show HN de abajo, tal cual, empezando por `Show HN:`.
 4. **URL:** `https://github.com/kr3s4l4/netdiag`
-5. Envía.
-6. En la página del post, publica el texto de la sección Show HN como **tu primer comentario**. HN no admite cuerpo en el envío de un link.
+5. **Text:** pega aquí el cuerpo de la sección Show HN de abajo. HN sí admite texto junto a la URL y lo muestra arriba del hilo; el mensaje del formulario lo confirma (*"If there is a url, text is optional"*).
+6. Envía. Si dejaste el campo Text vacío, añade el cuerpo después como primer comentario.
 7. Quédate respondiendo durante las primeras 2 h. Si el post tarda en aparecer, es moderación inicial; espera.
 
 ### Reddit
@@ -49,7 +49,7 @@ Título:
 Show HN: NetDiag – self-hosted network inventory and diagnostics, one Go binary, no telemetry
 ```
 
-En HN se envía **título + URL**; este texto va como tu **primer comentario** en el post.
+En HN se envía **título + URL**; este texto va en el campo **Text** del mismo formulario (o como primer comentario si lo dejaste vacío).
 
 Cuerpo:
 
@@ -65,7 +65,7 @@ v1.5.0 is a validation preview. The SHA256SUMS file is signed with minisign and 
 Repo: https://github.com/kr3s4l4/netdiag
 Release: https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.0
 
-I'm looking for real use cases, not stars. If you try it, tell me three things: where you deployed it, what you tried first, and what was missing. There's a pinned discussion and a "Caso de uso real" issue template for that.
+I'm looking for real use cases, not stars. If you try it, tell me three things: where you deployed it, what you tried first, and what was missing. There's a discussion and a "Caso de uso real" issue template for that.
 
 Happy to answer questions about the design tradeoffs, especially doing this without agents or cloud.
 ```
