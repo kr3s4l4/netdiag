@@ -17,7 +17,8 @@ Esto es presentación, **no código**. No hace falta implementar F27–F40 para 
 - [ ] El bloque «Hacia dónde va NetDiag» visible cerca del inicio del README, con enlace al roadmap.
 - [ ] En la nota de Release: el mismo bloque de dirección y las tres preguntas del Discussion fijado.
 - [ ] **El repo tiene `remote` configurado y los commits están pusheados.** Sin esto, todo el trabajo sigue solo en local y nadie puede encontrarlo.
-- [ ] Repo llamado `netdiag` (o `kr3s4l4-Netdiag`), con descripción en español y `topics`: `go`, `network-scanner`, `network-monitoring`, `self-hosted`, `snmp`, `network-inventory`, `ciberseguridad`, `offline`, `no-telemetry`.
+- [ ] Repo llamado **`netdiag`**, sin sufijo: el usuario ya lo hace único (`kr3s4l4/netdiag`) y coincide con el path del módulo en `go.mod`. Renombrarlo obligaría a cambiar 195 referencias en 97 archivos y rompería `go install github.com/kr3s4l4/netdiag@latest`.
+- [ ] Descripción: «NetDiag — escáner de red self-hosted, binario único, sin telemetría, por kr3s4l4». `topics`: `go`, `network-scanner`, `network-monitoring`, `self-hosted`, `snmp`, `network-inventory`, `ciberseguridad`, `offline`, `no-telemetry`.
 - [ ] `SECURITY.md` y plantilla **Caso de uso real** en `.github/ISSUE_TEMPLATE/`; enlace desde `kr3s4l4.github.io` y desde el README de perfil de GitHub.
 - [ ] Texto de la Release marcado como **preview de validación**, no como release oficial firmada.
 
