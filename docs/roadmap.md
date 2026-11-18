@@ -13,8 +13,13 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F33, F34 | Decisiones cerradas; documentación legal y comercial añadida en `1.5.0` |
 | F35 | Implementado: licencia Ed25519 offline, CLI, API, UI y backup |
 | F36 | Implementado: contenedor `.ndc` ZIP firmado, inspect/verify/build |
-| F37–F40 | Planificados; detallados más abajo |
-| Pruebas | `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
+| F37 | Implementado y verificado: release reproducible, SBOM, procedencia, `.ndc` y verificación offline |
+| F38 | Documentación y plantillas de confianza empresarial listas |
+| F39 | Implementado y verificado: demo sintética aislada, marcada en UI e informes |
+| F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
+| F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
+| F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
+| Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
 
@@ -224,16 +229,18 @@ Uso: `netdiag demo --seed 1 --sites 3 --hosts 120 [--data-dir RUTA] [--json]` y,
 
 **Esfuerzo:** 6–10 h (realizado).
 
-### F40 — Filtros y vistas guardadas
+### F40 — Filtros y vistas guardadas — **implementado y verificado**
+
+API en `/api/v1/views`, nueva página en el SPA, barra de vistas en inventario y alertas, editor con catálogo validado en servidor y paleta `Ctrl+K`.
 
 - Guardar filtros de inventario y alertas por usuario: nombre, `site_id`, consulta, severidad/estado, columnas y orden.
 - Vistas por defecto: `Críticas`, `Nuevos hosts`, `Caídos`, `Cambios de la semana`.
 - Compartir una vista mediante URL con parámetros; el nombre y la consulta se sanean antes de persistir.
 - Integración con F29: `Ctrl+K` puede abrir una vista guardada.
 
-**Criterio de cierre:** un operador vuelve a su vista `Críticas` tras recargar la página y puede enviar el enlace a otro operador sin perder el filtro.
+**Criterio de cierre (cumplido):** las cuatro vistas integradas se siembran por usuario; `POST /views` crea una vista sanada y `GET /views/{id}/share` devuelve un hash `#/<kind>?...` que `GET /views/resolve` vuelve a validar sin persistirla. Un operador recupera sus vistas tras recargar y otro operador abre el mismo filtro sin acceder a su fila privada. `gofmt`, build, vet, tests y parseo JS pasan.
 
-**Esfuerzo:** 4–6 h.
+**Esfuerzo:** 4–6 h (realizado).
 
 ### F41 — Cumplimiento CRA y responsabilidad por terceros — **implementado, pendiente de ensayo y ejecución continua**
 
