@@ -346,6 +346,132 @@ async function renderDiagnostics() {
 }
 
 /* ------------------------------------------------------------------ */
+/* F18 custom dashboards                                               */
+/* ------------------------------------------------------------------ */
+
+function widgetBody(type, data) {
+  if (data && data.error) return `<div class="notice err">${esc(data.error)}</div>`;
+  const findItems = (obj) => {
+    if (!obj || typeof obj !== 'object') return null;
+    if (Array.isArray(obj.items)) return obj.items;
+    if (Array.isArray(obj.nodes)) return obj.nodes;
+    for (const key of Object.keys(obj)) {
+      if (Array.isArray(obj[key]) && obj[key].length && typeof obj[key][0] === 'object') return obj[key];
+    }
+    return null;
+  };
+  const items = findItems(data);
+  if (items && items.length) {
+    const rows = items.slice(0, 5).map((row) => {
+      const values = ['name', 'hostname', 'ip', 'ssid', 'bssid', 'type', 'port', 'status', 'signal_dbm', 'state', 'cidr']
+        .filter((k) => row[k] !== undefined && row[k] !== null && row[k] !== '')
+        .slice(0, 3)
+        .map((k) => `<span class="tiny mono">${esc(String(row[k]))}</span>`)
+        .join(' · ');
+      return `<div class="dash-row">${values || '<span class="tiny muted">—</span>'}</div>`;
+    }).join('');
+    return `<div class="dash-list">${rows}${items.length > 5 ? `<div class="tiny muted">+ ${items.length - 5} ${esc(tr('más'))}</div>` : ''}</div>`;
+  }
+  if (data && typeof data === 'object') {
+    const rows = Object.keys(data).filter((k) => ['items', 'total', 'generated_at'].indexOf(k) < 0).slice(0, 6)
+      .map((k) => `<div class="dash-row"><span class="tiny muted">${esc(k)}</span><b class="tiny mono">${esc(String(data[k]))}</b></div>`).join('');
+    if (rows) return `<div class="dash-list">${rows}</div>`;
+  }
+  return `<div class="tiny muted">${esc(tr('Sin datos'))}</div>`;
+}
+
+async function renderDashboards() {
+  setPageTitle('dashboards');
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  const [list, catalog] = await Promise.all([api('/dashboards'), api('/dashboards/catalog')]);
+  const dashboards = list.items || [];
+  const selected = dashboards.find((d) => String(d.id) === String(state.dashboardId)) || dashboards[0] || null;
+  state.dashboardId = selected ? selected.id : null;
+
+  const options = catalog.items || [];
+  const selector = dashboards.length ? `<select class="select sm" data-action="dash-select">
+      ${dashboards.map((d) => `<option value="${d.id}" ${d.id === selected.id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}
+    </select>` : `<span class="muted tiny">${esc(tr('Sin dashboards'))}</span>`;
+
+  let widgetsHtml = '';
+  if (selected && selected.widgets && selected.widgets.length) {
+    const responses = await Promise.all(selected.widgets.map((w) => {
+      const source = String((w.config && w.config.source) || '').replace(/^\/api\/v1/, '');
+      return api(source).catch((e) => ({ error: e.message }));
+    }));
+    widgetsHtml = selected.widgets.map((w, i) => {
+      const title = (w.config && w.config.title) || w.type;
+      return `<div class="card dash-widget" draggable="true" data-widget-id="${esc(w.id)}"
+          style="grid-column:span ${Math.min(12, Math.max(2, w.size && w.size.w ? w.size.w : 4))}">
+        <div class="card-head"><h3>${esc(tr(title))}</h3>
+          <button class="btn icon sm" title="${esc(tr('Quitar widget'))}" data-action="dash-remove-widget" data-id="${esc(w.id)}">×</button>
+        </div>
+        <div class="dash-widget-body">${widgetBody(w.type, responses[i])}</div>
+      </div>`;
+    }).join('');
+  }
+
+  content.innerHTML = `
+    <div class="spread mb">
+      <div class="muted small">${esc(tr('Crea vistas con hasta 16 widgets. Arrastra una tarjeta para reordenarla; la rejilla tiene 12 columnas.'))}</div>
+      <div class="row-gap">
+        ${selector}
+        <button class="btn sm" data-action="dash-example">${icon('dashboard')} ${esc(tr('Ejemplo "Mi red"'))}</button>
+      </div>
+    </div>
+    <div class="card pad mb">
+      <div class="spread">
+        <div class="field" style="flex:1"><label for="dash-name">${esc(tr('Nombre del dashboard'))}</label>
+          <input id="dash-name" class="input" maxlength="80" placeholder="${esc(tr('Mi red'))}"></div>
+        <button class="btn primary" data-action="dash-create">${icon('check')} ${esc(tr('Crear'))}</button>
+        ${selected ? `<button class="btn danger" data-action="dash-delete" data-id="${selected.id}">${esc(tr('Eliminar'))}</button>` : ''}
+      </div>
+    </div>
+    ${selected ? `
+    <div class="card pad mb">
+      <div class="spread"><b class="small">${esc(tr('Añadir widget'))}</b>
+        <div class="row-gap"><select id="dash-widget-type" class="select sm">
+          ${options.map((o) => `<option value="${esc(o.type)}">${esc(tr(o.label))}</option>`).join('')}
+        </select><button class="btn sm" data-action="dash-add-widget">${icon('plus')} ${esc(tr('Añadir'))}</button></div>
+      </div>
+    </div>
+    <div class="dash-grid mb">${widgetsHtml || `<div class="empty">${icon('dashboard')}<div><b>${esc(tr('Dashboard vacío'))}</b>
+      <div class="tiny">${esc(tr('Añade widgets para construir tu vista.'))}</div></div></div>`}</div>` : `
+    <div class="card pad"><div class="empty">${icon('dashboard')}<div><b>${esc(tr('Todavía no hay dashboards'))}</b>
+      <div class="tiny">${esc(tr('Pulsa en ejemplo "Mi red" para crear uno con cuatro widgets.'))}</div></div></div></div>`}`;
+
+  content.querySelectorAll('.dash-widget').forEach((card) => {
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', card.dataset.widgetId);
+      e.dataTransfer.effectAllowed = 'move';
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+    card.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const from = e.dataTransfer.getData('text/plain');
+      const to = card.dataset.widgetId;
+      if (!from || from === to || !selected) return;
+      const widgets = selected.widgets.map((w) => Object.assign({}, w));
+      const i = widgets.findIndex((w) => w.id === from);
+      const j = widgets.findIndex((w) => w.id === to);
+      if (i < 0 || j < 0) return;
+      const [moved] = widgets.splice(i, 1);
+      widgets.splice(j, 0, moved);
+      widgets.forEach((w, idx) => { w.position = { x: (idx % 2) * 6, y: Math.floor(idx / 2) }; });
+      try {
+        await api('/dashboards/' + selected.id, { method: 'PUT', body: { name: selected.name, site_id: selected.site_id, widgets } });
+        await renderDashboards();
+      } catch (err) { toast(err.message, { type: 'err' }); }
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /* F11 WiFi analysis                                                   */
 /* ------------------------------------------------------------------ */
 

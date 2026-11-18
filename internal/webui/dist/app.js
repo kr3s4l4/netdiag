@@ -406,6 +406,7 @@ const NAV = [
   { view: 'hosts', label: 'Dispositivos', icon: 'hosts' },
   { view: 'topology', label: 'Topología', icon: 'topology' },
   { view: 'diagnostics', label: 'Diagnósticos', icon: 'diagnostics' },
+  { view: 'dashboards', label: 'Dashboards', icon: 'dashboard' },
   { view: 'wifi', label: 'WiFi', icon: 'wifi' },
   { view: 'vpn', label: 'VPN', icon: 'network' },
   { view: 'alerts', label: 'Alertas', icon: 'alerts', badge: true },
@@ -521,6 +522,7 @@ const PAGE_META = {
   hosts: ['Dispositivos', 'Inventario'],
   topology: ['Topología', 'Mapa de red'],
   diagnostics: ['Diagnósticos', 'Problemas empresariales'],
+  dashboards: ['Dashboards', 'Vistas personalizadas'],
   wifi: ['WiFi', 'APs, clientes e interferencias'],
   vpn: ['VPN', 'Túneles detectados'],
   alerts: ['Alertas', 'Reglas y canales'],
@@ -674,7 +676,7 @@ async function route(silent = false) {
   if (!state.me) return;
   const raw = (location.hash || '#/dashboard').replace(/^#\/?/, '');
   const [view, ...rest] = raw.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'diagnostics', 'wifi', 'vpn', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'diagnostics', 'wifi', 'vpn', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
   if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
   updateNav();
   const content = $('#content');
@@ -691,6 +693,7 @@ async function route(silent = false) {
         break;
       case 'topology': await renderTopology(); break;
       case 'diagnostics': await renderDiagnostics(); break;
+      case 'dashboards': await renderDashboards(); break;
       case 'wifi': await renderWiFi(); break;
       case 'vpn': await renderVPN(); break;
       case 'alerts': await renderAlerts(rest[0]); break;
@@ -1136,6 +1139,57 @@ document.addEventListener('click', async (e) => {
       case 'modal-close': closeModal(); break;
       case 'reload': route(); break;
       case 'refresh-diagnostics': await renderDiagnostics(); break;
+      case 'dash-create':
+        try {
+          const name = (document.getElementById('dash-name') || {}).value || '';
+          const created = await api('/dashboards', { method: 'POST', body: { name, site_id: state.siteId || 1, widgets: [] } });
+          state.dashboardId = created.id;
+          toast(t('Dashboard creado'), { type: 'ok' });
+          await renderDashboards();
+        } catch (err) { toast(err.message || t('No se pudo crear'), { type: 'err' }); }
+        break;
+      case 'dash-example':
+        try {
+          const created = await api('/dashboards/example', { method: 'POST', body: { site_id: state.siteId || 1 } });
+          state.dashboardId = created.id;
+          toast(`${t('Dashboard creado')}: ${created.name} (${created.widgets.length} ${t('widgets')})`, { type: 'ok' });
+          await renderDashboards();
+        } catch (err) { toast(err.message || t('No se pudo crear'), { type: 'err' }); }
+        break;
+      case 'dash-delete':
+        if (!confirm(t('¿Eliminar este dashboard?'))) break;
+        try {
+          await api('/dashboards/' + target.dataset.id, { method: 'DELETE' });
+          state.dashboardId = null;
+          toast(t('Dashboard eliminado'), { type: 'ok' });
+          await renderDashboards();
+        } catch (err) { toast(err.message || t('No se pudo eliminar'), { type: 'err' }); }
+        break;
+      case 'dash-add-widget':
+        try {
+          const current = await api('/dashboards/' + state.dashboardId);
+          const typeSel = document.getElementById('dash-widget-type');
+          const type = typeSel ? typeSel.value : 'hosts';
+          const widgets = (current.widgets || []).map((w) => Object.assign({}, w));
+          const idx = widgets.length;
+          widgets.push({
+            id: 'w' + Date.now(), type,
+            position: { x: (idx % 2) * 6, y: Math.floor(idx / 2) },
+            size: { w: 6, h: 1 }, config: {},
+          });
+          await api('/dashboards/' + state.dashboardId, { method: 'PUT', body: { name: current.name, site_id: current.site_id, widgets } });
+          await renderDashboards();
+        } catch (err) { toast(err.message || t('No se pudo guardar'), { type: 'err' }); }
+        break;
+      case 'dash-remove-widget':
+        try {
+          const current = await api('/dashboards/' + state.dashboardId);
+          const widgets = (current.widgets || []).filter((w) => w.id !== target.dataset.id)
+            .map((w, idx) => Object.assign({}, w, { position: { x: (idx % 2) * 6, y: Math.floor(idx / 2) } }));
+          await api('/dashboards/' + state.dashboardId, { method: 'PUT', body: { name: current.name, site_id: current.site_id, widgets } });
+          await renderDashboards();
+        } catch (err) { toast(err.message || t('No se pudo guardar'), { type: 'err' }); }
+        break;
       case 'wifi-scan':
         try {
           const r = await api('/wifi/scan', { method: 'POST' });
@@ -1251,6 +1305,11 @@ document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.id === 'site-select') {
     switchSite(el.value).catch((err) => toast(err.message || String(err), { type: 'err', title: 'Error' }));
+    return;
+  }
+  if (el.dataset.action === 'dash-select') {
+    state.dashboardId = Number(el.value);
+    renderDashboards().catch((err) => toast(err.message || String(err), { type: 'err', title: 'Error' }));
     return;
   }
   if (el.dataset.filter !== undefined) {

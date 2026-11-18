@@ -384,6 +384,19 @@ var migrations = [][]string{
 		`CREATE INDEX idx_wifi_aps_channel ON wifi_aps(site_id, channel)`,
 		`CREATE INDEX idx_wifi_clients_ap ON wifi_clients(site_id, ap_bssid)`,
 	},
+	{
+		// v1.5.2: F18 custom dashboards (fixed 12-column grid, max 16 tiles).
+		`CREATE TABLE dashboards (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			name TEXT NOT NULL,
+			widgets TEXT NOT NULL DEFAULT '[]',
+			created_at INTEGER NOT NULL,
+			modified INTEGER NOT NULL,
+			UNIQUE(site_id, name)
+		)`,
+		`CREATE INDEX idx_dashboards_site ON dashboards(site_id)`,
+	},
 }
 
 func (s *Store) migrate() error {

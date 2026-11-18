@@ -231,6 +231,15 @@ func (s *Server) register() {
 	m.HandleFunc("POST /api/v1/wifi/scan", s.handleWifiScan)
 	m.HandleFunc("DELETE /api/v1/wifi/aps", s.handleClearWifiObservations)
 
+	// ---- F18 custom dashboards ----
+	m.HandleFunc("GET /api/v1/dashboards", s.handleListDashboards)
+	m.HandleFunc("GET /api/v1/dashboards/catalog", s.handleDashboardCatalog)
+	m.HandleFunc("POST /api/v1/dashboards", s.handleCreateDashboard)
+	m.HandleFunc("POST /api/v1/dashboards/example", s.handleCreateExampleDashboard)
+	m.HandleFunc("GET /api/v1/dashboards/{id}", s.handleGetDashboard)
+	m.HandleFunc("PUT /api/v1/dashboards/{id}", s.handleUpdateDashboard)
+	m.HandleFunc("DELETE /api/v1/dashboards/{id}", s.handleDeleteDashboard)
+
 	// ---- reports ----
 	m.HandleFunc("GET /api/v1/reports", s.handleListReports)
 	m.HandleFunc("POST /api/v1/reports", s.handleCreateReport)

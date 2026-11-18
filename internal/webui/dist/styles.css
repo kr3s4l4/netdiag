@@ -187,6 +187,17 @@ code, .mono { font-family: var(--mono); }
 .spread { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .grid { display: grid; gap: 16px; }
 .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.row-gap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* F18 custom dashboards */
+.dash-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.dash-widget { cursor: grab; min-width: 0; }
+.dash-widget.dragging { opacity: .45; }
+.dash-widget.drag-over { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.dash-widget-body { padding: 4px 2px 2px; }
+.dash-list { display: flex; flex-direction: column; gap: 6px; }
+.dash-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.dash-row:last-child { border-bottom: 0; }
 .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .muted { color: var(--muted); }

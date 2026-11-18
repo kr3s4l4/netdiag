@@ -233,6 +233,22 @@ curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -X POST \
   http://127.0.0.1:8080/api/v1/integrations/1/test
 ```
 
+### Dashboards personalizados (F18)
+
+Vistas por sede con widgets en una rejilla fija de 12 columnas (máximo 16). Las escrituras requieren `canWrite`; la lectura está disponible para cualquier rol autenticado.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/dashboards` | `{items, total}`; filtrable por `site_id` |
+| GET | `/dashboards/catalog` | `{items:[{type,label,source}], max_widgets:16}` |
+| POST | `/dashboards` | `{name, site_id?, widgets?}`; responde `201` con el dashboard creado |
+| POST | `/dashboards/example` | Crea "Mi red" con cuatro widgets; `site_id?` en el cuerpo |
+| GET | `/dashboards/{id}` | Detalle con `widgets` |
+| PUT | `/dashboards/{id}` | Reemplaza `name`, `site_id` y `widgets` |
+| DELETE | `/dashboards/{id}` | `204` |
+
+Cada widget tiene `{id, type, position:{x,y}, size:{w,h}, config}`. Los tipos válidos son `dashboard`, `hosts`, `ports`, `topology`, `alerts`, `scans`, `wifi` y `vpn`. El campo `config.source` se deriva siempre del catálogo en el servidor: los valores enviados por el cliente se ignoran, de modo que no se pueden consultar URL arbitrarias. `position.x` va de 0 a 11, `position.y` de 0 a 23, `size.w` ∈ {2,3,4,6,12} y `size.h` ∈ {1,2,3}; los valores fuera de rango se normalizan o rechazan.
+
 ### WiFi (F11)
 
 Captura pasiva 802.11 y análisis de APs/clientes. Las lecturas están disponibles para cualquier rol autenticado; `POST /wifi/scan` requiere `canWrite` y `DELETE /wifi/aps` requiere `admin`/`owner`.

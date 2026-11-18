@@ -20,6 +20,7 @@
 - **Integraciones externas**: exporta eventos (alertas y escaneos) a Elasticsearch, syslog, webhooks firmados, Slack, Discord, MS Teams, Telegram, PagerDuty, Kafka REST Proxy y Redis Streams. Cola acotada, límite global de velocidad, guardia SSRF y secretos cifrados AES-256-GCM.
 - **Detección de VPN (F12)**: observación pasiva de túneles WireGuard, OpenVPN, IPsec y PPTP a partir de sockets e interfaces del kernel, con evidencia, confianza y contadores acumulados.
 - **Análisis WiFi (F11)**: captura pasiva 802.11 (binario `-tags pcap`) con APs (BSSID, SSID, canal, banda, cifrado, señal), clientes por AP, interferencia por canal y detección heurística de AP no autorizado.
+- **Dashboards personalizables (F18)**: vistas por sede con hasta 16 widgets reordenables en una rejilla de 12 columnas, fuentes limitadas a un catálogo seguro de endpoints ya autorizados.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
@@ -173,6 +174,18 @@ make build-pcap   # o: go build -tags pcap -o bin/netdiag-pcap ./cmd/netdiag
 `wifi.authorized_bssids` y `wifi.known_ssids` forman el inventario de referencia para marcar APs no autorizados: un BSSID ausente del inventario tiene confianza 90; si solo coincide el SSID conocido, la confianza baja a 65 porque el SSID puede suplantarse. Sin inventario no se emite ningún veredicto. `GET /api/v1/wifi/status` expone la capacidad de captura y la configuración efectiva sin secretos. `POST /api/v1/wifi/scan` (escritor) fuerza una ventana; `DELETE /api/v1/wifi/aps` (admin) borra las observaciones de una sede.
 
 Limitaciones: el binario portable no puede capturar 802.11 y devuelve `503`; los canales 6 GHz comparten numeración con 2,4 GHz y se distinguen por la frecuencia de radiotap; el solape en 2,4 GHz es una heurística de separación menor a cinco canales; un AP oculto puede no revelar su SSID en beacons.
+
+## Dashboards personalizados
+
+La vista **Dashboards** permite crear, renombrar y eliminar vistas por sede. Cada dashboard admite hasta 16 widgets en una rejilla fija de 12 columnas; se arrastran con HTML5 drag-and-drop nativo y los cambios se guardan mediante `PUT /api/v1/dashboards/{id}`. El botón **Ejemplo "Mi red"** crea una vista con cuatro widgets (resumen, dispositivos, alertas y topología), cumpliendo el caso de cierre de F18.
+
+Los tipos disponibles se consultan en `GET /api/v1/dashboards/catalog`: resumen, dispositivos, puertos frecuentes, topología, alertas, escaneos recientes, APs WiFi y túneles VPN. El backend deriva la URL de datos del tipo validado: un cliente no puede inyectar una URL arbitraria ni evade el RBAC. Escribir dashboards requiere `admin`, `owner` u `operator`; leerlos está disponible para cualquier rol autenticado.
+
+```bash
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"site_id":1}' http://127.0.0.1:8080/api/v1/dashboards/example
+curl -sb cookies.txt http://127.0.0.1:8080/api/v1/dashboards | python3 -m json.tool
+```
 
 ## Compilación
 

@@ -658,6 +658,32 @@ type AlertFilter struct {
 	Limit    int
 }
 
+// Widget is one tile of a custom dashboard. Config is opaque to the backend
+// apart from the validated source field, which must belong to the catalog.
+type Widget struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Position struct {
+		X int `json:"x"`
+		Y int `json:"y"`
+	} `json:"position"`
+	Size struct {
+		W int `json:"w"`
+		H int `json:"h"`
+	} `json:"size"`
+	Config map[string]any `json:"config,omitempty"`
+}
+
+// Dashboard is a user-defined view for one site (project).
+type Dashboard struct {
+	ID        int64     `json:"id"`
+	SiteID    int64     `json:"site_id"`
+	Name      string    `json:"name"`
+	Widgets   []Widget  `json:"widgets"`
+	CreatedAt time.Time `json:"created_at"`
+	Modified  time.Time `json:"modified"`
+}
+
 // WifiAP is one access point observed during a passive 802.11 capture.
 type WifiAP struct {
 	ID              int64     `json:"id"`

@@ -90,6 +90,13 @@ var apiRoutes = []apiRoute{
 
 	{"GET", "/api/v1/topology", "Grafo de topología L2/L3", "Topología", false, false, "", []string{"site_id", "network_id"}, false, false},
 
+	{"GET", "/api/v1/dashboards", "Listar dashboards personalizados", "Dashboards", false, false, "", []string{"site_id"}, false, false},
+	{"GET", "/api/v1/dashboards/catalog", "Catalogo de widgets permitidos", "Dashboards", false, false, "", nil, false, false},
+	{"POST", "/api/v1/dashboards", "Crear dashboard personalizado", "Dashboards", false, false, "DashboardRequest", nil, true, false},
+	{"POST", "/api/v1/dashboards/example", "Crear dashboard de ejemplo Mi red", "Dashboards", false, false, "", nil, false, false},
+	{"GET", "/api/v1/dashboards/{id}", "Obtener un dashboard", "Dashboards", false, false, "", nil, false, false},
+	{"PUT", "/api/v1/dashboards/{id}", "Actualizar un dashboard", "Dashboards", false, false, "DashboardRequest", nil, true, false},
+	{"DELETE", "/api/v1/dashboards/{id}", "Eliminar un dashboard", "Dashboards", false, false, "", nil, false, false},
 	{"GET", "/api/v1/wifi/status", "Estado y capacidad de captura WiFi", "WiFi", false, false, "", nil, false, false},
 	{"GET", "/api/v1/wifi/aps", "Listar APs WiFi observados", "WiFi", false, false, "", []string{"site_id", "limit"}, false, false},
 	{"GET", "/api/v1/wifi/clients", "Listar clientes WiFi observados", "WiFi", false, false, "", []string{"site_id", "limit"}, false, false},
@@ -366,6 +373,21 @@ func openAPISchemas() map[string]any {
 					"telegram", "pagerduty", "kafka", "redis",
 				}},
 				"config": map[string]any{"type": "object", "additionalProperties": true},
+			},
+		},
+		"DashboardRequest": map[string]any{
+			"type": "object", "required": []string{"name"},
+			"properties": map[string]any{
+				"name":    str,
+				"site_id": map[string]any{"type": "integer"},
+				"widgets": map[string]any{"type": "array", "items": map[string]any{
+					"type": "object", "properties": map[string]any{
+						"id": str, "type": str,
+						"position": map[string]any{"type": "object"},
+						"size":     map[string]any{"type": "object"},
+						"config":   map[string]any{"type": "object", "additionalProperties": true},
+					},
+				}},
 			},
 		},
 		"ReportRequest": map[string]any{
