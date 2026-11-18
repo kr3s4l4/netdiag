@@ -129,6 +129,39 @@ He publicado NetDiag 1.5.0: escáner de red self-hosted, un binario Go, SQLite l
 | ¿Puedo escanear cualquier red? | Solo redes que administres o tengas autorización para analizar. El producto no tiene modo oculto ni captura credenciales. |
 | ¿Es seguro escanear? | Perfil conservador por defecto, concurrencia acotada y exclusiones. Aun así, usa ventana de mantenimiento en equipos antiguos. |
 
+## Respuestas listas en inglés
+
+No hace falta escribir bien: escribe **frases cortas y correctas**. Un inglés sencillo y honesto genera más confianza que un texto elaborado con traductor. Si te preguntan algo que no sabes responder, pega aquí el comentario y te preparo la respuesta.
+
+Frase de apertura si quieres avisar:
+
+```text
+Thanks for looking at it. My English is basic, so I'll keep it short. Happy to answer anything.
+```
+
+| Si te preguntan | Respuesta para copiar |
+| --- | --- |
+| Telemetry? | `No telemetry at all. The binary makes no outbound calls. You can read the code, or run it with no network access and see for yourself.` |
+| Agents? | `No agents. It observes from one host: ARP/ICMP, banners, SNMP and LLDP/CDP neighbours. Nothing is installed on the monitored devices.` |
+| Why a single binary? | `I wanted something you can copy to a machine and run. One Go binary, embedded UI and SQLite, no cgo, no npm, no external services.` |
+| What are the limits? | `The tradeoff is visibility: it only sees what one host can observe. The docs say so explicitly. Diagnostics are heuristic and always carry evidence, confidence and limitations.` |
+| License / pricing? | `Community is AGPL-3.0. I don't charge per report, alert or discovered host. If I sell anything later, it will be a commercial licence for support and guarantees.` |
+| Is it enterprise-ready? | `It has RBAC, audit and multi-site, but I'm not selling an SLA yet. I'm one person and this is a validation preview. I'd rather say that than promise something I can't keep.` |
+| How do I trust the binary? | `SHA256SUMS is signed with minisign. The public key and a one-line verification command are in docs/public_keys.md.` |
+| Docker? | `No Docker image yet. I prioritised a single binary and a systemd unit. If people ask for it, I'll build it.` |
+| Windows/macOS? | `Linux amd64 and arm64 for now. Tell me if you need another platform and I'll consider it.` |
+| Why not just use nmap? | `It isn't replacing nmap. It keeps history, topology and evidence over time, so you can see what changed and why.` |
+| Do you use it in production? | `I use it in my own lab. This is a preview: I'm looking for real deployments before calling it finished.` |
+| They give you feedback | `Thanks, that's exactly the kind of detail I need. Could you tell me where you deployed it and what was missing?` |
+
+Reglas para tus respuestas:
+
+- una idea por frase;
+- si no entiendes algo, pregunta: `Could you rephrase that? My English is limited.`
+- no traduzcas párrafos largos: resume;
+- si la pregunta es hostil, responde con un dato o no respondas;
+- y recuerda que puedes pegarme aquí cualquier comentario y te devuelvo el texto en inglés listo para copiar.
+
 ## Qué NO decir
 
 - No «production-ready» ni «enterprise-grade» sin matiz.
