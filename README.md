@@ -19,6 +19,7 @@
 - **Diagnósticos empresariales**: detección heurística de lazos STP, fugas de VLAN, desajustes de dúplex, problemas de MTU, tormentas de broadcast, AP no autorizados e incumplimientos de SLA, con evidencia, confianza y limitaciones explícitas.
 - **Integraciones externas**: exporta eventos (alertas y escaneos) a Elasticsearch, syslog, webhooks firmados, Slack, Discord, MS Teams, Telegram, PagerDuty, Kafka REST Proxy y Redis Streams. Cola acotada, límite global de velocidad, guardia SSRF y secretos cifrados AES-256-GCM.
 - **Detección de VPN (F12)**: observación pasiva de túneles WireGuard, OpenVPN, IPsec y PPTP a partir de sockets e interfaces del kernel, con evidencia, confianza y contadores acumulados.
+- **Análisis WiFi (F11)**: captura pasiva 802.11 (binario `-tags pcap`) con APs (BSSID, SSID, canal, banda, cifrado, señal), clientes por AP, interferencia por canal y detección heurística de AP no autorizado.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
@@ -158,6 +159,21 @@ curl -sb cookies.txt http://127.0.0.1:8080/api/v1/vpn/tunnels | python3 -m json.
 
 `POST /api/v1/vpn/scan` permite a `admin`, `owner` y `operator` forzar una observación; borrar una observación requiere `admin`/`owner`. Los puertos conocidos (`51820` WireGuard, `1194` OpenVPN, `500`/`4500` IPsec, `1723` PPTP) también se reconocen en el inventario de escaneo. Limitaciones: TCP/443 es ambiguo (confianza baja), los contadores son acumulativos desde el arranque y un túnel inactivo o cifrado puede no dejar rastro.
 
+## Análisis WiFi
+
+La vista **WiFi** y `GET /api/v1/wifi/aps` muestran los puntos de acceso detectados con su canal, banda, cifrado y nivel de señal; `GET /api/v1/wifi/clients` lista las estaciones asociadas y `GET /api/v1/wifi/channels` agrega APs, clientes, solape y sugerencia de canal por banda.
+
+La captura es pasiva y requiere un binario compilado con `-tags pcap` y una interfaz **ya puesta en modo monitor** por el operador (`iw dev wlan0 set monitor ...`); NetDiag no cambia el modo del dispositivo. El bucle periódico se configura con `wifi.interval` y una ventana de `wifi.scan_seconds`. Si se definen `wifi.channels`, NetDiag intenta saltar entre ellos con `iw` de forma best effort (si `iw` no está disponible, captura en el canal actual).
+
+```bash
+make build-pcap   # o: go build -tags pcap -o bin/netdiag-pcap ./cmd/netdiag
+./bin/netdiag-pcap serve -c config.yaml --wifi-monitor-iface wlan0mon --wifi-scan-interval-sec 120
+```
+
+`wifi.authorized_bssids` y `wifi.known_ssids` forman el inventario de referencia para marcar APs no autorizados: un BSSID ausente del inventario tiene confianza 90; si solo coincide el SSID conocido, la confianza baja a 65 porque el SSID puede suplantarse. Sin inventario no se emite ningún veredicto. `GET /api/v1/wifi/status` expone la capacidad de captura y la configuración efectiva sin secretos. `POST /api/v1/wifi/scan` (escritor) fuerza una ventana; `DELETE /api/v1/wifi/aps` (admin) borra las observaciones de una sede.
+
+Limitaciones: el binario portable no puede capturar 802.11 y devuelve `503`; los canales 6 GHz comparten numeración con 2,4 GHz y se distinguen por la frecuencia de radiotap; el solape en 2,4 GHz es una heurística de separación menor a cinco canales; un AP oculto puede no revelar su SSID en beacons.
+
 ## Compilación
 
 ```bash
@@ -277,6 +293,19 @@ integrations:
   max_per_minute: 60        # límite global compartido
   queue_size: 512           # eventos en memoria
   allow_private_targets: false  # necesario para Elasticsearch/syslog/Kafka/Redis locales
+vpn:
+  enabled: true             # observación pasiva de túneles
+  interval: 5m
+  min_confidence: 60
+  stale_after: 30m
+wifi:
+  enabled: false            # requiere -tags pcap e iface en modo monitor
+  interface: ""             # ej. wlan0mon; NetDiag no cambia el modo
+  interval: 5m
+  scan_seconds: 10
+  channels: []              # ej. [1, 6, 11]; salto de canal best effort con iw
+  authorized_bssids: []     # inventario de APs propios
+  known_ssids: []           # inventario de SSID permitidos
 ```
 
 La mayoría de cambios se aplican en caliente desde **Ajustes**; los de escucha, TLS, rutas de datos y nivel de registro requieren reiniciar.

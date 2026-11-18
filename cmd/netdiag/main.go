@@ -266,6 +266,8 @@ func serveCmd(args []string) int {
 	cf := addCommonFlags(fs)
 	listen := fs.String("listen", "", "dirección de escucha (ej. 0.0.0.0:8080)")
 	noMonitor := fs.Bool("no-monitor", false, "desactiva el monitor periódico al arrancar")
+	wifiIface := fs.String("wifi-monitor-iface", "", "interfaz ya configurada en modo monitor para captura 802.11")
+	wifiInterval := fs.Int("wifi-scan-interval-sec", 0, "segundos entre capturas WiFi (0 usa la configuración)")
 	fs.Usage = func() { fmt.Fprintln(os.Stderr, "Uso: netdiag serve [opciones]") }
 	if err := parseFlags(fs, args); err != nil {
 		return 2
@@ -280,6 +282,13 @@ func serveCmd(args []string) int {
 	}
 	if *noMonitor {
 		cfg.Monitor.Enabled = false
+	}
+	if *wifiIface != "" {
+		cfg.WiFi.Enabled = true
+		cfg.WiFi.Interface = *wifiIface
+	}
+	if *wifiInterval > 0 {
+		cfg.WiFi.Interval = config.Duration(time.Duration(*wifiInterval) * time.Second)
 	}
 	if err := cfg.Validate(); err != nil {
 		return fail("%v", err)
@@ -303,6 +312,7 @@ func serveCmd(args []string) int {
 		"data_dir", cfg.Storage.DataDir,
 		"listen", cfg.Server.Listen,
 		"monitor", cfg.Monitor.Enabled,
+		"wifi", cfg.WiFi.Enabled && cfg.WiFi.Interface != "",
 		"arp_activo", discover.ARPAvailable(),
 	)
 

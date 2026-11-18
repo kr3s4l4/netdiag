@@ -351,6 +351,39 @@ var migrations = [][]string{
 		)`,
 		`CREATE INDEX idx_vpn_tunnels_site ON vpn_tunnels(site_id, type)`,
 	},
+	{
+		// v1.5.1: F11 passive WiFi observations.
+		`CREATE TABLE wifi_aps (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			bssid TEXT NOT NULL,
+			ssid TEXT NOT NULL DEFAULT '',
+			channel INTEGER NOT NULL DEFAULT 0,
+			band TEXT NOT NULL DEFAULT '',
+			encryption TEXT NOT NULL DEFAULT '',
+			signal_dbm INTEGER NOT NULL DEFAULT 0,
+			vendor TEXT NOT NULL DEFAULT '',
+			beacons INTEGER NOT NULL DEFAULT 0,
+			clients INTEGER NOT NULL DEFAULT 0,
+			rogue INTEGER NOT NULL DEFAULT 0,
+			rogue_info TEXT NOT NULL DEFAULT '',
+			rogue_confidence INTEGER NOT NULL DEFAULT 0,
+			first_seen INTEGER NOT NULL,
+			last_seen INTEGER NOT NULL,
+			UNIQUE(site_id, bssid)
+		)`,
+		`CREATE TABLE wifi_clients (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			mac TEXT NOT NULL,
+			ap_bssid TEXT NOT NULL DEFAULT '',
+			signal_dbm INTEGER NOT NULL DEFAULT 0,
+			last_seen INTEGER NOT NULL,
+			UNIQUE(site_id, mac)
+		)`,
+		`CREATE INDEX idx_wifi_aps_channel ON wifi_aps(site_id, channel)`,
+		`CREATE INDEX idx_wifi_clients_ap ON wifi_clients(site_id, ap_bssid)`,
+	},
 }
 
 func (s *Store) migrate() error {

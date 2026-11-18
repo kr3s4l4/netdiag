@@ -76,6 +76,7 @@ type Config struct {
 	Security     Security     `yaml:"security" json:"security"`
 	Diagnostics  Diagnostics  `yaml:"diagnostics" json:"diagnostics"`
 	VPN          VPN          `yaml:"vpn" json:"vpn"`
+	WiFi         WiFi         `yaml:"wifi" json:"wifi"`
 	Log          Log          `yaml:"log" json:"log"`
 }
 
@@ -189,6 +190,18 @@ type VPN struct {
 	StaleAfter    Duration `yaml:"stale_after" json:"stale_after"`
 }
 
+// WiFi configures passive 802.11 monitoring. The interface must already be in
+// monitor mode; NetDiag never changes the device type.
+type WiFi struct {
+	Enabled          bool     `yaml:"enabled" json:"enabled"`
+	Interface        string   `yaml:"interface" json:"interface"`
+	Interval         Duration `yaml:"interval" json:"interval"`
+	ScanSeconds      int      `yaml:"scan_seconds" json:"scan_seconds"`
+	Channels         []int    `yaml:"channels" json:"channels"`
+	AuthorizedBSSIDs []string `yaml:"authorized_bssids" json:"authorized_bssids"`
+	KnownSSIDs       []string `yaml:"known_ssids" json:"known_ssids"`
+}
+
 type Log struct {
 	Level  string `yaml:"level" json:"level"`
 	Format string `yaml:"format" json:"format"` // text | json
@@ -268,6 +281,11 @@ func Defaults() *Config {
 			Interval:      Duration(5 * time.Minute),
 			MinConfidence: 60,
 			StaleAfter:    Duration(30 * time.Minute),
+		},
+		WiFi: WiFi{
+			Enabled:     false,
+			Interval:    Duration(5 * time.Minute),
+			ScanSeconds: 10,
 		},
 		Storage: Storage{
 			DataDir:        DefaultDataDir(),
@@ -434,6 +452,28 @@ func (c *Config) Normalize() error {
 	if c.VPN.StaleAfter.Duration() <= 0 {
 		c.VPN.StaleAfter = Duration(30 * time.Minute)
 	}
+	if c.WiFi.Interval.Duration() <= 0 {
+		c.WiFi.Interval = Duration(5 * time.Minute)
+	}
+	if c.WiFi.ScanSeconds <= 0 {
+		c.WiFi.ScanSeconds = 10
+	}
+	authorized := make([]string, 0, len(c.WiFi.AuthorizedBSSIDs))
+	for _, mac := range c.WiFi.AuthorizedBSSIDs {
+		mac = strings.ToLower(strings.TrimSpace(mac))
+		if mac != "" {
+			authorized = append(authorized, mac)
+		}
+	}
+	c.WiFi.AuthorizedBSSIDs = authorized
+	known := make([]string, 0, len(c.WiFi.KnownSSIDs))
+	for _, ssid := range c.WiFi.KnownSSIDs {
+		ssid = strings.TrimSpace(ssid)
+		if ssid != "" {
+			known = append(known, ssid)
+		}
+	}
+	c.WiFi.KnownSSIDs = known
 	return c.Validate()
 }
 
@@ -509,6 +549,18 @@ func (c *Config) Validate() error {
 	}
 	if c.VPN.StaleAfter.Duration() < time.Minute {
 		errs = append(errs, "vpn.stale_after mínimo 1m")
+	}
+	if c.WiFi.Interval.Duration() < 30*time.Second {
+		errs = append(errs, "wifi.interval mínimo 30s")
+	}
+	if c.WiFi.ScanSeconds < 1 || c.WiFi.ScanSeconds > 300 {
+		errs = append(errs, "wifi.scan_seconds debe estar entre 1 y 300")
+	}
+	for _, ch := range c.WiFi.Channels {
+		if ch < 1 || ch > 233 {
+			errs = append(errs, "wifi.channels contiene un canal fuera de rango (1-233)")
+			break
+		}
 	}
 	if (c.Server.TLSCert == "") != (c.Server.TLSKey == "") {
 		errs = append(errs, "server.tls_cert y server.tls_key deben configurarse juntos")
@@ -597,6 +649,12 @@ func applyEnv(c *Config) {
 	set("NETDIAG_VPN_INTERVAL", func(v string) {
 		if d, err := time.ParseDuration(v); err == nil {
 			c.VPN.Interval = Duration(d)
+		}
+	})
+	set("NETDIAG_WIFI_IFACE", func(v string) { c.WiFi.Interface = v })
+	set("NETDIAG_WIFI_SCAN_SECONDS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.WiFi.ScanSeconds = n
 		}
 	})
 	set("NETDIAG_SNMP", func(v string) {

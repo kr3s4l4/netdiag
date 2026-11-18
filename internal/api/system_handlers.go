@@ -11,6 +11,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/netutil"
 	"github.com/kr3s4l4/netdiag/internal/topology"
+	"github.com/kr3s4l4/netdiag/internal/wifi"
 )
 
 func (s *Server) systemInterfaces() ([]model.SystemInterface, error) {
@@ -41,14 +42,16 @@ func (s *Server) handleSystemInfo(w http.ResponseWriter, r *http.Request) {
 		DBSize:     s.dbSize(),
 		Interfaces: ifaces,
 		Capabilities: map[string]bool{
-			"active_arp":  discover.ARPAvailable(),
-			"passive_arp": true,
-			"icmp":        true,
-			"snmp":        true,
-			"alerts":      s.cfg.Alerts.Enabled,
-			"auth":        s.cfg.Security.Auth,
-			"monitor":     s.cfg.Monitor.Enabled,
-			"vpn":         s.cfg.VPN.Enabled,
+			"active_arp":   discover.ARPAvailable(),
+			"passive_arp":  true,
+			"icmp":         true,
+			"snmp":         true,
+			"alerts":       s.cfg.Alerts.Enabled,
+			"auth":         s.cfg.Security.Auth,
+			"monitor":      s.cfg.Monitor.Enabled,
+			"vpn":          s.cfg.VPN.Enabled,
+			"wifi_capture": wifi.Available(),
+			"wifi":         s.cfg.WiFi.Enabled && s.cfg.WiFi.Interface != "",
 		},
 	}
 	writeJSON(w, http.StatusOK, info)

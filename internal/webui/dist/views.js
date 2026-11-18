@@ -345,6 +345,107 @@ async function renderDiagnostics() {
     </div>`;
 }
 
+/* ------------------------------------------------------------------ */
+/* F11 WiFi analysis                                                   */
+/* ------------------------------------------------------------------ */
+
+function wifiSignalCell(dbm) {
+  const v = Number(dbm) || 0;
+  const tone = v >= -50 ? 'var(--green)' : v >= -70 ? 'var(--amber)' : 'var(--red)';
+  return `<span class="mono" style="color:${tone}">${esc(String(v))} dBm</span>`;
+}
+
+async function renderWiFi() {
+  setPageTitle('wifi');
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  const [status, apData, clientData, channelData] = await Promise.all([
+    api('/wifi/status'), api('/wifi/aps'), api('/wifi/clients'), api('/wifi/channels')
+  ]);
+  const aps = apData.items || [];
+  const clients = clientData.items || [];
+  const channels = channelData.items || [];
+  const rogue = aps.filter((ap) => ap.rogue).length;
+  const busy = channels.filter((ch) => ch.load === 'alta').length;
+  const canCapture = !!status.capture_available;
+
+  const apRows = aps.length ? aps.map((ap) => `
+    <tr>
+      <td><div class="name-cell"><b>${esc(ap.ssid || tr('(oculta)'))}</b><span class="mono-ip">${esc(ap.bssid)}</span></div></td>
+      <td>${esc(ap.channel || '—')} <span class="tiny muted">${esc(ap.band || '')}</span></td>
+      <td><span class="badge ${ap.encryption === 'abierta' ? 'critical' : 'info'}">${esc(ap.encryption)}</span></td>
+      <td>${wifiSignalCell(ap.signal_dbm)}</td>
+      <td>${fmtNum(ap.clients || 0)}</td>
+      <td>${ap.rogue
+        ? `<span class="badge critical">${esc(tr('No autorizado'))}</span>
+           <details class="diag-details"><summary class="tiny">${esc(tr('Evidencia'))}</summary>
+             <div class="diag-evidence"><div>· ${esc(ap.rogue_info)}</div>
+             <div>· ${esc(tr('Confianza'))}: ${ap.rogue_confidence || 0}%</div></div></details>`
+        : `<span class="badge up">${esc(tr('Autorizado'))}</span>`}</td>
+      <td class="tiny muted nowrap">${fmtDate(ap.last_seen)}</td>
+    </tr>`).join('') : `<tr><td colspan="7"><div class="empty">${icon('wifi')}<div><b>${esc(tr('Sin APs observados'))}</b>
+      <div class="tiny">${esc(tr('Captura beacons con una interfaz en modo monitor para poblar esta vista.'))}</div></div></div></td></tr>`;
+
+  const channelRows = channels.length ? channels.map((ch) => `
+    <tr>
+      <td><b>${esc(ch.channel)}</b> <span class="tiny muted">${esc(ch.band)}</span></td>
+      <td>${fmtNum(ch.aps)}</td><td>${fmtNum(ch.clients)}</td><td>${fmtNum(ch.overlap)}</td>
+      <td><span class="badge ${ch.load === 'alta' ? 'critical' : ch.load === 'media' ? 'warning' : 'up'}">${esc(tr(ch.load))}</span></td>
+      <td class="tiny">${esc(ch.suggest || '—')}</td>
+    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('radar')}<div><b>${esc(tr('Sin datos de canales'))}</b></div></div></td></tr>`;
+
+  const clientRows = clients.length ? clients.slice(0, 200).map((c) => `
+    <tr><td class="mono-ip">${esc(c.mac)}</td><td class="mono-ip">${esc(c.ap_bssid || '—')}</td>
+      <td>${wifiSignalCell(c.signal_dbm)}</td><td class="tiny muted">${fmtDate(c.last_seen)}</td></tr>`).join('')
+    : `<tr><td colspan="4"><div class="empty">${icon('network')}<div><b>${esc(tr('Sin clientes observados'))}</b></div></div></td></tr>`;
+
+  content.innerHTML = `
+    <div class="spread mb">
+      <div class="muted small">${esc(tr('Análisis pasivo de 802.11: APs, clientes, interferencia por canal y APs no autorizados según el inventario de referencia.'))}</div>
+      <button class="btn sm" data-action="wifi-scan">${icon('radar')} ${esc(tr('Capturar ahora'))}</button>
+    </div>
+    <div class="grid cols-4 mb">
+      ${statCard({ label: tr('APs'), value: fmtNum(aps.length), hint: tr('observaciones persistentes'), icon: 'wifi', tone: 'violet' })}
+      ${statCard({ label: tr('Clientes'), value: fmtNum(clients.length), hint: tr('estaciones detectadas'), icon: 'network', tone: 'accent' })}
+      ${statCard({ label: tr('APs no autorizados'), value: fmtNum(rogue), hint: tr('según inventario configurado'), icon: 'shield', tone: 'red' })}
+      ${statCard({ label: tr('Canales saturados'), value: fmtNum(busy), hint: tr('carga alta'), icon: 'radar', tone: 'amber' })}
+    </div>
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Puntos de acceso'))}</h3><span class="tiny muted">${esc(status.interface || tr('sin interfaz configurada'))} · ${esc(tr('ventana'))}: ${esc(String(status.scan_seconds || 10))}s</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>${esc(tr('SSID / BSSID'))}</th><th>${esc(tr('Canal'))}</th><th>${esc(tr('Cifrado'))}</th>
+          <th>${esc(tr('Señal'))}</th><th>${esc(tr('Clientes'))}</th><th>${esc(tr('Estado'))}</th><th>${esc(tr('Visto'))}</th></tr></thead>
+        <tbody>${apRows}</tbody>
+      </table></div>
+    </div>
+    <div class="grid cols-2 mb">
+      <div class="card">
+        <div class="card-head"><h3>${esc(tr('Canales e interferencias'))}</h3><span class="badge info">${esc(tr('Heurístico'))}</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>${esc(tr('Canal'))}</th><th>${esc(tr('APs'))}</th><th>${esc(tr('Clientes'))}</th>
+            <th>${esc(tr('Solape'))}</th><th>${esc(tr('Carga'))}</th><th>${esc(tr('Sugerencia'))}</th></tr></thead>
+          <tbody>${channelRows}</tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>${esc(tr('Clientes por AP'))}</h3><span class="tiny muted">${esc(tr('últimas observaciones'))}</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>${esc(tr('MAC'))}</th><th>${esc(tr('AP'))}</th><th>${esc(tr('Señal'))}</th><th>${esc(tr('Visto'))}</th></tr></thead>
+          <tbody>${clientRows}</tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="card pad">
+      <div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Limitaciones'))}</h3><span class="badge ${canCapture ? 'up' : 'warning'}">${esc(canCapture ? tr('Captura disponible') : tr('Captura no compilada'))}</span></div>
+      <ul class="diag-limits">
+        <li>${esc(tr('La interfaz debe configurarse previamente en modo monitor; NetDiag no cambia el modo del dispositivo.'))}</li>
+        <li>${esc(tr('El binario portable no incluye captura 802.11; se requiere compilar con -tags pcap.'))}</li>
+        <li>${esc(tr('El SSID puede suplantarse: el BSSID autorizado es la evidencia más fuerte; los SSID conocidos tienen menor confianza.'))}</li>
+        <li>${esc(tr('El solape en 2,4 GHz agrupa canales con separación inferior a cinco; en 5/6 GHz solo se considera el mismo canal.'))}</li>
+      </ul>
+    </div>`;
+}
+
 const VPN_TYPE_LABELS = { wireguard: 'WireGuard', openvpn: 'OpenVPN', ipsec: 'IPsec/IKE', pptp: 'PPTP' };
 
 async function renderVPN() {

@@ -90,6 +90,12 @@ var apiRoutes = []apiRoute{
 
 	{"GET", "/api/v1/topology", "Grafo de topología L2/L3", "Topología", false, false, "", []string{"site_id", "network_id"}, false, false},
 
+	{"GET", "/api/v1/wifi/status", "Estado y capacidad de captura WiFi", "WiFi", false, false, "", nil, false, false},
+	{"GET", "/api/v1/wifi/aps", "Listar APs WiFi observados", "WiFi", false, false, "", []string{"site_id", "limit"}, false, false},
+	{"GET", "/api/v1/wifi/clients", "Listar clientes WiFi observados", "WiFi", false, false, "", []string{"site_id", "limit"}, false, false},
+	{"GET", "/api/v1/wifi/channels", "Analizar ocupación e interferencia por canal", "WiFi", false, false, "", []string{"site_id"}, false, false},
+	{"POST", "/api/v1/wifi/scan", "Capturar beacons y clientes durante una ventana", "WiFi", false, false, "", []string{"site_id"}, false, false},
+	{"DELETE", "/api/v1/wifi/aps", "Borrar observaciones WiFi de una sede", "WiFi", false, true, "", []string{"site_id"}, false, false},
 	{"GET", "/api/v1/vpn/tunnels", "Listar túneles VPN detectados", "VPN", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/vpn/scan", "Observar túneles VPN ahora", "VPN", false, false, "", []string{"site_id"}, false, false},
 	{"DELETE", "/api/v1/vpn/tunnels/{id}", "Eliminar una observación VPN", "VPN", false, true, "", nil, false, false},

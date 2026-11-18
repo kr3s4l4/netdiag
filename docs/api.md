@@ -233,6 +233,21 @@ curl -b cookies.txt -H "X-CSRF-Token: $CSRF" -X POST \
   http://127.0.0.1:8080/api/v1/integrations/1/test
 ```
 
+### WiFi (F11)
+
+Captura pasiva 802.11 y análisis de APs/clientes. Las lecturas están disponibles para cualquier rol autenticado; `POST /wifi/scan` requiere `canWrite` y `DELETE /wifi/aps` requiere `admin`/`owner`.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/wifi/status` | `{capture_available, enabled, interface, interval, scan_seconds, channels, authorized_bssids, known_ssids, note}` |
+| GET | `/wifi/aps` | `{items, total}`; cada AP incluye `bssid`, `ssid`, `channel`, `band`, `encryption`, `signal_dbm`, `beacons`, `clients`, `rogue`, `rogue_info`, `rogue_confidence`, `first_seen`, `last_seen` |
+| GET | `/wifi/clients` | `{items, total}`; `mac`, `ap_bssid`, `signal_dbm`, `last_seen` |
+| GET | `/wifi/channels` | `{items, total}`; agregado por canal con `aps`, `clients`, `overlap`, `load` (`baja`/`media`/`alta`) y `suggest` |
+| POST | `/wifi/scan` | Captura una ventana; responde `{ok:true, result:{aps, clients, frames, duration_ms}}`; `503` si no hay binario `-tags pcap` o interfaz configurada |
+| DELETE | `/wifi/aps` | Borra APs y clientes de `site_id`; `200` con `{ok:true}` |
+
+La interfaz debe estar previamente en modo monitor: NetDiag no cambia el modo del dispositivo. El salto de canales definido en `wifi.channels` usa `iw` de forma best effort. La detección de AP no autorizado compara `bssid` con `wifi.authorized_bssids` y `ssid` con `wifi.known_ssids`; cada veredicto incluye una explicación y confianza (65 si solo coincide el SSID, 90 si el BSSID no está autorizado). Sin inventario no se emite veredicto. Los parámetros se editan en `PUT /system/config` (bloque `wifi`).
+
 ### VPN (F12)
 
 Observación pasiva de túneles. La lectura está disponible para cualquier rol autenticado; forzar una observación requiere `canWrite` (`admin`, `owner`, `operator`) y borrar una observación requiere `admin`/`owner`.

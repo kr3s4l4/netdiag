@@ -26,6 +26,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/store"
 	"github.com/kr3s4l4/netdiag/internal/vpn"
 	"github.com/kr3s4l4/netdiag/internal/webui"
+	"github.com/kr3s4l4/netdiag/internal/wifi"
 )
 
 // BuildInfo carries linker-injected build metadata.
@@ -47,6 +48,7 @@ type App struct {
 	alerts       *alerts.Manager
 	integrations *integrations.Manager
 	vpn          *vpn.Manager
+	wifi         *wifi.Manager
 	reports      *report.Generator
 	backups      *backup.Manager
 	engine       *discover.Engine
@@ -111,6 +113,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		alerts:       alerts.New(st, cfg.Alerts, log),
 		integrations: integrations.New(st, cfg.Integrations, log),
 		vpn:          vpn.New(st, cfg.VPN, log),
+		wifi:         wifi.New(st, cfg.WiFi, log),
 		reports:      reports,
 		backups:      backup.New(st, cfg, cfgPath, log),
 		engine:       discover.New(),
@@ -126,6 +129,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		Alerts:       a.alerts,
 		Integrations: a.integrations,
 		VPN:          a.vpn,
+		WiFi:         a.wifi,
 		Reports:      reports,
 		Backups:      a.backups,
 		Scanner:      a,
@@ -179,6 +183,7 @@ func (a *App) Run(ctx context.Context) error {
 	a.alerts.Start(ctx)
 	a.integrations.Start(ctx)
 	go a.vpn.Start(ctx)
+	go a.wifi.Start(ctx)
 	go a.monitorLoop(ctx)
 	go a.maintenanceLoop(ctx)
 	if a.backups != nil {
@@ -276,6 +281,7 @@ func (a *App) UpdateConfig(cfg *config.Config) error {
 	a.alerts.UpdateConfig(cfg.Alerts)
 	a.integrations.UpdateConfig(cfg.Integrations)
 	a.vpn.UpdateConfig(cfg.VPN)
+	a.wifi.UpdateConfig(cfg.WiFi)
 	if a.backups != nil {
 		a.backups.UpdateConfig(cfg)
 	}

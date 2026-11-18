@@ -658,6 +658,47 @@ type AlertFilter struct {
 	Limit    int
 }
 
+// WifiAP is one access point observed during a passive 802.11 capture.
+type WifiAP struct {
+	ID              int64     `json:"id"`
+	SiteID          int64     `json:"site_id"`
+	BSSID           string    `json:"bssid"`
+	SSID            string    `json:"ssid"`
+	Channel         int       `json:"channel"`
+	Band            string    `json:"band"`
+	Encryption      string    `json:"encryption"`
+	SignalDBM       int       `json:"signal_dbm"`
+	Vendor          string    `json:"vendor,omitempty"`
+	Beacons         int64     `json:"beacons"`
+	Clients         int       `json:"clients"`
+	Rogue           bool      `json:"rogue"`
+	RogueInfo       string    `json:"rogue_info,omitempty"`
+	RogueConfidence int       `json:"rogue_confidence,omitempty"`
+	FirstSeen       time.Time `json:"first_seen"`
+	LastSeen        time.Time `json:"last_seen"`
+}
+
+// WifiClient is a station observed in the same capture.
+type WifiClient struct {
+	ID        int64     `json:"id"`
+	SiteID    int64     `json:"site_id"`
+	MAC       string    `json:"mac"`
+	APBSSID   string    `json:"ap_bssid"`
+	SignalDBM int       `json:"signal_dbm"`
+	LastSeen  time.Time `json:"last_seen"`
+}
+
+// WifiChannel aggregates AP load per channel for interference analysis.
+type WifiChannel struct {
+	Channel int    `json:"channel"`
+	Band    string `json:"band"`
+	APs     int    `json:"aps"`
+	Clients int    `json:"clients"`
+	Overlap int    `json:"overlap"`
+	Load    string `json:"load"` // baja | media | alta
+	Suggest string `json:"suggest,omitempty"`
+}
+
 // VPNTunnel is a heuristic view of a VPN tunnel observed on the host or in
 // the scan inventory. Bytes are cumulative counters when available (local
 // interfaces); remote-only observations report zero with an explicit note.

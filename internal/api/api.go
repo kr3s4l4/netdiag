@@ -19,6 +19,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
 	"github.com/kr3s4l4/netdiag/internal/vpn"
+	"github.com/kr3s4l4/netdiag/internal/wifi"
 )
 
 // ScanRequest is the transport payload for starting a discovery run.
@@ -51,6 +52,7 @@ type Deps struct {
 	Alerts       *alerts.Manager
 	Integrations *integrations.Manager
 	VPN          *vpn.Manager
+	WiFi         *wifi.Manager
 	Reports      *report.Generator
 	Backups      *backup.Manager
 	Scanner      Scanner
@@ -70,6 +72,7 @@ type Server struct {
 	alerts       *alerts.Manager
 	integrations *integrations.Manager
 	vpn          *vpn.Manager
+	wifi         *wifi.Manager
 	reports      *report.Generator
 	backups      *backup.Manager
 	scanner      Scanner
@@ -100,6 +103,7 @@ func New(d Deps) *Server {
 		alerts:       d.Alerts,
 		integrations: d.Integrations,
 		vpn:          d.VPN,
+		wifi:         d.WiFi,
 		reports:      d.Reports,
 		backups:      d.Backups,
 		scanner:      d.Scanner,
@@ -218,6 +222,14 @@ func (s *Server) register() {
 	m.HandleFunc("GET /api/v1/vpn/tunnels", s.handleListVPNTunnels)
 	m.HandleFunc("POST /api/v1/vpn/scan", s.handleVPNScan)
 	m.HandleFunc("DELETE /api/v1/vpn/tunnels/{id}", s.handleDeleteVPNTunnel)
+
+	// ---- F11 WiFi analysis ----
+	m.HandleFunc("GET /api/v1/wifi/status", s.handleWifiStatus)
+	m.HandleFunc("GET /api/v1/wifi/aps", s.handleListWifiAPs)
+	m.HandleFunc("GET /api/v1/wifi/clients", s.handleListWifiClients)
+	m.HandleFunc("GET /api/v1/wifi/channels", s.handleListWifiChannels)
+	m.HandleFunc("POST /api/v1/wifi/scan", s.handleWifiScan)
+	m.HandleFunc("DELETE /api/v1/wifi/aps", s.handleClearWifiObservations)
 
 	// ---- reports ----
 	m.HandleFunc("GET /api/v1/reports", s.handleListReports)
