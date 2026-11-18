@@ -25,15 +25,13 @@ La rotación se hace con un fichero `KEY_ROTATION.md` firmado por la clave raíz
 
 ## Artefactos por versión
 
-Para `v1.5.0`, el directorio inmutable del espejo contiene:
+Para `1.5.1`, el directorio inmutable del espejo contiene:
 
 ```text
-releases/v1.5.0/
-  netdiag_1.5.0_linux_amd64
-  netdiag_1.5.0_linux_arm64
-  netdiag_1.5.0_linux_amd64_pcap
-  netdiag_1.5.0_linux_arm64_pcap
-  netdiag_1.5.0_linux_amd64.ndc
+releases/1.5.1/
+  netdiag-linux-amd64
+  netdiag-linux-arm64
+  netdiag_1.5.1_linux_amd64.ndc
   SHA256SUMS
   SHA256SUMS.minisig
   manifest.json
@@ -41,67 +39,80 @@ releases/v1.5.0/
   RELEASE_NOTES.md
   RELEASE_NOTES.md.minisig
   sbom.cdx.json
+  sbom.cdx.json.minisig
   provenance.intoto.jsonl
+  provenance.intoto.jsonl.minisig
+  release.pub
 ```
+
+Si se usa `--pcap`, se añade `netdiag-linux-amd64-pcap`. Esa variante usa CGO y no se promete bit a bit reproducible entre distribuciones; la referencia firmada es la portable.
 
 `manifest.json` sigue exactamente el formato consumido por F23:
 
 ```json
 {
-  "schema": 1,
-  "version": "1.5.0",
-  "url": "https://updates.netdiag.example/releases/v1.5.0/netdiag_1.5.0_linux_amd64",
+  "schema": "netdiag/update/v1",
+  "version": "1.5.1",
+  "url": "https://updates.netdiag.example/releases/1.5.1/netdiag-linux-amd64",
   "checksum": "<sha256 del binario>",
-  "released_at": "2026-11-18T00:00:00Z",
-  "notes": "https://updates.netdiag.example/releases/v1.5.0/RELEASE_NOTES.md"
+  "released_at": "2026-11-18T11:40:00Z",
+  "notes": "NetDiag 1.5.1",
+  "signature": "<minisign sobre el manifiesto canónico>"
 }
 ```
 
-El comentario de confianza de la firma debe ligar `version:1.5.0` y `sha256:<checksum del manifiesto>`. Ver `internal/update/` para la canonicalización exacta; no se cambia el orden de campos ni se añaden espacios.
+La firma interna del manifiesto liga `version:1.5.1` y `sha256:<checksum del binario>`. La firma separada `manifest.json.minisig` liga `version:1.5.1` y `sha256:<checksum del propio manifiesto>`. Ver `internal/update/` para la canonicalización exacta; no se cambia el orden de campos ni se añaden espacios.
 
-## Build reproducible
+## Build reproducible (F37)
+
+Un solo comando genera binarios, SBOM, procedencia, notas, manifiesto, `.ndc`, sumas y firmas:
 
 ```bash
-export VERSION=1.5.0
-export COMMIT=$(git rev-parse HEAD)
-export SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)
+# Solo para pruebas: genera signing.json y release.pub en una ruta privada.
+make release-keygen KEYS_DIR=/ruta/privada
 
-git status --porcelain          # debe estar limpio
-go mod verify
-go mod download
-
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-  go build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' \
-  -o dist/netdiag_${VERSION}_linux_amd64 ./cmd/netdiag
-
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-  go build -trimpath -buildvcs=false -ldflags='-s -w -buildid=' \
-  -o dist/netdiag_${VERSION}_linux_arm64 ./cmd/netdiag
+make release-secure \
+  RELEASE_VERSION=1.5.1 \
+  SIGNING_JSON=/ruta/privada/signing.json \
+  PUBLIC_KEY=/ruta/privada/release.pub \
+  NOTES_FILE=/ruta/RELEASE_NOTES.md \
+  RELEASE_BASE_URL=https://updates.netdiag.example/releases/1.5.1
 ```
 
-La variante `pcap` necesita `libpcap-dev` y CGO; por no ser reproducible bit a bit entre distribuciones, se publica con el **digest del contenedor de build** en las notas. La variante portable es la referencia para el manifiesto F23.
+Equivalente directo:
 
-**Prueba de reproducibilidad:** repetir el build desde el mismo commit en otra máquina y comparar `sha256sum`. Si difiere, la versión no se publica.
+```bash
+SOURCE_DATE_EPOCH=$(git log -1 --format=%ct HEAD) \
+scripts/release.sh --version 1.5.1 \
+  --signing-json /ruta/privada/signing.json \
+  --public-key /ruta/privada/release.pub \
+  --notes-file /ruta/RELEASE_NOTES.md \
+  --base-url https://updates.netdiag.example/releases/1.5.1
+```
+
+El script exige árbol limpio, `go mod verify`, `CGO_ENABLED=0`, `-trimpath`, `-buildvcs=false`, `-ldflags '-s -w -buildid= …'` y `SOURCE_DATE_EPOCH` derivado del commit. Fija también la fecha del manifiesto `.ndc` con `--created-at`, para que el contenedor sea idéntico en dos ejecuciones.
+
+La variante `pcap` se activa con `--pcap`. Necesita `libpcap-dev` y CGO; por no ser reproducible bit a bit entre distribuciones, se publica con el **digest del contenedor de build** en las notas. La portable es la referencia del manifiesto F23.
+
+**Prueba de reproducibilidad:** repetir el pipeline desde el mismo commit con el mismo `SOURCE_DATE_EPOCH` y comparar `SHA256SUMS` y el `.ndc`. Si difieren, la versión no se publica.
 
 ## Firma
 
-Con la clave de release en hardware/offline:
+La firma se hace con `netdiag-release`, herramienta offline que nunca usa red:
 
-```bash
-cd dist
-
-sha256sum netdiag_${VERSION}_* manifest.json RELEASE_NOTES.md sbom.cdx.json > SHA256SUMS
-minisign -S -s "$RELEASE_KEY" -m SHA256SUMS \
-  -x SHA256SUMS.minisig -t "NetDiag ${VERSION} SHA256SUMS"
-
-minisign -S -s "$RELEASE_KEY" -m manifest.json \
-  -x manifest.json.minisig -t "version:${VERSION} sha256:$(sha256sum manifest.json | cut -d' ' -f1)"
-
-minisign -S -s "$RELEASE_KEY" -m RELEASE_NOTES.md \
-  -x RELEASE_NOTES.md.minisig -t "version:${VERSION} notes"
+```sh
+go run ./cmd/netdiag-release keygen --out /ruta/privada    # SOLO PRUEBAS
+go run ./cmd/netdiag-release sign --in ARCHIVO --out ARCHIVO.minisig \
+  --seed-file /ruta/privada/signing.json --comment "version:1.5.1 …"
+go run ./cmd/netdiag-release verify --in ARCHIVO --sig ARCHIVO.minisig \
+  --key /ruta/privada/release.pub
+go run ./cmd/netdiag-release manifest --version 1.5.1 --url … --checksum … \
+  --seed-file /ruta/privada/signing.json --out manifest.json
+go run ./cmd/netdiag-release verify-manifest --in manifest.json \
+  --key /ruta/privada/release.pub
 ```
 
-El contenedor `.ndc` se firma con el mismo esquema que F36: la firma cubre `manifest.json` interno, que a su vez enumera el SHA256 de cada fichero del `payload/`. Nunca se firma un ZIP directamente sin manifiesto interno.
+`sign` usa Minisign puro (`ED`), sin dependencias de red. El comentario firmado liga siempre `version:` y el `sha256:` del propio archivo (o del binario, en la firma interna del manifiesto F23). El `.ndc` se firma con el mismo esquema que F36: la firma cubre su `manifest.json` interno, que enumera el SHA256 de cada fichero del `payload/`. Nunca se firma un ZIP directamente sin manifiesto interno.
 
 ## Formato `.ndc` (F36)
 
@@ -169,17 +180,29 @@ Ese archivo se guarda fuera del repositorio con permisos `0600` y no se distribu
 
 ## SBOM y procedencia
 
-- Generar `sbom.cdx.json` en CycloneDX con `syft packages ./... -o cyclonedx-json=sbom.cdx.json` (o equivalente).
-- Incluir `go version -m <binario>` y `go list -m all` como anexo de `provenance.intoto.jsonl`.
-- La atestación registra: commit, tag, Go version, `SOURCE_DATE_EPOCH`, comando de build, autor de la firma y OAuth/OIDC del runner si aplica.
+El pipeline genera ambos con scripts locales, sin red:
+
+- `scripts/sbom.py` usa `go list -m -json all` y produce CycloneDX 1.5 determinista. El `serialNumber` deriva del contenido y de `SOURCE_DATE_EPOCH`.
+- `scripts/provenance.py` escribe una atestación in-toto/SLSA con commit, tag, versión de Go, `SOURCE_DATE_EPOCH` y SHA256 de `go.mod`/`go.sum`.
+- Ambos artefactos se firman con `netdiag-release sign`, igual que las notas y `SHA256SUMS`.
 - `THIRD_PARTY_LICENSES.md` debe corresponder al mismo grafo de módulos que el SBOM.
 
 ## Verificación del cliente
 
+Verificación completa, sin red y sin ejecutar el binario:
+
+```bash
+scripts/verify-release.sh --dir releases/1.5.1 --version 1.5.1
+```
+
+Comprueba, en este orden: firma de `SHA256SUMS`, todos los hashes, manifiesto F23, firmas separadas de notas/SBOM/procedencia/manifiesto, contenedor `.ndc` y que el manifiesto apunte al binario verificado.
+
+Equivalente con herramientas del sistema:
+
 ```bash
 # 1) Descargar clave pública oficial desde docs/public_keys.md
-curl -fsSLO https://updates.netdiag.example/releases/v1.5.0/SHA256SUMS
-curl -fsSLO https://updates.netdiag.example/releases/v1.5.0/SHA256SUMS.minisig
+curl -fsSLO https://updates.netdiag.example/releases/1.5.1/SHA256SUMS
+curl -fsSLO https://updates.netdiag.example/releases/1.5.1/SHA256SUMS.minisig
 
 # 2) Verificar la firma antes de mirar los hashes
 minisign -Vm SHA256SUMS -p netdiag-release.pub
@@ -188,7 +211,7 @@ minisign -Vm SHA256SUMS -p netdiag-release.pub
 sha256sum -c SHA256SUMS
 
 # 4) Verificar el contenedor firmado (F36)
-netdiag container verify --key netdiag-release.pub netdiag_1.5.0_linux_amd64.ndc
+netdiag container verify --key netdiag-release.pub netdiag_1.5.1_linux_amd64.ndc
 
 # 5) Verificar el manifiesto que consumirá F23
 minisign -Vm manifest.json -p netdiag-release.pub

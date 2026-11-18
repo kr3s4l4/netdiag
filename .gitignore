@@ -1,6 +1,8 @@
 # Binarios y artefactos de compilación
 /bin/
 /dist/
+/netdiag
+/netdiag-release
 *.exe
 
 # Datos locales y secretos
@@ -9,6 +11,7 @@
 *.db-wal
 secret.key
 *.log
+/.release-test-keys/
 data/
 reports/
 

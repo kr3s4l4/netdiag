@@ -8,7 +8,18 @@ GO        ?= go
 PREFIX    ?= /usr/local
 DESTDIR   ?=
 
-.PHONY: all build build-pcap test test-race vet fmt fmt-check tidy run clean install release help
+# F37: publicación reproducible. Estas variables se pasan desde el entorno;
+# la clave de firma NUNCA se guarda en el repositorio.
+RELEASE_VERSION ?= $(VERSION)
+SIGNING_JSON    ?=
+PUBLIC_KEY      ?=
+NOTES_FILE      ?=
+RELEASE_BASE_URL ?=
+RELEASE_OUT     ?=
+RELEASE_DIR     ?=
+KEYS_DIR        ?=
+
+.PHONY: all build build-pcap test test-race vet fmt fmt-check tidy run clean install release release-secure verify-release release-keygen help
 
 all: build
 
@@ -63,6 +74,29 @@ release:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -trimpath -ldflags '$(LDFLAGS)' -o dist/netdiag-linux-amd64 ./cmd/netdiag
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build -trimpath -ldflags '$(LDFLAGS)' -o dist/netdiag-linux-arm64 ./cmd/netdiag
 	@echo "→ dist/"
+
+## release-keygen: crea una clave de PRUEBA en KEYS_DIR (nunca para releases oficiales)
+release-keygen:
+	@test -n "$(KEYS_DIR)" || { echo "Define KEYS_DIR=/ruta/privada" >&2; exit 1; }
+	$(GO) run ./cmd/netdiag-release keygen --out "$(KEYS_DIR)"
+
+## release-secure: build reproducible, firmas, SBOM, procedencia y .ndc (F37)
+release-secure:
+	@test -n "$(SIGNING_JSON)" || { echo "Define SIGNING_JSON=/ruta/signing.json" >&2; exit 1; }
+	@test -n "$(NOTES_FILE)" || { echo "Define NOTES_FILE=/ruta/RELEASE_NOTES.md" >&2; exit 1; }
+	scripts/release.sh --version "$(RELEASE_VERSION)" \
+		--signing-json "$(SIGNING_JSON)" \
+		$(if $(PUBLIC_KEY),--public-key "$(PUBLIC_KEY)",) \
+		--notes-file "$(NOTES_FILE)" \
+		$(if $(RELEASE_BASE_URL),--base-url "$(RELEASE_BASE_URL)",) \
+		$(if $(RELEASE_OUT),--out "$(RELEASE_OUT)",)
+
+## verify-release: verifica un release firmado sin red (F37)
+verify-release:
+	@test -n "$(RELEASE_DIR)" || { echo "Define RELEASE_DIR=/ruta/al/release" >&2; exit 1; }
+	scripts/verify-release.sh --dir "$(RELEASE_DIR)" \
+		$(if $(RELEASE_VERSION),--version "$(RELEASE_VERSION)",) \
+		$(if $(PUBLIC_KEY),--key "$(PUBLIC_KEY)",)
 
 ## clean: elimina artefactos
 clean:

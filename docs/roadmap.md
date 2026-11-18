@@ -181,20 +181,24 @@ Detalle de formato, comandos y protecciones en `docs/publicacion-segura.md`.
 
 **Esfuerzo:** 6–8 h (realizado).
 
-### F37 — Publicación segura y reproducible
+### F37 — Publicación segura y reproducible — **implementado, verificado, pendiente de release**
 
-- Build reproducible: Go 1.27.x fijado, `CGO_ENABLED=0`, `-trimpath`, `-buildvcs=false`, `SOURCE_DATE_EPOCH` derivado del commit, `go mod verify`.
+Herramientas: `cmd/netdiag-release`, `scripts/release.sh`, `scripts/verify-release.sh`, `scripts/sbom.py` y `scripts/provenance.py`. Objetivos de `make release-secure`, `make verify-release` y `make release-keygen`.
+
+- Build reproducible: Go 1.27.x fijado, `CGO_ENABLED=0`, `-trimpath`, `-buildvcs=false`, `-ldflags '-s -w -buildid='`, `SOURCE_DATE_EPOCH` derivado del commit, `go mod verify`.
 - Generar por versión: binarios linux/amd64 y linux/arm64, variante `-tags pcap`, `SHA256SUMS`, `SHA256SUMS.minisig`, `manifest.json` F23, `RELEASE_NOTES.md` firmado, SBOM CycloneDX y atestación de procedencia.
 - Clave minisign de release en hardware/offline; clave raíz aparte solo para rotar la de release; publicación de clave y revocación en `docs/public_keys.md`.
 - Espejo HTTPS inmutable (`releases/<versión>/`) con tags de git inmutables; sin HTTP, sin credenciales en URL, HSTS y listado de checksums en la página de descarga.
 - F23 consume exactamente `manifest.json` + `public_key` del espejo oficial; el cliente puede sustituir ambos por su espejo interno.
 - Enterprise recibe el mismo artefacto firmado, licencia offline y manifiesto para alojarlo en su red sin conexión externa.
 
-**Criterio de cierre:** desde un checkout limpio se reconstruye el mismo SHA256 publicado, todos los artefactos verifican con la clave pública documentada y una nota manipulada rompe la verificación.
+**Criterio de cierre (cumplido):** desde un checkout limpio, dos ejecuciones con el mismo `SOURCE_DATE_EPOCH` producen `SHA256SUMS`, manifiesto, SBOM y `.ndc` byte a byte idénticos. `scripts/verify-release.sh` valida firmas, hashes, manifiesto F23 y contenedor; al añadir un byte a `RELEASE_NOTES.md` la verificación termina con `NO VÁLIDO` y código de salida 1. Se usó una clave de prueba de `netdiag-release keygen`; la clave oficial `netdiag-release` sigue siendo la que se documentará en `docs/public_keys.md`.
 
-**Esfuerzo:** 8–12 h.
+**Esfuerzo:** 8–12 h (realizado).
 
-### F38 — Paquete de confianza empresarial
+### F38 — Paquete de confianza empresarial — **documentación y plantillas listas**
+
+Paquete en `docs/confianza-empresarial.md`, `docs/comercializacion.md` y `docs/plantillas/`. La demo con datos sintéticos depende de F39.
 
 - Documentos: whitepaper de seguridad, modelo de amenazas, flujo de datos, DPA/EULA, matriz SLA, guía de endurecimiento y política de vulnerabilidades.
 - Proceso: prueba de 30 días, PoC guiado, presupuesto con SKU, orden de compra, factura anual, licencia firmada y alta en soporte.
@@ -229,7 +233,9 @@ Detalle de formato, comandos y protecciones en `docs/publicacion-segura.md`.
 
 **Esfuerzo:** 4–6 h.
 
-### F41 — Cumplimiento CRA y responsabilidad por terceros
+### F41 — Cumplimiento CRA y responsabilidad por terceros — **proceso documentado; `min_version` pendiente de código**
+
+Runbook y plantillas en `SECURITY.md` y `docs/plantillas/`. La parte técnica del manifiesto se implementará con F23.
 
 - Política de soporte de seguridad publicada: versión contratada durante la suscripción + 12 meses. Debe aparecer en `SECURITY.md`, en la orden de compra y en el EULA.
 - Runbook de incidentes: responsable único, cuenta en la Single Reporting Platform de ENISA, árbol de decisión «¿explotación activa o incidente grave?» y plantillas de aviso 24 h / 72 h.
@@ -242,7 +248,9 @@ Detalle de formato, comandos y protecciones en `docs/publicacion-segura.md`.
 
 **Esfuerzo:** 8–12 h de proceso y plantillas, más la gestión continua.
 
-### F42 — Validación de mercado sin telemetría
+### F42 — Validación de mercado sin telemetría — **plantillas listas; ejecución en curso**
+
+Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantillas/`.
 
 - Publicar Community y medir solo fuentes públicas: descargas de GitHub, estrellas, forks, issues y Discussions.
 - Discussion fijado con tres preguntas: dónde se desplegó, qué se intentó hacer, qué faltó.

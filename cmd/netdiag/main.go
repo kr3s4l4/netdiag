@@ -1319,6 +1319,7 @@ Opciones:
   --sbom RUTA             Añade sbom.cdx.json (build)
   --seed-file RUTA        JSON con {"seed":"base64","key_id":"hex16"} (build)
   --key-id HEX16          Sobrescribe key_id del JSON (build)
+  --created-at RFC3339    Fecha del manifiesto (build; por defecto, ahora)
   --out RUTA              Archivo .ndc de salida (build)`)
 		return 2
 	}
@@ -1332,6 +1333,7 @@ Opciones:
 	seedFlag := fs.String("seed-file", "", "JSON con seed y key_id del emisor (build)")
 	keyIDFlag := fs.String("key-id", "", "id de clave minisign en hexadecimal (build)")
 	sbomFlag := fs.String("sbom", "", "ruta a sbom.cdx.json (build)")
+	createdFlag := fs.String("created-at", "", "fecha RFC3339 del manifiesto (build)")
 	outFlag := fs.String("out", "", "archivo .ndc de salida (build)")
 	fs.Usage = func() { fmt.Fprintf(os.Stderr, "Uso: netdiag container %s [opciones]\n", sub) }
 	if err := parseFlags(fs, args[1:]); err != nil {
@@ -1397,14 +1399,22 @@ Opciones:
 				return fail("%v", err)
 			}
 		}
+		var created time.Time
+		if *createdFlag != "" {
+			created, err = time.Parse(time.RFC3339, *createdFlag)
+			if err != nil {
+				return fail("created-at no válido: %v", err)
+			}
+		}
 		if err := container.Build(*outFlag, container.BuildOptions{
-			Version:  strings.TrimSpace(*versionFlag),
-			Kind:     strings.TrimSpace(*kindFlag),
-			Producer: strings.TrimSpace(*producerFlag),
-			Files:    inputs,
-			SBOM:     sbom,
-			Seed:     seed,
-			KeyID:    keyID,
+			Version:   strings.TrimSpace(*versionFlag),
+			Kind:      strings.TrimSpace(*kindFlag),
+			Producer:  strings.TrimSpace(*producerFlag),
+			Files:     inputs,
+			SBOM:      sbom,
+			Seed:      seed,
+			KeyID:     keyID,
+			CreatedAt: created,
 		}); err != nil {
 			return fail("%v", err)
 		}
