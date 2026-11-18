@@ -2,7 +2,10 @@
 package webui
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"io/fs"
 	"net/http"
 	"path"
@@ -22,6 +25,7 @@ func Handler(apiHandler http.Handler) http.Handler {
 	}
 	files := http.FileServer(http.FS(dist))
 	index, _ := fs.ReadFile(dist, "index.html")
+	index = versionAssets(index, assetVersion(dist))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/metrics" {
@@ -74,4 +78,38 @@ func serveIndex(w http.ResponseWriter, r *http.Request, index []byte) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Last-Modified", time.Now().UTC().Format(http.TimeFormat))
 	_, _ = w.Write(index)
+}
+
+// assetVersion devuelve una huella corta de los assets embebidos. Se usa como
+// query string en el índice para que un cambio en el JS o CSS cambie la URL y
+// ningún navegador pueda reutilizar una copia antigua en memoria.
+func assetVersion(dist fs.FS) string {
+	entries, err := fs.ReadDir(dist, ".")
+	if err != nil {
+		return "1"
+	}
+	h := sha256.New()
+	for _, entry := range entries {
+		if entry.IsDir() || entry.Name() == "index.html" {
+			continue
+		}
+		data, err := fs.ReadFile(dist, entry.Name())
+		if err != nil {
+			continue
+		}
+		_, _ = h.Write([]byte(entry.Name()))
+		_, _ = h.Write(data)
+	}
+	return hex.EncodeToString(h.Sum(nil))[:12]
+}
+
+func versionAssets(index []byte, version string) []byte {
+	for _, asset := range []string{"styles.css", "i18n.js", "views.js", "app.js", "views-saved.js"} {
+		for _, attr := range []string{"href", "src"} {
+			old := []byte(attr + `="/` + asset + `"`)
+			newValue := []byte(attr + `="/` + asset + `?v=` + version + `"`)
+			index = bytes.ReplaceAll(index, old, newValue)
+		}
+	}
+	return index
 }

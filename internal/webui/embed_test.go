@@ -3,6 +3,7 @@ package webui
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -58,6 +59,33 @@ func TestHandlerServesSPAAndHealthz(t *testing.T) {
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"ok"`) {
 		t.Fatalf("healthz inesperado: %d %q", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHandlerVersionsEmbeddedAssets(t *testing.T) {
+	api := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
+	h := Handler(api)
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := rec.Body.String()
+
+	re := regexp.MustCompile(`src="/app\.js\?v=([a-f0-9]{12})"`)
+	match := re.FindStringSubmatch(body)
+	if match == nil {
+		t.Fatalf("app.js no aparece versionado en el índice: %q", body)
+	}
+	version := match[1]
+	for _, asset := range []string{"styles.css", "i18n.js", "views.js", "app.js", "views-saved.js"} {
+		if !strings.Contains(body, "/"+asset+"?v="+version) {
+			t.Errorf("%s no usa la versión %s", asset, version)
+		}
+	}
+
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/app.js?v="+version, nil))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "function api(") {
+		t.Fatalf("app.js versionado no servido: %d", rec.Code)
 	}
 }
 
