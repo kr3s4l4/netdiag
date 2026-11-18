@@ -282,6 +282,12 @@ También están disponibles `netdiag update check|apply|rollback|commit` y el fl
 
 Consultar el estado y comprobar versiones es posible para cualquier rol autenticado; aplicar o revertir exige `admin`/`owner`. El manejo del gestor usa solo la biblioteca estándar más `x/crypto/blake2b` (ya presente); no se incorporó la dependencia externa sugerida en el roadmap para mantener el binario portable y el control total de la verificación.
 
+## Licencia offline y contenedores firmados
+
+`netdiag license show|activate|clear|sign` gestiona una licencia Ed25519 local en `<data_dir>/license.json`, sin consultas a servidores externos. `GET /api/v1/system/license` expone edición, límites y avisos a cualquier rol autenticado; caducidad o exceso de banda nunca bloquean la lectura ni borran datos. El formato y la clave pública están en `docs/licenciamiento.md` y `docs/public_keys.md`.
+
+`netdiag container inspect|verify|build` trabaja con contenedores `.ndc`: ZIP con manifiesto canónico, `payload/`, firma minisign y SBOM opcional. `verify` devuelve código `1` si la firma o el contenido no coinciden; `inspect` permite ver el contenido aunque sea un archivo manipulado. El formato y los comandos están en `docs/publicacion-segura.md`.
+
 ## Fases opcionales diferidas
 
 El roadmap clasifica F13, F14, F15, F16, F17 y F26 como opcionales/de baja prioridad. Se documenta aquí por qué no se incluyen en esta entrega:

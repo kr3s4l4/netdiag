@@ -12,7 +12,8 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F24 | Backup automático programado |
 | F33, F34 | Decisiones cerradas; documentación legal y comercial añadida en `1.5.0` |
 | F35 | Implementado: licencia Ed25519 offline, CLI, API, UI y backup |
-| F36–F40 | Planificados; detallados más abajo |
+| F36 | Implementado: contenedor `.ndc` ZIP firmado, inspect/verify/build |
+| F37–F40 | Planificados; detallados más abajo |
 | Pruebas | `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -165,7 +166,9 @@ Detalle de uso, claves y restauración en `docs/licenciamiento.md`.
 
 **Esfuerzo:** 6–8 h (realizado).
 
-### F36 — Contenedor firmado `.ndc`
+### F36 — Contenedor firmado `.ndc` — **implementado, pendiente de release**
+
+Detalle de formato, comandos y protecciones en `docs/publicacion-segura.md`.
 
 - Formato abierto y versionado: ZIP con `manifest.json`, `payload/`, `signature.minisig` y opcionalmente `sbom.cdx.json`.
 - `manifest.json` incluye `schema`, `version`, `kind` (`release`|`evidence`|`site`), `created_at`, `files[{path,sha256,size}]` y `producer`.
@@ -174,9 +177,9 @@ Detalle de uso, claves y restauración en `docs/licenciamiento.md`.
 - JSON/CSV/PDF/ZIP sin firma siguen siendo formatos abiertos y prioritarios; `.ndc` se usa solo cuando se necesita integridad y procedencia.
 - Un `.ndc` de evidencia puede contener el informe ejecutivo, el diff de auditoría y el snapshot de configuración sin secretos.
 
-**Criterio de cierre:** un cliente verifica un `.ndc` modificado y la verificación falla con un mensaje claro; el archivo puede inspeccionarse con `unzip` sin NetDiag.
+**Criterio de cierre (cumplido):** un cliente verifica un `.ndc` modificado y la verificación falla con un mensaje claro; el archivo puede inspeccionarse con `unzip` sin NetDiag. Verificado con `go test ./internal/container`, `go vet ./...` y prueba end-to-end: `build → inspect → verify`, manipulación de un fichero de `payload/` y rechazo con `Resultado: NO VÁLIDO`, más `unzip -l` sobre el contenedor.
 
-**Esfuerzo:** 6–8 h.
+**Esfuerzo:** 6–8 h (realizado).
 
 ### F37 — Publicación segura y reproducible
 

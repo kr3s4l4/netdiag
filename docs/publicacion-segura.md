@@ -103,6 +103,70 @@ minisign -S -s "$RELEASE_KEY" -m RELEASE_NOTES.md \
 
 El contenedor `.ndc` se firma con el mismo esquema que F36: la firma cubre `manifest.json` interno, que a su vez enumera el SHA256 de cada fichero del `payload/`. Nunca se firma un ZIP directamente sin manifiesto interno.
 
+## Formato `.ndc` (F36)
+
+Un `.ndc` es un **ZIP normal**. Cualquiera puede abrirlo con `unzip -l`; NetDiag solo hace falta para verificar la firma y los digests. Es un formato abierto y versionado (`schema: netdiag/container/v1`).
+
+| Entrada del ZIP | Contenido |
+| --- | --- |
+| `manifest.json` | Manifiesto canónico firmado (JSON compacto, ficheros ordenados por ruta) |
+| `payload/<nombre>` | Un fichero por entrada de `manifest.files` |
+| `sbom.cdx.json` | Opcional; CycloneDX |
+| `signature.minisig` | Firma minisign prehashed (`ED`) sobre los bytes exactos de `manifest.json` |
+
+Ejemplo de manifiesto:
+
+```json
+{
+  "schema": "netdiag/container/v1",
+  "version": "1.5.0",
+  "kind": "release",
+  "created_at": "2026-11-18T12:00:00Z",
+  "files": [
+    { "path": "netdiag", "sha256": "…", "size": 12345678 },
+    { "path": "RELEASE_NOTES.md", "sha256": "…", "size": 2048 }
+  ],
+  "producer": "netdiag"
+}
+```
+
+`kind` vale `release`, `evidence` o `site`. Un contenedor de **evidencia** puede llevar el informe ejecutivo, el diff de auditoría y el snapshot de configuración **sin secretos**. El comentario de confianza de la firma liga `version:<versión>`, `sha256:<digest del contenido>` y, si existe SBOM, `sbom:<sha256 del SBOM>`. El digest del contenido es SHA256 de las líneas `<sha256>  <ruta>` ordenadas por ruta.
+
+### Comandos
+
+```sh
+# Inspeccionar sin confiar en el contenido: muestra manifiesto y comprueba digests
+netdiag container inspect netdiag_1.5.0_linux_amd64.ndc
+netdiag container inspect --json evidencia.ndc
+
+# Verificar firma, comentario firmado, SBOM y todos los ficheros
+netdiag container verify --key netdiag-release.pub netdiag_1.5.0_linux_amd64.ndc
+netdiag container verify --key 'RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY' evidencia.ndc
+
+# Crear un contenedor (solo el emisor, con la clave de release)
+netdiag container build --version 1.5.0 --kind evidence \
+  --sbom sbom.cdx.json --seed-file signing.json \
+  --out evidencia.ndc informe.md diff.json
+```
+
+`--key` admite un archivo `.pub` de dos líneas o la clave base64 desnuda. `verify` devuelve código de salida `1` si la firma no es válida, si el contenido no coincide o si falta la firma; `inspect` siempre muestra lo que hay, incluso en un contenedor manipulado.
+
+El `--seed-file` de `build` es un JSON local con la semilla Ed25519 y el id de clave minisign:
+
+```json
+{ "seed": "base64 de 32 bytes", "key_id": "hex de 8 bytes" }
+```
+
+Ese archivo se guarda fuera del repositorio con permisos `0600` y no se distribuye. `--key-id HEX16` lo sobrescribe si hace falta.
+
+### Protecciones
+
+- Rutas relativas, sin `..`, sin barras iniciales ni contrabarras: un `.ndc` malicioso no puede escribir fuera de `payload/`.
+- Entradas ZIP duplicadas o desconocidas se rechazan.
+- Límites: 1 MiB de manifiesto, 8 KiB de firma, 1 GiB por fichero y 10 000 ficheros.
+- `manifest.json` debe estar en forma canónica byte a byte; cualquier reordenación o campo extra se rechaza antes de verificar.
+- La fecha de modificación de las entradas ZIP es fija (1980-01-01) para que el mismo contenido produzca el mismo archivo, base del trabajo reproducible de F37.
+
 ## SBOM y procedencia
 
 - Generar `sbom.cdx.json` en CycloneDX con `syft packages ./... -o cyclonedx-json=sbom.cdx.json` (o equivalente).

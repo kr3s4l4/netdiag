@@ -12,7 +12,9 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -33,6 +35,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/auth"
 	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
+	"github.com/kr3s4l4/netdiag/internal/container"
 	"github.com/kr3s4l4/netdiag/internal/discover"
 	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
@@ -86,6 +89,8 @@ func run(args []string) int {
 		return backupCmd(rest)
 	case "license", "licenses":
 		return licenseCmd(rest)
+	case "container":
+		return containerCmd(rest)
 	case "update", "updates":
 		return updateCmd(rest)
 	default:
@@ -111,6 +116,7 @@ Comandos:
   user                  Gestiona usuarios (list, add, passwd, role, delete)
   backup                Crea una copia de seguridad completa en ZIP
   license show|activate|clear|sign  Gestiona la licencia offline
+  container inspect|verify|build  Inspecciona o verifica contenedores .ndc
   update check|apply|rollback|commit  Gestiona actualizaciones firmadas
   version               Muestra la versión
   help                  Muestra esta ayuda
@@ -1199,6 +1205,214 @@ Opciones:
 			return fail("%v", err)
 		}
 		fmt.Printf("Licencia %s firmada en %s\n", l.LicenseID, dest)
+		return 0
+	default:
+		fs.Usage()
+		return 2
+	}
+}
+
+func containerKeyArgument(value string) string {
+	if value == "" {
+		return ""
+	}
+	if info, err := os.Stat(value); err == nil && !info.IsDir() && info.Size() <= 1<<16 {
+		if raw, err := os.ReadFile(value); err == nil {
+			return string(raw)
+		}
+	}
+	return value
+}
+
+func loadMinisignMaterial(path, keyIDFlag string) (seed, keyID []byte, err error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("no se pudo leer la clave de firma: %w", err)
+	}
+	var material struct {
+		Seed  string `json:"seed"`
+		KeyID string `json:"key_id"`
+	}
+	encoded := strings.TrimSpace(string(raw))
+	if jsonErr := json.Unmarshal(raw, &material); jsonErr != nil {
+		material.Seed = encoded // compatibilidad: fichero con solo la semilla en base64
+	}
+	seed, err = base64.StdEncoding.DecodeString(strings.TrimSpace(material.Seed))
+	if err != nil || len(seed) != 32 {
+		return nil, nil, errors.New("la semilla Ed25519 debe estar en base64 y tener 32 bytes")
+	}
+	id := material.KeyID
+	if keyIDFlag != "" {
+		id = keyIDFlag
+	}
+	keyID, err = hex.DecodeString(strings.TrimSpace(id))
+	if err != nil || len(keyID) != 8 {
+		return nil, nil, errors.New("el id de clave minisign debe tener 16 caracteres hexadecimales")
+	}
+	return seed, keyID, nil
+}
+
+func printContainerReport(rep *container.Report, verified bool, problem string) {
+	fmt.Printf("Archivo: %s\n", rep.File)
+	fmt.Printf("Esquema: %s\n", rep.Schema)
+	fmt.Printf("Versión: %s\n", rep.Version)
+	fmt.Printf("Tipo: %s\n", rep.Kind)
+	fmt.Printf("Creado: %s\n", rep.CreatedAt)
+	fmt.Printf("Productor: %s\n", rep.Producer)
+	fmt.Printf("Resumen de contenido: %s\n", rep.PayloadSHA256)
+	fmt.Println("Ficheros:")
+	for _, f := range rep.Files {
+		mark := "NO"
+		if f.Matches {
+			mark = "OK"
+		}
+		fmt.Printf("  %s  payload/%s  (%d bytes)\n", mark, f.Path, f.Size)
+	}
+	switch rep.Signature.Status {
+	case "valid":
+		fmt.Println("Firma: válida")
+	case "invalid":
+		fmt.Println("Firma: NO VÁLIDA")
+	case "absent":
+		fmt.Println("Firma: ausente")
+	default:
+		fmt.Println("Firma: no verificada")
+	}
+	if rep.Signature.Comment != "" {
+		fmt.Printf("Comentario firmado: %s\n", rep.Signature.Comment)
+	}
+	if problem != "" {
+		fmt.Printf("Motivo: %s\n", problem)
+	}
+	if rep.ContentOK {
+		fmt.Println("Contenido: correcto")
+	} else {
+		fmt.Println("Contenido: NO COINCIDE con el manifiesto")
+	}
+	if verified {
+		if rep.Valid {
+			fmt.Println("Resultado: VÁLIDO")
+		} else {
+			fmt.Println("Resultado: NO VÁLIDO")
+		}
+	}
+	for _, warning := range rep.Warnings {
+		fmt.Printf("Aviso: %s\n", warning)
+	}
+}
+
+func containerCmd(args []string) int {
+	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+		fmt.Fprintln(os.Stderr, `Uso: netdiag container <subcomando> [opciones] <archivo.ndc>
+
+Subcomandos:
+  inspect <archivo>       Muestra el manifiesto y comprueba los sha256 sin verificar la firma
+  verify --key <pub> <archivo>  Verifica la firma minisign, el comentario y el contenido
+  build --version X --out salida.ndc --seed-file clave.json ficheros...  Crea un .ndc
+
+Opciones:
+  --key RUTA|BASE64       Clave pública minisign (archivo .pub o base64)
+  --json                  Salida JSON en inspect y verify
+  --version X             Versión del contenedor (build)
+  --kind TIPO             release, evidence o site (build; por defecto evidence)
+  --producer NOMBRE       Productor (build; por defecto netdiag)
+  --sbom RUTA             Añade sbom.cdx.json (build)
+  --seed-file RUTA        JSON con {"seed":"base64","key_id":"hex16"} (build)
+  --key-id HEX16          Sobrescribe key_id del JSON (build)
+  --out RUTA              Archivo .ndc de salida (build)`)
+		return 2
+	}
+	sub := args[0]
+	fs := flag.NewFlagSet("container "+sub, flag.ExitOnError)
+	keyFlag := fs.String("key", "", "clave pública minisign (archivo .pub o base64)")
+	jsonOut := fs.Bool("json", false, "salida JSON")
+	versionFlag := fs.String("version", "", "versión del contenedor (build)")
+	kindFlag := fs.String("kind", "evidence", "release, evidence o site (build)")
+	producerFlag := fs.String("producer", "netdiag", "productor (build)")
+	seedFlag := fs.String("seed-file", "", "JSON con seed y key_id del emisor (build)")
+	keyIDFlag := fs.String("key-id", "", "id de clave minisign en hexadecimal (build)")
+	sbomFlag := fs.String("sbom", "", "ruta a sbom.cdx.json (build)")
+	outFlag := fs.String("out", "", "archivo .ndc de salida (build)")
+	fs.Usage = func() { fmt.Fprintf(os.Stderr, "Uso: netdiag container %s [opciones]\n", sub) }
+	if err := parseFlags(fs, args[1:]); err != nil {
+		return 2
+	}
+
+	switch sub {
+	case "inspect", "verify":
+		file := fs.Arg(0)
+		if file == "" {
+			return fail("indica el archivo .ndc")
+		}
+		var rep *container.Report
+		var err error
+		verified := sub == "verify"
+		if verified {
+			if *keyFlag == "" {
+				return fail("indica la clave pública con --key")
+			}
+			rep, err = container.Verify(file, containerKeyArgument(*keyFlag))
+		} else {
+			rep, err = container.Inspect(file)
+		}
+		if err != nil {
+			return fail("%v", err)
+		}
+		if *jsonOut {
+			printUpdateJSON(rep)
+		} else {
+			problem := rep.Signature.Problem
+			printContainerReport(rep, verified, problem)
+		}
+		if verified && !rep.Valid {
+			return 1
+		}
+		return 0
+	case "build":
+		if strings.TrimSpace(*versionFlag) == "" {
+			return fail("indica la versión con --version")
+		}
+		if strings.TrimSpace(*outFlag) == "" {
+			return fail("indica el archivo de salida con --out")
+		}
+		if strings.TrimSpace(*seedFlag) == "" {
+			return fail("indica la clave de firma con --seed-file")
+		}
+		seed, keyID, err := loadMinisignMaterial(*seedFlag, *keyIDFlag)
+		if err != nil {
+			return fail("%v", err)
+		}
+		paths := fs.Args()
+		if len(paths) == 0 {
+			return fail("indica al menos un fichero para el contenedor")
+		}
+		inputs := make([]container.InputFile, 0, len(paths))
+		for _, p := range paths {
+			inputs = append(inputs, container.InputFile{Name: filepath.Base(p), Path: p})
+		}
+		var sbom []byte
+		if *sbomFlag != "" {
+			sbom, err = os.ReadFile(*sbomFlag)
+			if err != nil {
+				return fail("%v", err)
+			}
+		}
+		if err := container.Build(*outFlag, container.BuildOptions{
+			Version:  strings.TrimSpace(*versionFlag),
+			Kind:     strings.TrimSpace(*kindFlag),
+			Producer: strings.TrimSpace(*producerFlag),
+			Files:    inputs,
+			SBOM:     sbom,
+			Seed:     seed,
+			KeyID:    keyID,
+		}); err != nil {
+			return fail("%v", err)
+		}
+		info, err := os.Stat(*outFlag)
+		if err != nil {
+			return fail("%v", err)
+		}
+		fmt.Printf("Contenedor %s creado: %s, %d ficheros, %d bytes\n", *versionFlag, *outFlag, len(inputs), info.Size())
 		return 0
 	default:
 		fs.Usage()
