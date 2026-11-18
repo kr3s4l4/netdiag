@@ -6,7 +6,37 @@ import (
 	"time"
 
 	"github.com/kr3s4l4/netdiag/internal/api"
+	"github.com/kr3s4l4/netdiag/internal/history"
 )
+
+// historyLoop captures compact inventory/topology snapshots hourly so temporal
+// comparisons do not depend exclusively on scan activity.
+func (a *App) historyLoop(ctx context.Context) {
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	a.captureHistorySnapshots()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			a.captureHistorySnapshots()
+		}
+	}
+}
+
+func (a *App) captureHistorySnapshots() {
+	sites, err := a.st.ListSites()
+	if err != nil {
+		a.log.Warn("no se pudieron listar las sedes para el histórico", "error", err)
+		return
+	}
+	for _, site := range sites {
+		if err := history.Capture(a.st, site.ID); err != nil {
+			a.log.Warn("no se pudo capturar el snapshot histórico", "sede", site.ID, "error", err)
+		}
+	}
+}
 
 // monitorLoop periodically scans enabled networks. It re-reads the live
 // configuration every tick so interval and enablement changes apply without a

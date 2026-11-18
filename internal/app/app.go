@@ -185,6 +185,7 @@ func (a *App) Run(ctx context.Context) error {
 	go a.vpn.Start(ctx)
 	go a.wifi.Start(ctx)
 	go a.monitorLoop(ctx)
+	go a.historyLoop(ctx)
 	go a.maintenanceLoop(ctx)
 	if a.backups != nil {
 		go a.backups.Start(ctx)
@@ -317,6 +318,15 @@ func (a *App) runMaintenance() {
 	if cfg.Storage.AuditDays > 0 {
 		if err := a.st.PurgeAudit(cfg.Storage.AuditDays); err != nil {
 			a.log.Warn("no se pudo purgar la auditoría", "error", err)
+		}
+	}
+	historyDays := cfg.Storage.MetricsDays
+	if historyDays < 1 {
+		historyDays = cfg.Storage.RetentionDays
+	}
+	if historyDays > 0 {
+		if err := a.st.PurgeHistorySnapshots(historyDays); err != nil {
+			a.log.Warn("no se pudieron purgar los snapshots históricos", "error", err)
 		}
 	}
 	if cfg.Storage.MaxScans > 0 {

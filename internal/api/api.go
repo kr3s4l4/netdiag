@@ -183,6 +183,9 @@ func (s *Server) register() {
 	m.HandleFunc("POST /api/v1/hosts/{id}/rescan", s.handleRescanHost)
 	m.HandleFunc("GET /api/v1/ports/summary", s.handlePortsSummary)
 
+	// ---- F21 temporal comparison ----
+	m.HandleFunc("POST /api/v1/history/compare", s.handleHistoryCompare)
+
 	// ---- networks ----
 	m.HandleFunc("GET /api/v1/networks", s.handleListNetworks)
 	m.HandleFunc("POST /api/v1/networks", s.handleCreateNetwork)

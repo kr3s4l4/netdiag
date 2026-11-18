@@ -746,6 +746,88 @@ type VPNTunnel struct {
 	LastSeen   time.Time `json:"last_seen"`
 }
 
+// HistoryAggregate summarises availability/latency samples in one period.
+type HistoryAggregate struct {
+	Samples      int     `json:"samples"`
+	Availability float64 `json:"availability"`
+	AvgRTT       float64 `json:"avg_rtt"`
+	MinRTT       float64 `json:"min_rtt"`
+	MaxRTT       float64 `json:"max_rtt"`
+	HostsUp      int     `json:"hosts_up"`
+	HostsDown    int     `json:"hosts_down"`
+}
+
+// HistoryHost is one device's behaviour inside a comparison period.
+type HistoryHost struct {
+	ID           int64      `json:"id"`
+	IP           string     `json:"ip"`
+	Hostname     string     `json:"hostname,omitempty"`
+	MAC          string     `json:"mac,omitempty"`
+	DeviceType   DeviceType `json:"device_type"`
+	Status       HostStatus `json:"status"`
+	Samples      int        `json:"samples"`
+	UpSamples    int        `json:"up_samples"`
+	DownSamples  int        `json:"down_samples"`
+	Availability float64    `json:"availability"`
+	AvgRTT       float64    `json:"avg_rtt"`
+	FirstSeen    time.Time  `json:"first_seen,omitempty"`
+	LastSeen     time.Time  `json:"last_seen,omitempty"`
+}
+
+// HistoryTopology is a compact, comparable view of a topology snapshot.
+type HistoryTopology struct {
+	Nodes       int            `json:"nodes"`
+	Edges       int            `json:"edges"`
+	ByType      map[string]int `json:"by_type,omitempty"`
+	NodeIDs     []string       `json:"node_ids,omitempty"`
+	EdgeIDs     []string       `json:"edge_ids,omitempty"`
+	Fingerprint string         `json:"fingerprint,omitempty"`
+	SnapshotAt  *time.Time     `json:"snapshot_at,omitempty"`
+}
+
+// HistoryPeriod is one side of a temporal comparison.
+type HistoryPeriod struct {
+	Label    string           `json:"label"`
+	From     time.Time        `json:"from"`
+	To       time.Time        `json:"to"`
+	Metrics  HistoryAggregate `json:"metrics"`
+	Hosts    []HistoryHost    `json:"hosts"`
+	RTT      []SeriesPoint    `json:"rtt"`
+	Uptime   []SeriesPoint    `json:"uptime"`
+	Topology HistoryTopology  `json:"topology"`
+}
+
+// HistoryChange is one directional difference from period B to period A.
+type HistoryChange struct {
+	Type     string   `json:"type"`
+	Entity   string   `json:"entity"` // host | topology | fleet
+	ID       string   `json:"id"`
+	Label    string   `json:"label,omitempty"`
+	From     any      `json:"from,omitempty"`
+	To       any      `json:"to,omitempty"`
+	Evidence []string `json:"evidence,omitempty"`
+}
+
+// HistorySnapshot is a compact inventory/topology capture used by F21.
+type HistorySnapshot struct {
+	ID       int64           `json:"id"`
+	SiteID   int64           `json:"site_id"`
+	TS       time.Time       `json:"ts"`
+	Hosts    []HistoryHost   `json:"hosts"`
+	Topology HistoryTopology `json:"topology"`
+}
+
+// DiffReport compares two moments in time (F21). It is derived from stored
+// metrics and, when available, lightweight inventory/topology snapshots.
+type DiffReport struct {
+	PeriodA     HistoryPeriod   `json:"period_a"`
+	PeriodB     HistoryPeriod   `json:"period_b"`
+	Changes     []HistoryChange `json:"changes"`
+	Summary     map[string]int  `json:"summary"`
+	Limitations []string        `json:"limitations,omitempty"`
+	Truncated   bool            `json:"truncated,omitempty"`
+}
+
 // AuditFilter filters audit entries.
 type AuditFilter struct {
 	From   *time.Time

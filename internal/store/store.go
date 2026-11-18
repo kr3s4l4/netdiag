@@ -397,6 +397,18 @@ var migrations = [][]string{
 		)`,
 		`CREATE INDEX idx_dashboards_site ON dashboards(site_id)`,
 	},
+	{
+		// v1.5.3: F21 temporal comparison. Snapshots are compact inventory
+		// and topology captures used to diff moments beyond metric samples.
+		`CREATE TABLE history_snapshots (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			ts INTEGER NOT NULL,
+			hosts TEXT NOT NULL DEFAULT '[]',
+			graph TEXT NOT NULL DEFAULT '{}'
+		)`,
+		`CREATE INDEX idx_history_snapshots_ts ON history_snapshots(site_id, ts DESC)`,
+	},
 }
 
 func (s *Store) migrate() error {

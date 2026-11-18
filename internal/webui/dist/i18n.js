@@ -716,6 +716,51 @@
     'Un hallazgo es una pista para investigar, no una confirmación del protocolo. Confirma siempre en el equipo de red.':
       'A finding is a lead to investigate, not a protocol confirmation. Always verify on the network device.',
 
+    // ---- F21 comparativa temporal ----
+    'Comparativa': 'Comparison',
+    'Comparativa temporal': 'Time comparison',
+    'Hoy vs hace 7 días': 'Today vs 7 days ago',
+    'Periodo': 'Period',
+    'muestras': 'samples',
+    'disponibilidad': 'availability',
+    'RTT medio': 'Average RTT',
+    'activos': 'up',
+    'Latencia (ms)': 'Latency (ms)',
+    'topología': 'topology',
+    'Compara dos momentos equivalentes de duración. Por defecto: hoy frente a la misma ventana hace 7 días.':
+      'Compare two moments of equal duration. By default: today against the same window seven days ago.',
+    '7 días': '7 days',
+    '30 días': '30 days',
+    '6 h': '6 h',
+    '48 h': '48 h',
+    'Ventana': 'Window',
+    'Cambios detectados': 'Detected changes',
+    'cambios': 'changes',
+    'nuevos': 'new',
+    'ausentes': 'missing',
+    'truncado': 'truncated',
+    'Entidad': 'Entity',
+    'Objeto': 'Object',
+    'Antes': 'Before',
+    'Ahora': 'Now',
+    'Sin cambios entre los periodos': 'No changes between periods',
+    'Las métricas y la topología disponibles no muestran diferencias con los umbrales configurados.':
+      'The available metrics and topology show no differences beyond the configured thresholds.',
+    'Limitaciones del diff': 'Diff limitations',
+    'Fuente: muestras de disponibilidad y latencia almacenadas; los cambios de topología usan snapshots capturados tras cada escaneo y cada hora. Un valor ausente se reporta como limitación, nunca como "sin cambios".':
+      'Source: stored availability and latency samples; topology changes use snapshots captured after every scan and hourly. Missing data is reported as a limitation, never as "no changes".',
+    'Dispositivo nuevo': 'New device',
+    'Dispositivo ausente': 'Missing device',
+    'Cambio de estado': 'Status change',
+    'Cambio de disponibilidad': 'Availability change',
+    'Cambio de latencia': 'Latency change',
+    'Nodo nuevo': 'New node',
+    'Nodo eliminado': 'Node removed',
+    'Enlace nuevo': 'New link',
+    'Enlace eliminado': 'Link removed',
+    'Disponibilidad global': 'Global availability',
+    'Latencia global': 'Global latency',
+
     // ---- document title ----
     'NetDiag · Inventario y monitoreo de red': 'NetDiag · Network inventory and monitoring',
   };

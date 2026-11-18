@@ -9,6 +9,7 @@ import (
 
 	"github.com/kr3s4l4/netdiag/internal/api"
 	"github.com/kr3s4l4/netdiag/internal/discover"
+	"github.com/kr3s4l4/netdiag/internal/history"
 	"github.com/kr3s4l4/netdiag/internal/integrations"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/netutil"
@@ -327,6 +328,13 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 	})
 	if stats, err := a.st.Dashboard(final.SiteID); err == nil {
 		a.hub.Broadcast("dashboard.updated", stats)
+	}
+	// F21: keep a lightweight inventory/topology capture so temporal diffs
+	// remain possible after the live inventory has changed.
+	if status != model.ScanError && !result.Canceled {
+		if err := history.Capture(a.st, final.SiteID); err != nil {
+			a.log.Warn("no se pudo capturar el snapshot histórico", "error", err)
+		}
 	}
 	a.log.Info("escaneo finalizado", "scan", scan.ID, "estado", status,
 		"encontrados", result.Found, "duracion", time.Since(startedAt).Round(time.Millisecond).String())

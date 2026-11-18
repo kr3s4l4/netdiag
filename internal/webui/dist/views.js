@@ -346,6 +346,121 @@ async function renderDiagnostics() {
 }
 
 /* ------------------------------------------------------------------ */
+/* F21 temporal comparison                                             */
+/* ------------------------------------------------------------------ */
+
+const COMPARE_CHANGE_LABELS = {
+  'host.added': 'Dispositivo nuevo',
+  'host.removed': 'Dispositivo ausente',
+  'host.status_changed': 'Cambio de estado',
+  'host.availability_changed': 'Cambio de disponibilidad',
+  'host.rtt_changed': 'Cambio de latencia',
+  'topology.node_added': 'Nodo nuevo',
+  'topology.node_removed': 'Nodo eliminado',
+  'topology.edge_added': 'Enlace nuevo',
+  'topology.edge_removed': 'Enlace eliminado',
+  'fleet.availability_changed': 'Disponibilidad global',
+  'fleet.rtt_changed': 'Latencia global',
+};
+
+function compareValue(value) {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  return String(value);
+}
+
+function comparePeriodCard(period, tone, maxRTT) {
+  const m = period.metrics || {};
+  const rtt = period.rtt || [];
+  const snap = period.topology && period.topology.snapshot_at;
+  return `<div class="card">
+    <div class="card-head"><h3>${esc(period.label || tr('Periodo'))}</h3>
+      <span class="badge ${tone}">${esc(fmtDate(period.from))} → ${esc(fmtDate(period.to))}</span>
+    </div>
+    <div class="card-body">
+      <div class="kpi-mini mb">
+        <div><b>${fmtNum(m.samples || 0)}</b><span>${esc(tr('muestras'))}</span></div>
+        <div><b>${fmtNum(m.availability || 0, 2)}%</b><span>${esc(tr('disponibilidad'))}</span></div>
+        <div><b>${fmtNum(m.avg_rtt || 0, 1)} ms</b><span>${esc(tr('RTT medio'))}</span></div>
+        <div><b>${fmtNum(m.hosts_up || 0)}</b><span>${esc(tr('activos'))}</span></div>
+        <div><b>${fmtNum(m.hosts_down || 0)}</b><span>${esc(tr('caídos'))}</span></div>
+      </div>
+      <div class="tiny muted mb">${esc(tr('Latencia (ms)'))}${snap ? ` · ${esc(tr('topología'))}: ${esc(fmtDate(snap))}` : ''}</div>
+      ${lineChart(rtt, { height: 170, min: 0, max: maxRTT, color: tone === 'up' ? 'var(--green)' : 'var(--violet)' })}
+    </div>
+  </div>`;
+}
+
+async function renderHistoryCompare() {
+  setPageTitle('compare');
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  const report = await api('/history/compare', {
+    method: 'POST',
+    body: { days: state.compareDays || 7, window: state.compareWindow || '24h' },
+  });
+  const a = report.period_a || {};
+  const b = report.period_b || {};
+  const maxRTT = Math.max(10, Number(a.metrics && a.metrics.max_rtt) || 0, Number(b.metrics && b.metrics.max_rtt) || 0) * 1.1;
+  const summary = report.summary || {};
+
+  const dayButtons = [[1, '24 h'], [7, '7 días'], [30, '30 días']].map(([value, label]) =>
+    `<button class="btn sm ${Number(state.compareDays) === value ? 'primary' : ''}" data-action="compare-run" data-days="${value}">${esc(tr(label))}</button>`).join('');
+
+  const rows = (report.changes || []).length ? report.changes.map((c) => {
+    const label = COMPARE_CHANGE_LABELS[c.type] || c.type;
+    const evidence = (c.evidence || []).map((e) => `<div>· ${esc(e)}</div>`).join('');
+    return `<tr>
+      <td><span class="badge ${c.type.indexOf('removed') >= 0 || c.type.indexOf('down') >= 0 ? 'critical' : 'info'}">${esc(tr(label))}</span></td>
+      <td class="tiny">${esc(c.entity)}</td>
+      <td class="tiny">${esc(c.label || c.id)}</td>
+      <td class="mono tiny">${esc(compareValue(c.from))}</td>
+      <td class="mono tiny">${esc(compareValue(c.to))}</td>
+      <td class="tiny muted">${evidence || '—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin cambios entre los periodos'))}</b>
+    <div class="tiny">${esc(tr('Las métricas y la topología disponibles no muestran diferencias con los umbrales configurados.'))}</div></div></div></td></tr>`;
+
+  const limitations = (report.limitations || []).length ? `<div class="notice warn mb">
+      ${icon('warn')}<div><b>${esc(tr('Limitaciones del diff'))}</b>
+      <ul class="diag-limits">${report.limitations.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>` : '';
+
+  content.innerHTML = `
+    <div class="spread mb">
+      <div class="muted small">${esc(tr('Compara dos momentos equivalentes de duración. Por defecto: hoy frente a la misma ventana hace 7 días.'))}</div>
+      <div class="row-gap">
+        ${dayButtons}
+        <select class="select sm" data-action="compare-window" aria-label="${esc(tr('Ventana'))}">
+          ${[['6h', '6 h'], ['24h', '24 h'], ['48h', '48 h'], ['7d', '7 días']].map(([v, l]) =>
+            `<option value="${v}" ${state.compareWindow === v ? 'selected' : ''}>${esc(tr(l))}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    ${limitations}
+    <div class="grid cols-2 compare-periods mb">
+      ${comparePeriodCard(a, 'up', maxRTT)}
+      ${comparePeriodCard(b, 'violet', maxRTT)}
+    </div>
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Cambios detectados'))}</h3>
+        <span class="tiny muted">${fmtNum(summary.total || 0)} ${esc(tr('cambios'))}
+          ${summary['host.added'] ? ` · ${summary['host.added']} ${esc(tr('nuevos'))}` : ''}
+          ${summary['host.removed'] ? ` · ${summary['host.removed']} ${esc(tr('ausentes'))}` : ''}
+          ${report.truncated ? ` · <span class="badge warning">${esc(tr('truncado'))}</span>` : ''}
+        </span>
+      </div>
+      <div class="table-wrap"><table class="compare-changes">
+        <thead><tr><th>${esc(tr('Tipo'))}</th><th>${esc(tr('Entidad'))}</th><th>${esc(tr('Objeto'))}</th>
+          <th>${esc(tr('Antes'))}</th><th>${esc(tr('Ahora'))}</th><th>${esc(tr('Evidencia'))}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+    <div class="card pad">
+      <div class="tiny muted">${esc(tr('Fuente: muestras de disponibilidad y latencia almacenadas; los cambios de topología usan snapshots capturados tras cada escaneo y cada hora. Un valor ausente se reporta como limitación, nunca como "sin cambios".'))}</div>
+    </div>`;
+}
+
+/* ------------------------------------------------------------------ */
 /* F18 custom dashboards                                               */
 /* ------------------------------------------------------------------ */
 

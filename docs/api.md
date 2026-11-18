@@ -276,6 +276,32 @@ Observación pasiva de túneles. La lectura está disponible para cualquier rol 
 
 La detección lee tablas del kernel (`/proc/net/{udp,udp6,tcp,tcp6}`, `/proc/net/dev`, sysfs `operstate`) y puertos conocidos de la fase de descubrimiento. Es heurística: cada hallazgo incluye evidencia y confianza. La configuración (`vpn.enabled`, `interval`, `min_confidence`, `stale_after`) se edita en `PUT /system/config`.
 
+### Comparativa temporal (F21)
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| POST | `/history/compare` | Diff entre dos momentos. Disponible para cualquier rol autenticado; la consulta queda registrada en auditoría |
+
+Cuerpo (todo opcional; `{}` aplica los valores por defecto):
+
+```json
+{
+  "site_id": 1,
+  "days": 7,
+  "window": "24h",
+  "period_a": { "label": "hoy", "from": "2026-11-17T12:00:00Z", "to": "2026-11-18T12:00:00Z" },
+  "period_b": { "label": "hace 7 días", "from": "2026-11-10T12:00:00Z", "to": "2026-11-11T12:00:00Z" }
+}
+```
+
+`window` admite duraciones Go y los sufijos `d`/`w` (`24h`, `7d`, `2w`), entre `1h` y `30d`. `days` va de 1 a 365. En `period_a`/`period_b`, `from` y `to` aceptan RFC3339 o una duración relativa al momento de la petición (`24h`, `7d`). Si se omite un lado, se usa la ventana equivalente por defecto. El parámetro `site_id` también puede ir en la query string.
+
+Respuesta (`DiffReport`): `period_a` y `period_b` con `{label, from, to, metrics, hosts, rtt, uptime, topology}`; `changes` con `{type, entity, id, label, from, to, evidence}`; `summary` por tipo y `total`; `limitations` y `truncated`. `metrics` contiene `samples`, `availability`, `avg_rtt`, `min_rtt`, `max_rtt`, `hosts_up` y `hosts_down`. Las series `rtt`/`uptime` están agrupadas en hasta 100 buckets por ventana.
+
+Los tipos de cambio son `host.added`, `host.removed`, `host.status_changed`, `host.availability_changed`, `host.rtt_changed`, `topology.node_added`, `topology.node_removed`, `topology.edge_added`, `topology.edge_removed`, `fleet.availability_changed` y `fleet.rtt_changed`. Umbrales: 1,0 pp de disponibilidad y `max(2 ms, 10 % del RTT anterior)` de latencia. Máximo 500 cambios por respuesta; si se supera, `truncated: true`.
+
+Los snapshots de topología se capturan tras cada escaneo correcto y cada hora. Si faltan en una ventana, el campo `topology.snapshot_at` es nulo y se añade una entrada a `limitations`; la ausencia de datos nunca se reporta como «sin cambios».
+
 ### Topología y sistema
 
 | Método | Ruta | Notas |

@@ -51,6 +51,7 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/hosts/{id}/neighbors", "Vecinos conocidos de un dispositivo", "Dispositivos", false, false, "", nil, false, false},
 	{"POST", "/api/v1/hosts/{id}/rescan", "Volver a escanear un dispositivo", "Dispositivos", false, false, "RescanRequest", nil, false, false},
 	{"GET", "/api/v1/ports/summary", "Puertos más expuestos", "Dispositivos", false, false, "", []string{"site_id"}, false, false},
+	{"POST", "/api/v1/history/compare", "Comparar dos momentos (por defecto hoy vs hace 7 días)", "Historial", false, false, "HistoryCompareRequest", []string{"site_id", "days", "window"}, false, false},
 
 	{"GET", "/api/v1/networks", "Listar redes monitorizadas", "Redes", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/networks", "Añadir una red", "Redes", false, true, "NetworkRequest", nil, true, false},
@@ -387,6 +388,20 @@ func openAPISchemas() map[string]any {
 						"size":     map[string]any{"type": "object"},
 						"config":   map[string]any{"type": "object", "additionalProperties": true},
 					},
+				}},
+			},
+		},
+		"HistoryCompareRequest": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"site_id": map[string]any{"type": "integer"},
+				"days":    map[string]any{"type": "integer", "default": 7},
+				"window":  map[string]any{"type": "string", "default": "24h"},
+				"period_a": map[string]any{"type": "object", "properties": map[string]any{
+					"label": str, "from": str, "to": str,
+				}},
+				"period_b": map[string]any{"type": "object", "properties": map[string]any{
+					"label": str, "from": str, "to": str,
 				}},
 			},
 		},

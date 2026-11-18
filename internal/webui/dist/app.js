@@ -21,6 +21,8 @@ const state = {
   },
   host: null,
   hostHistoryRange: '24h',
+  compareDays: 7,
+  compareWindow: '24h',
   hostTab: 'resumen',
   alerts: { page: 1, limit: 50, status: 'active', severity: '', search: '' },
   rules: [],
@@ -411,6 +413,7 @@ const NAV = [
   { view: 'vpn', label: 'VPN', icon: 'network' },
   { view: 'alerts', label: 'Alertas', icon: 'alerts', badge: true },
   { section: 'Historial' },
+  { view: 'compare', label: 'Comparativa', icon: 'clock' },
   { view: 'scans', label: 'Escaneos', icon: 'scans' },
   { view: 'reports', label: 'Informes', icon: 'reports' },
   { section: 'Sistema' },
@@ -526,6 +529,7 @@ const PAGE_META = {
   wifi: ['WiFi', 'APs, clientes e interferencias'],
   vpn: ['VPN', 'Túneles detectados'],
   alerts: ['Alertas', 'Reglas y canales'],
+  compare: ['Comparativa temporal', 'Hoy vs hace 7 días'],
   scans: ['Escaneos', 'Historial y ejecución'],
   reports: ['Informes', 'Exportación'],
   guide: ['Guía', 'Guía interactiva'],
@@ -676,7 +680,7 @@ async function route(silent = false) {
   if (!state.me) return;
   const raw = (location.hash || '#/dashboard').replace(/^#\/?/, '');
   const [view, ...rest] = raw.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'diagnostics', 'wifi', 'vpn', 'alerts', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'diagnostics', 'wifi', 'vpn', 'alerts', 'compare', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
   if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
   updateNav();
   const content = $('#content');
@@ -697,6 +701,7 @@ async function route(silent = false) {
       case 'wifi': await renderWiFi(); break;
       case 'vpn': await renderVPN(); break;
       case 'alerts': await renderAlerts(rest[0]); break;
+      case 'compare': await renderHistoryCompare(); break;
       case 'scans': await renderScans(); break;
       case 'reports': await renderReports(); break;
       case 'guide': await renderGuide(); break;
@@ -1139,6 +1144,10 @@ document.addEventListener('click', async (e) => {
       case 'modal-close': closeModal(); break;
       case 'reload': route(); break;
       case 'refresh-diagnostics': await renderDiagnostics(); break;
+      case 'compare-run':
+        state.compareDays = Number(target.dataset.days || state.compareDays);
+        renderHistoryCompare().catch((err) => toast(err.message || String(err), { type: 'err' }));
+        break;
       case 'dash-create':
         try {
           const name = (document.getElementById('dash-name') || {}).value || '';
@@ -1310,6 +1319,11 @@ document.addEventListener('change', (e) => {
   if (el.dataset.action === 'dash-select') {
     state.dashboardId = Number(el.value);
     renderDashboards().catch((err) => toast(err.message || String(err), { type: 'err', title: 'Error' }));
+    return;
+  }
+  if (el.dataset.action === 'compare-window') {
+    state.compareWindow = el.value;
+    renderHistoryCompare().catch((err) => toast(err.message || String(err), { type: 'err', title: 'Error' }));
     return;
   }
   if (el.dataset.filter !== undefined) {

@@ -21,6 +21,7 @@
 - **Detección de VPN (F12)**: observación pasiva de túneles WireGuard, OpenVPN, IPsec y PPTP a partir de sockets e interfaces del kernel, con evidencia, confianza y contadores acumulados.
 - **Análisis WiFi (F11)**: captura pasiva 802.11 (binario `-tags pcap`) con APs (BSSID, SSID, canal, banda, cifrado, señal), clientes por AP, interferencia por canal y detección heurística de AP no autorizado.
 - **Dashboards personalizables (F18)**: vistas por sede con hasta 16 widgets reordenables en una rejilla de 12 columnas, fuentes limitadas a un catálogo seguro de endpoints ya autorizados.
+- **Comparativa temporal (F21)**: diff de dos ventanas equivalentes (por defecto hoy frente a hace 7 días) con cambios por dispositivo, topología y flota, evidencia para cada hallazgo y limitaciones explícitas cuando falta información.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
@@ -185,6 +186,19 @@ Los tipos disponibles se consultan en `GET /api/v1/dashboards/catalog`: resumen,
 curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
   -d '{"site_id":1}' http://127.0.0.1:8080/api/v1/dashboards/example
 curl -sb cookies.txt http://127.0.0.1:8080/api/v1/dashboards | python3 -m json.tool
+```
+
+## Comparativa temporal
+
+La vista **Comparativa** responde al caso de cierre de F21: «diff entre hoy y hace 7 días». Compara dos ventanas de igual duración; por defecto A son las últimas 24 h (`hoy (24h)`) y B las 24 h que terminan hace siete días (`hace 7 días`). Se pueden elegir separaciones de 1, 7 o 30 días y ventanas de 6 h, 24 h, 48 h o 7 días.
+
+Cada lado del diff incluye muestras, disponibilidad, RTT medio, series de latencia y disponibilidad, el detalle por dispositivo y, cuando existe, un snapshot compacto de topología. Los cambios se clasifican en `host.*`, `topology.*` y `fleet.*`, van ordenados por tipo y llevan evidencia (número de muestras, umbral aplicado o nodo/enlace comparado). Los umbrales son 1,0 puntos porcentuales para disponibilidad y `max(2 ms, 10 % del RTT anterior)` para latencia; se ignoran diferencias por debajo de esos valores. El reporte se trunca en 500 cambios e incluye `limitations` cuando un periodo no tiene métricas o snapshots: **un dato ausente nunca se interpreta como «sin cambios»**.
+
+Los snapshots se capturan automáticamente tras cada escaneo correcto y cada hora para todas las sedes, y se purgan con `storage.metrics_days` (o `storage.retention_days` como respaldo). Las identidades de hosts y topología se comparan por MAC, IP o ID, por lo que un cambio de IP con la misma MAC no genera un falso «dispositivo nuevo».
+
+```bash
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{}' http://127.0.0.1:8080/api/v1/history/compare | python3 -m json.tool
 ```
 
 ## Compilación
