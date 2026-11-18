@@ -21,6 +21,7 @@ import (
 
 // ScanRequest is the transport payload for starting a discovery run.
 type ScanRequest struct {
+	SiteID      int64  `json:"site_id,omitempty"`
 	NetworkID   int64  `json:"network_id"`
 	CIDR        string `json:"cidr"`
 	Profile     string `json:"profile"`
@@ -148,6 +149,15 @@ func (s *Server) register() {
 
 	// ---- dashboard ----
 	m.HandleFunc("GET /api/v1/dashboard", s.handleDashboard)
+
+	// ---- sites ----
+	m.HandleFunc("GET /api/v1/sites", s.handleListSites)
+	m.HandleFunc("POST /api/v1/sites", s.handleCreateSite)
+	m.HandleFunc("GET /api/v1/sites/{id}", s.handleGetSite)
+	m.HandleFunc("PUT /api/v1/sites/{id}", s.handleUpdateSite)
+	m.HandleFunc("DELETE /api/v1/sites/{id}", s.handleDeleteSite)
+	m.HandleFunc("GET /api/v1/sites/{id}/export", s.handleExportSite)
+	m.HandleFunc("POST /api/v1/sites/{id}/import", s.handleImportSite)
 
 	// ---- hosts ----
 	m.HandleFunc("GET /api/v1/hosts", s.handleListHosts)

@@ -42,7 +42,7 @@ import (
 
 // Injected with -ldflags at build time.
 var (
-	version   = "1.1.0"
+	version   = "1.2.0"
 	commit    = "dev"
 	buildDate = ""
 )
@@ -623,7 +623,7 @@ func reportCmd(args []string) int {
 	if err != nil {
 		return fail("no se pudieron leer las alertas: %v", err)
 	}
-	stats, err := a.Store().Dashboard()
+	stats, err := a.Store().Dashboard(0)
 	if err != nil {
 		return fail("no se pudieron calcular las estadísticas: %v", err)
 	}

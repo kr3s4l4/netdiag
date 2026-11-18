@@ -11,7 +11,9 @@ import (
 )
 
 func (s *Server) handleListScans(w http.ResponseWriter, r *http.Request) {
+	siteID := queryInt64(r, "site_id")
 	res, err := s.st.ListScans(model.ScanFilter{
+		SiteID: siteID,
 		Status: queryString(r, "status"),
 		Page:   queryInt(r, "page", 1),
 		Limit:  queryInt(r, "limit", 50),
@@ -20,7 +22,7 @@ func (s *Server) handleListScans(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudo listar el historial: "+err.Error())
 		return
 	}
-	active, _ := s.st.ActiveScans()
+	active, _ := s.st.ActiveScansForSite(siteID)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"items":  res.Items,
 		"total":  res.Total,
@@ -77,9 +79,21 @@ func (s *Server) handleStartScan(w http.ResponseWriter, r *http.Request) {
 			s.fail(w, r, http.StatusConflict, "la red está deshabilitada")
 			return
 		}
+		if req.SiteID > 0 && req.SiteID != n.SiteID {
+			s.fail(w, r, http.StatusBadRequest, "la red pertenece a otra sede")
+			return
+		}
+		req.SiteID = n.SiteID
 		if req.CIDR == "" {
 			req.CIDR = n.CIDR
 		}
+	}
+	if req.SiteID == 0 {
+		req.SiteID = 1
+	}
+	if !s.st.SiteExists(req.SiteID) {
+		s.fail(w, r, http.StatusBadRequest, "la sede indicada no existe")
+		return
 	}
 	if strings.TrimSpace(req.CIDR) == "" {
 		s.fail(w, r, http.StatusBadRequest, "indica una red o un CIDR para escanear")

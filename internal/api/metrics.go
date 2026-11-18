@@ -23,7 +23,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	stats, err := s.st.Dashboard()
+	stats, err := s.st.Dashboard(queryInt64(r, "site_id"))
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudieron calcular las métricas")
 		return

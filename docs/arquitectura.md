@@ -33,7 +33,7 @@ NetDiag se compila en un único binario que contiene la API HTTP, la SPA, el mot
 
 ### `internal/api`
 
-Router `net/http` con patrones de método (`GET /api/v1/hosts/{id}`). Cada escritura exige sesión y token CSRF. Los permisos tienen tres niveles: `admin`/`owner` (todo), `operator` (operación sin configuración ni usuarios) y `viewer` (solo lectura). El hub WebSocket mantiene una cola por cliente y descarta mensajes si el cliente se retrasa, para no bloquear los escaneos. La especificación OpenAPI 3.1 se genera en el propio paquete y las métricas Prometheus se sirven desde `/metrics`.
+Router `net/http` con patrones de método (`GET /api/v1/hosts/{id}`). Cada escritura exige sesión y token CSRF. Los permisos tienen tres niveles: `admin`/`owner` (todo, incluidas sedes), `operator` (operación e importación de sedes; sin configuración, usuarios ni gestión de sedes) y `viewer` (solo lectura). Las rutas de sedes (`/api/v1/sites`) son administrativas salvo la importación. La capa inyecta `site_id` en los filtros de panel, inventario, redes, escaneos, alertas, topología, informes y métricas. El hub WebSocket mantiene una cola por cliente y descarta mensajes si el cliente se retrasa, para no bloquear los escaneos. La especificación OpenAPI 3.1 se genera en el propio paquete y las métricas Prometheus se sirven desde `/metrics`.
 
 ### `internal/app`
 
@@ -58,7 +58,9 @@ La cancelación es cooperativa: cada worker consulta el contexto y el resultado 
 
 SQLite en modo WAL con `busy_timeout`, claves foráneas y conexiones acotadas. Las migraciones son una lista ordenada de sentencias idempotentes. Los tipos se serializan con JSON en columnas `TEXT` (puertos, etiquetas, evidencias, configuración SNMP).
 
-**Identidad de host.** `identity` es único. Si hay MAC válida se usa la MAC normalizada; si no, `ip:<IP>`. Cuando más adelante se descubre la MAC, la fila se rekeyea en la misma transacción. Si la MAC ya pertenece a otra fila, se fusiona. Las notas, etiquetas y favoritos nunca se sobrescriben con datos de escaneo.
+**Identidad de host.** `identity` es único y está namespaceado por sede: `s<site_id>:<MAC|ip:IP>`. Si hay MAC válida se usa la MAC normalizada; si no, `ip:<IP>`. Cuando más adelante se descubre la MAC, la fila se rekeyea en la misma transacción. Si la MAC ya pertenece a otra fila de la misma sede, se fusiona. Las notas, etiquetas y favoritos nunca se sobrescriben con datos de escaneo. La migración 4 reescribe las identidades heredadas anteponiendo `s<site_id>:`.
+
+**Sedes.** Las migraciones 2–4 añaden la tabla `sites` y las columnas `site_id` en `networks`, `hosts`, `scans` y `reports`; la sede `Principal` (id `1`) se crea al inicializar. La unicidad de CIDR es por `(site_id, cidr)`, y todos los listados y agregados aceptan un filtro de sede (`0` = todas). La exportación genera un `SiteBundle` (`netdiag.site/v1`) con identidades sin prefijo de sede y la importación las re-prefija para la sede destino, con modos `merge` y `replace`. Borrar una sede mueve sus redes, hosts, escaneos, alertas e informes a otra sede, fusionando redes con el mismo CIDR; la última sede no se puede borrar.
 
 **Canales de alerta.** La configuración se cifra con AES-256-GCM antes de guardar. La clave se carga o crea en `<datos>/secret.key` con permisos `0600`. La API devuelve los campos secretos enmascarados.
 

@@ -14,12 +14,13 @@ import (
 )
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
-	stats, err := s.st.Dashboard()
+	siteID := queryInt64(r, "site_id")
+	stats, err := s.st.Dashboard(siteID)
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudo calcular el panel: "+err.Error())
 		return
 	}
-	ports, err := s.st.ListPortsSummary()
+	ports, err := s.st.ListPortsSummaryForSite(siteID)
 	if err != nil {
 		ports = map[int]int{}
 	}
@@ -33,6 +34,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 func (s *Server) hostFilter(r *http.Request) model.HostFilter {
 	return model.HostFilter{
 		Search:     queryString(r, "search"),
+		SiteID:     queryInt64(r, "site_id"),
 		Status:     queryString(r, "status"),
 		DeviceType: queryString(r, "device_type"),
 		NetworkID:  queryInt64(r, "network_id"),
@@ -143,7 +145,7 @@ func (s *Server) handleUpdateHost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteHost(w http.ResponseWriter, r *http.Request) {
-	if !s.requireAdmin(w, r) {
+	if !s.canWrite(w, r) {
 		return
 	}
 	id, err := pathInt64(r, "id")
@@ -243,6 +245,7 @@ func (s *Server) handleRescanHost(w http.ResponseWriter, r *http.Request) {
 		req.Profile = "full"
 	}
 	scan, err := s.scanner.StartScan(ScanRequest{
+		SiteID:    host.SiteID,
 		NetworkID: host.NetworkID,
 		CIDR:      host.IP,
 		Profile:   req.Profile,
@@ -259,7 +262,7 @@ func (s *Server) handleRescanHost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePortsSummary(w http.ResponseWriter, r *http.Request) {
-	ports, err := s.st.ListPortsSummary()
+	ports, err := s.st.ListPortsSummaryForSite(queryInt64(r, "site_id"))
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, err.Error())
 		return

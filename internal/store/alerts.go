@@ -312,6 +312,10 @@ func (s *Store) ListAlerts(f model.AlertFilter) (*model.ListResult[model.Alert],
 	}
 	where := []string{"1=1"}
 	var args []any
+	if f.SiteID > 0 {
+		where = append(where, "EXISTS (SELECT 1 FROM hosts h WHERE h.id = alerts.host_id AND h.site_id = ?)")
+		args = append(args, f.SiteID)
+	}
 	if f.Status != "" && f.Status != "all" {
 		where = append(where, "status = ?")
 		args = append(args, f.Status)
@@ -395,8 +399,19 @@ func (s *Store) LastAlertTime(dedupe string) (time.Time, bool) {
 
 // AlertStats returns current counters.
 func (s *Store) AlertStats() (model.AlertStats, error) {
+	return s.AlertStatsForSite(0)
+}
+
+// AlertStatsForSite counts alerts whose host belongs to one site (0 = all).
+func (s *Store) AlertStatsForSite(siteID int64) (model.AlertStats, error) {
 	var st model.AlertStats
-	rows, err := s.db.Query(`SELECT status, COUNT(*) FROM alerts GROUP BY status`)
+	hostFilter := ""
+	args := []any{}
+	if siteID > 0 {
+		hostFilter = ` AND EXISTS (SELECT 1 FROM hosts h WHERE h.id = alerts.host_id AND h.site_id = ?)`
+		args = append(args, siteID)
+	}
+	rows, err := s.db.Query(`SELECT status, COUNT(*) FROM alerts WHERE 1=1`+hostFilter+` GROUP BY status`, args...)
 	if err != nil {
 		return st, err
 	}
@@ -417,7 +432,11 @@ func (s *Store) AlertStats() (model.AlertStats, error) {
 		}
 	}
 	rows.Close()
-	rows, err = s.db.Query(`SELECT severity, COUNT(*) FROM alerts WHERE status IN (?,?) GROUP BY severity`, model.AlertActive, model.AlertAcked)
+	sevArgs := []any{model.AlertActive, model.AlertAcked}
+	if siteID > 0 {
+		sevArgs = append(sevArgs, siteID)
+	}
+	rows, err = s.db.Query(`SELECT severity, COUNT(*) FROM alerts WHERE status IN (?,?)`+hostFilter+` GROUP BY severity`, sevArgs...)
 	if err != nil {
 		return st, err
 	}
@@ -595,8 +614,8 @@ func (s *Store) AddReport(r *model.Report) (*model.Report, error) {
 	if r.CreatedAt.IsZero() {
 		r.CreatedAt = now
 	}
-	res, err := s.db.Exec(`INSERT INTO reports(name, format, kind, size, path, created_at) VALUES(?,?,?,?,?,?)`,
-		r.Name, r.Format, r.Kind, r.Size, r.Path, r.CreatedAt.UnixMilli())
+	res, err := s.db.Exec(`INSERT INTO reports(site_id, name, format, kind, size, path, created_at) VALUES(?,?,?,?,?,?,?)`,
+		r.SiteID, r.Name, r.Format, r.Kind, r.Size, r.Path, r.CreatedAt.UnixMilli())
 	if err != nil {
 		return nil, err
 	}
@@ -604,9 +623,16 @@ func (s *Store) AddReport(r *model.Report) (*model.Report, error) {
 	return s.GetReport(id)
 }
 
-// ListReports returns generated reports, newest first.
-func (s *Store) ListReports() ([]model.Report, error) {
-	rows, err := s.db.Query(`SELECT id, name, format, kind, size, path, created_at FROM reports ORDER BY id DESC LIMIT 200`)
+// ListReports returns generated reports, newest first. siteID = 0 means all.
+func (s *Store) ListReports(siteID ...int64) ([]model.Report, error) {
+	query := `SELECT id, site_id, name, format, kind, size, path, created_at FROM reports`
+	args := []any{}
+	if len(siteID) > 0 && siteID[0] > 0 {
+		query += ` WHERE site_id = ?`
+		args = append(args, siteID[0])
+	}
+	query += ` ORDER BY id DESC LIMIT 200`
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -615,7 +641,7 @@ func (s *Store) ListReports() ([]model.Report, error) {
 	for rows.Next() {
 		var r model.Report
 		var created int64
-		if err := rows.Scan(&r.ID, &r.Name, &r.Format, &r.Kind, &r.Size, &r.Path, &created); err != nil {
+		if err := rows.Scan(&r.ID, &r.SiteID, &r.Name, &r.Format, &r.Kind, &r.Size, &r.Path, &created); err != nil {
 			return nil, err
 		}
 		r.CreatedAt = fromMS(created)
@@ -628,8 +654,8 @@ func (s *Store) ListReports() ([]model.Report, error) {
 func (s *Store) GetReport(id int64) (*model.Report, error) {
 	var r model.Report
 	var created int64
-	err := s.db.QueryRow(`SELECT id, name, format, kind, size, path, created_at FROM reports WHERE id = ?`, id).
-		Scan(&r.ID, &r.Name, &r.Format, &r.Kind, &r.Size, &r.Path, &created)
+	err := s.db.QueryRow(`SELECT id, site_id, name, format, kind, size, path, created_at FROM reports WHERE id = ?`, id).
+		Scan(&r.ID, &r.SiteID, &r.Name, &r.Format, &r.Kind, &r.Size, &r.Path, &created)
 	if err == sql.ErrNoRows {
 		return nil, ErrNotFound
 	}
@@ -651,9 +677,10 @@ func (s *Store) DeleteReport(id int64) error {
 // --- dashboard ---
 
 // Dashboard returns the KPI payload used by the main screen.
-func (s *Store) Dashboard() (*model.DashboardStats, error) {
+// Dashboard returns aggregate metrics for a site (0 means all sites).
+func (s *Store) Dashboard(siteID int64) (*model.DashboardStats, error) {
 	st := &model.DashboardStats{ByType: map[string]int{}, ByStatus: map[string]int{}}
-	status, err := s.StatusCounts()
+	status, err := s.StatusCountsForSite(siteID)
 	if err != nil {
 		return nil, err
 	}
@@ -663,33 +690,39 @@ func (s *Store) Dashboard() (*model.DashboardStats, error) {
 	}
 	st.HostsUp = status[string(model.StatusUp)]
 	st.HostsDown = status[string(model.StatusDown)]
-	types, err := s.TypeCounts()
+	types, err := s.TypeCountsForSite(siteID)
 	if err != nil {
 		return nil, err
 	}
 	st.ByType = types
-	if st.HostsNew24h, err = s.CountHostsNewSince(time.Now().Add(-24 * time.Hour)); err != nil {
+	if st.HostsNew24h, err = s.CountHostsNewSinceForSite(siteID, time.Now().Add(-24*time.Hour)); err != nil {
 		return nil, err
 	}
-	if st.Scans24h, err = s.CountScansSince(time.Now().Add(-24 * time.Hour)); err != nil {
+	if st.Scans24h, err = s.CountScansSinceForSite(siteID, time.Now().Add(-24*time.Hour)); err != nil {
 		return nil, err
 	}
 	var networks int
-	if err := s.db.QueryRow(`SELECT COUNT(*) FROM networks`).Scan(&networks); err != nil {
+	netQuery := `SELECT COUNT(*) FROM networks`
+	netArgs := []any{}
+	if siteID > 0 {
+		netQuery += ` WHERE site_id = ?`
+		netArgs = append(netArgs, siteID)
+	}
+	if err := s.db.QueryRow(netQuery, netArgs...).Scan(&networks); err != nil {
 		return nil, err
 	}
 	st.Networks = networks
-	ast, err := s.AlertStats()
+	ast, err := s.AlertStatsForSite(siteID)
 	if err != nil {
 		return nil, err
 	}
 	st.AlertsActive = ast.Active + ast.Acked
 	st.AlertsCritical = ast.Critical
-	st.Availability, st.AvgRTT, err = s.FleetSummary(time.Now().Add(-24 * time.Hour))
+	st.Availability, st.AvgRTT, err = s.FleetSummaryForSite(siteID, time.Now().Add(-24*time.Hour))
 	if err != nil {
 		return nil, err
 	}
-	st.LastScan, err = s.LastScan()
+	st.LastScan, err = s.LastScanForSite(siteID)
 	if err != nil {
 		return nil, err
 	}

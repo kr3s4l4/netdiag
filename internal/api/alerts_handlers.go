@@ -15,6 +15,7 @@ const maskedSecret = "********"
 func (s *Server) handleListAlerts(w http.ResponseWriter, r *http.Request) {
 	from, to := parseWindow(r, 7*24*3600e9)
 	f := model.AlertFilter{
+		SiteID:   queryInt64(r, "site_id"),
 		Status:   queryString(r, "status"),
 		Severity: queryString(r, "severity"),
 		HostID:   queryInt64(r, "host_id"),
@@ -33,7 +34,7 @@ func (s *Server) handleListAlerts(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudieron listar las alertas: "+err.Error())
 		return
 	}
-	stats, _ := s.st.AlertStats()
+	stats, _ := s.st.AlertStatsForSite(f.SiteID)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"items": res.Items,
 		"total": res.Total,
@@ -44,7 +45,7 @@ func (s *Server) handleListAlerts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAlertStats(w http.ResponseWriter, r *http.Request) {
-	stats, err := s.st.AlertStats()
+	stats, err := s.st.AlertStatsForSite(queryInt64(r, "site_id"))
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, err.Error())
 		return

@@ -45,14 +45,20 @@ func (a *App) StartScan(req api.ScanRequest, actor string) (*model.Scan, error) 
 		return nil, fmt.Errorf("la red es pública; activa scan.allow_public para escanearla")
 	}
 
+	siteID := req.SiteID
 	var network *model.Network
 	if req.NetworkID > 0 {
 		network, err = a.st.GetNetwork(req.NetworkID)
 		if err != nil {
 			return nil, fmt.Errorf("red no encontrada")
 		}
+		if siteID > 0 && siteID != network.SiteID {
+			return nil, fmt.Errorf("la red pertenece a otra sede")
+		}
+		siteID = network.SiteID
 	} else {
 		created, _, err := a.st.EnsureNetwork(&model.Network{
+			SiteID:    siteID,
 			Name:      cidr,
 			CIDR:      cidr,
 			Enabled:   true,
@@ -62,6 +68,10 @@ func (a *App) StartScan(req api.ScanRequest, actor string) (*model.Scan, error) 
 			return nil, fmt.Errorf("no se pudo registrar la red: %w", err)
 		}
 		network = created
+		siteID = network.SiteID
+	}
+	if siteID <= 0 || !a.st.SiteExists(siteID) {
+		return nil, fmt.Errorf("la sede indicada no existe")
 	}
 
 	profile := strings.ToLower(strings.TrimSpace(req.Profile))
@@ -126,6 +136,7 @@ func (a *App) StartScan(req api.ScanRequest, actor string) (*model.Scan, error) 
 		return nil, fmt.Errorf("ya hay un escaneo en curso para %s (id %d)", cidr, id)
 	}
 	created, err := a.st.CreateScan(&model.Scan{
+		SiteID:    siteID,
 		NetworkID: network.ID,
 		CIDR:      cidr,
 		Profile:   profile,
@@ -233,6 +244,7 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 	seen := make([]int64, 0, len(result.Hosts))
 	for i := range result.Hosts {
 		h := result.Hosts[i]
+		h.SiteID = scan.SiteID
 		h.LastScanID = scan.ID
 		id, created, prev, changes, err := a.st.UpsertHost(&h)
 		if err != nil {
@@ -301,7 +313,7 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 		final = scan
 	}
 	a.hub.Broadcast("scan.finished", final)
-	if stats, err := a.st.Dashboard(); err == nil {
+	if stats, err := a.st.Dashboard(final.SiteID); err == nil {
 		a.hub.Broadcast("dashboard.updated", stats)
 	}
 	a.log.Info("escaneo finalizado", "scan", scan.ID, "estado", status,

@@ -155,11 +155,26 @@ func (s *Store) GlobalHistory(from, to time.Time, maxPoints int) (*model.HostHis
 
 // FleetSummary returns availability and average RTT since a time.
 func (s *Store) FleetSummary(since time.Time) (availability, avgRTT float64, err error) {
+	return s.FleetSummaryForSite(0, since)
+}
+
+// FleetSummaryForSite restricts the availability/RTT sample to one site.
+func (s *Store) FleetSummaryForSite(siteID int64, since time.Time) (availability, avgRTT float64, err error) {
 	var avail, rtt sql.NullFloat64
-	err = s.db.QueryRow(`SELECT
-			AVG(CASE WHEN up = 1 THEN 1.0 ELSE 0.0 END) * 100,
-			AVG(CASE WHEN up = 1 AND rtt_ms > 0 THEN rtt_ms END)
-		FROM metrics WHERE ts >= ?`, since.UnixMilli()).Scan(&avail, &rtt)
+	query := `SELECT
+			AVG(CASE WHEN m.up = 1 THEN 1.0 ELSE 0.0 END) * 100,
+			AVG(CASE WHEN m.up = 1 AND m.rtt_ms > 0 THEN m.rtt_ms END)
+		FROM metrics m`
+	args := []any{since.UnixMilli()}
+	if siteID > 0 {
+		query += ` JOIN hosts h ON h.id = m.host_id AND h.site_id = ?`
+		args = append(args, siteID)
+	}
+	query += ` WHERE m.ts >= ?`
+	if siteID > 0 {
+		args = []any{siteID, since.UnixMilli()}
+	}
+	err = s.db.QueryRow(query, args...).Scan(&avail, &rtt)
 	if err == sql.ErrNoRows {
 		return 0, 0, nil
 	}

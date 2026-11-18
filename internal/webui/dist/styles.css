@@ -137,6 +137,9 @@ code, .mono { font-family: var(--mono); }
 .topbar .crumb { color: var(--muted-2); font-size: 12px; }
 .topbar .spacer { flex: 1; }
 .topbar .clock { color: var(--muted-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.site-picker { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-2); }
+.site-picker svg { width: 15px; height: 15px; }
+.site-picker .select.sm { min-width: 130px; max-width: 190px; font-weight: 600; color: var(--text); }
 .content { padding: 24px 26px 48px; max-width: 1560px; width: 100%; margin: 0 auto; }
 
 /* ---------- primitives ---------- */

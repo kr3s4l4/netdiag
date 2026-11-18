@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"net"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/kr3s4l4/netdiag/internal/model"
 )
 
-const hostColumns = `id, identity, ip, mac, hostname, vendor, model, os, device_type,
+const hostColumns = `id, identity, site_id, ip, mac, hostname, vendor, model, os, device_type,
 	confidence, status, is_gateway, favorite, notes, tags, ports, latency_ms, ttl,
 	first_seen, last_seen, network_id, last_scan_id, snmp, evidence`
 
@@ -29,7 +30,7 @@ func scanHost(r rowScanner) (*model.Host, error) {
 		deviceType                 string
 		status                     string
 	)
-	err := r.Scan(&h.ID, &h.Identity, &h.IP, &h.MAC, &h.Hostname, &h.Vendor, &h.Model, &h.OS, &deviceType,
+	err := r.Scan(&h.ID, &h.Identity, &h.SiteID, &h.IP, &h.MAC, &h.Hostname, &h.Vendor, &h.Model, &h.OS, &deviceType,
 		&h.Confidence, &status, &gateway, &favorite, &h.Notes, &tags, &ports, &h.LatencyMS, &h.TTL,
 		&firstSeen, &lastSeen, &h.NetworkID, &h.LastScanID, &snmpRaw, &evid)
 	if err != nil {
@@ -93,6 +94,30 @@ func IdentityFor(ip, mac string) string {
 	return "ip:" + ip
 }
 
+// siteIdentity namespaces a host identity with its site. The same IP or MAC
+// may legitimately exist in several sites, so identities must be unique only
+// inside one site. Exported bundles carry the raw (site-free) identity.
+func siteIdentity(siteID int64, ip, mac string) string {
+	if siteID <= 0 {
+		siteID = 1
+	}
+	return fmt.Sprintf("s%d:%s", siteID, IdentityFor(ip, mac))
+}
+
+// rawIdentity strips the site prefix from a stored identity, making bundles
+// portable across sites and instances. The "s<id>:" marker cannot be confused
+// with a MAC (hex pairs) or an IP identity ("ip:…").
+func rawIdentity(identity string) string {
+	if strings.HasPrefix(identity, "s") {
+		if i := strings.IndexByte(identity, ':'); i > 1 {
+			if _, err := strconv.ParseInt(identity[1:i], 10, 64); err == nil {
+				return identity[i+1:]
+			}
+		}
+	}
+	return identity
+}
+
 // UpsertHost inserts or updates a host from a scan. It preserves user metadata
 // (notes, tags, favourite) and records lifecycle events. A nil Ports slice means
 // "ports were not scanned", so previous ports are preserved. A non-nil empty
@@ -110,7 +135,15 @@ func (s *Store) UpsertHost(h *model.Host) (id int64, created bool, prev *model.H
 	if h.LastSeen.IsZero() {
 		h.LastSeen = time.Now()
 	}
-	identity := IdentityFor(h.IP, h.MAC)
+	if h.SiteID == 0 && h.NetworkID > 0 {
+		if err := s.db.QueryRow(`SELECT site_id FROM networks WHERE id = ?`, h.NetworkID).Scan(&h.SiteID); err != nil {
+			h.SiteID = 1
+		}
+	}
+	if h.SiteID == 0 {
+		h.SiteID = 1
+	}
+	identity := siteIdentity(h.SiteID, h.IP, h.MAC)
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -126,7 +159,7 @@ func (s *Store) UpsertHost(h *model.Host) (id int64, created bool, prev *model.H
 	case e == sql.ErrNoRows:
 		// Try by MAC (host may have been discovered before with an IP identity).
 		if validMAC(h.MAC) {
-			row = tx.QueryRow(`SELECT id, identity FROM hosts WHERE lower(mac) = ? ORDER BY last_seen DESC LIMIT 1`, strings.ToLower(h.MAC))
+			row = tx.QueryRow(`SELECT id, identity FROM hosts WHERE lower(mac) = ? AND site_id = ? ORDER BY last_seen DESC LIMIT 1`, strings.ToLower(h.MAC), h.SiteID)
 			if e2 := row.Scan(&foundID, &foundIdentity); e2 == nil {
 				// rekey below
 			} else if e2 != sql.ErrNoRows {
@@ -136,7 +169,7 @@ func (s *Store) UpsertHost(h *model.Host) (id int64, created bool, prev *model.H
 		if foundID == 0 {
 			// Try by IP only when this host still has no MAC-based identity.
 			var oldMAC string
-			row = tx.QueryRow(`SELECT id, identity, mac FROM hosts WHERE ip = ? ORDER BY last_seen DESC LIMIT 1`, h.IP)
+			row = tx.QueryRow(`SELECT id, identity, mac FROM hosts WHERE ip = ? AND site_id = ? ORDER BY last_seen DESC LIMIT 1`, h.IP, h.SiteID)
 			var oldIdentity string
 			if e2 := row.Scan(&foundID, &oldIdentity, &oldMAC); e2 == nil {
 				foundIdentity = oldIdentity
@@ -164,7 +197,7 @@ func (s *Store) UpsertHost(h *model.Host) (id int64, created bool, prev *model.H
 	// Rekey to MAC identity once a MAC is known.
 	if foundID != 0 && identity != foundIdentity {
 		var clash int64
-		if err := tx.QueryRow(`SELECT id FROM hosts WHERE identity = ?`, identity).Scan(&clash); err == nil && clash != foundID {
+		if err := tx.QueryRow(`SELECT id FROM hosts WHERE identity = ? AND site_id = ?`, identity, h.SiteID).Scan(&clash); err == nil && clash != foundID {
 			// Another row already owns the MAC identity: merge into it instead.
 			foundID = clash
 			prevHost, err = scanHost(tx.QueryRow(`SELECT `+hostColumns+` FROM hosts WHERE id = ?`, clash))
@@ -181,7 +214,7 @@ func (s *Store) UpsertHost(h *model.Host) (id int64, created bool, prev *model.H
 
 	// If this IP is currently assigned to a different identity, detach it.
 	if foundID == 0 {
-		rows, err := tx.Query(`SELECT id, identity FROM hosts WHERE ip = ?`, h.IP)
+		rows, err := tx.Query(`SELECT id, identity FROM hosts WHERE ip = ? AND site_id = ?`, h.IP, h.SiteID)
 		if err != nil {
 			return 0, false, nil, nil, err
 		}
@@ -206,11 +239,11 @@ func (s *Store) UpsertHost(h *model.Host) (id int64, created bool, prev *model.H
 	}
 
 	if foundID == 0 {
-		res, err := tx.Exec(`INSERT INTO hosts(identity, ip, mac, hostname, vendor, model, os, device_type,
+		res, err := tx.Exec(`INSERT INTO hosts(identity, site_id, ip, mac, hostname, vendor, model, os, device_type,
 			confidence, status, is_gateway, favorite, notes, tags, ports, latency_ms, ttl,
 			first_seen, last_seen, network_id, last_scan_id, snmp, evidence)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,0,'','[]',?,?,?,?,?,?,?,?,?)`,
-			identity, h.IP, h.MAC, h.Hostname, h.Vendor, h.Model, h.OS, string(h.DeviceType),
+			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,0,'','[]',?,?,?,?,?,?,?,?,?)`,
+			identity, h.SiteID, h.IP, h.MAC, h.Hostname, h.Vendor, h.Model, h.OS, string(h.DeviceType),
 			h.Confidence, string(h.Status), boolInt(h.IsGateway), jsonMarshal(nonNilPorts(h.Ports)),
 			h.LatencyMS, h.TTL, h.FirstSeen.UnixMilli(), h.LastSeen.UnixMilli(), h.NetworkID, h.LastScanID,
 			jsonMarshal(h.SNMP), jsonMarshal(nonNilStrings(h.Evidence)))
@@ -304,11 +337,11 @@ func (s *Store) UpsertHost(h *model.Host) (id int64, created bool, prev *model.H
 		}
 	}
 
-	_, err = tx.Exec(`UPDATE hosts SET identity=?, ip=?, mac=?, hostname=?, vendor=?, model=?, os=?,
+	_, err = tx.Exec(`UPDATE hosts SET identity=?, site_id=?, ip=?, mac=?, hostname=?, vendor=?, model=?, os=?,
 		device_type=?, confidence=?, status=?, is_gateway=?, ports=?, latency_ms=?, ttl=?,
 		first_seen=?, last_seen=?, network_id=?, last_scan_id=?, snmp=?, evidence=?
 		WHERE id=?`,
-		identity, merged.IP, merged.MAC, merged.Hostname, merged.Vendor, merged.Model, merged.OS,
+		identity, h.SiteID, merged.IP, merged.MAC, merged.Hostname, merged.Vendor, merged.Model, merged.OS,
 		string(merged.DeviceType), merged.Confidence, string(merged.Status), boolInt(merged.IsGateway),
 		jsonMarshal(nonNilPorts(merged.Ports)), merged.LatencyMS, merged.TTL,
 		merged.FirstSeen.UnixMilli(), merged.LastSeen.UnixMilli(), merged.NetworkID, merged.LastScanID,
@@ -452,6 +485,10 @@ func (s *Store) ListHosts(f model.HostFilter) (*model.ListResult[model.Host], er
 	}
 	where := []string{"1=1"}
 	var args []any
+	if f.SiteID > 0 {
+		where = append(where, "site_id = ?")
+		args = append(args, f.SiteID)
+	}
 	if f.Search != "" {
 		q := "%" + escapeLike(f.Search) + "%"
 		where = append(where, `(ip LIKE ? ESCAPE '\' OR hostname LIKE ? ESCAPE '\' OR mac LIKE ? ESCAPE '\' OR vendor LIKE ? ESCAPE '\' OR notes LIKE ? ESCAPE '\' OR os LIKE ? ESCAPE '\')`)
@@ -509,10 +546,23 @@ func (s *Store) ListHosts(f model.HostFilter) (*model.ListResult[model.Host], er
 
 // ListAllHosts returns every host, newest first, capped at limit.
 func (s *Store) ListAllHosts(limit int) ([]model.Host, error) {
+	return s.ListAllHostsForSite(0, limit)
+}
+
+// ListAllHostsForSite returns the hosts of one site (0 means all sites).
+func (s *Store) ListAllHostsForSite(siteID int64, limit int) ([]model.Host, error) {
 	if limit <= 0 {
 		limit = 10000
 	}
-	rows, err := s.db.Query(`SELECT `+hostColumns+` FROM hosts ORDER BY last_seen DESC LIMIT ?`, limit)
+	query := `SELECT ` + hostColumns + ` FROM hosts`
+	args := []any{}
+	if siteID > 0 {
+		query += ` WHERE site_id = ?`
+		args = append(args, siteID)
+	}
+	query += ` ORDER BY last_seen DESC LIMIT ?`
+	args = append(args, limit)
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +580,18 @@ func (s *Store) ListAllHosts(limit int) ([]model.Host, error) {
 
 // ListPortsSummary returns all open ports grouped by number for the dashboard.
 func (s *Store) ListPortsSummary() (map[int]int, error) {
-	rows, err := s.db.Query(`SELECT ports FROM hosts WHERE ports != '[]'`)
+	return s.ListPortsSummaryForSite(0)
+}
+
+// ListPortsSummaryForSite groups open ports of one site (0 means all sites).
+func (s *Store) ListPortsSummaryForSite(siteID int64) (map[int]int, error) {
+	query := `SELECT ports FROM hosts WHERE ports != '[]'`
+	args := []any{}
+	if siteID > 0 {
+		query += ` AND site_id = ?`
+		args = append(args, siteID)
+	}
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -627,7 +688,19 @@ func (s *Store) ListEvents(hostID int64, limit int) ([]model.Event, error) {
 
 // StatusCounts returns host counts by status.
 func (s *Store) StatusCounts() (map[string]int, error) {
-	rows, err := s.db.Query(`SELECT status, COUNT(*) FROM hosts GROUP BY status`)
+	return s.StatusCountsForSite(0)
+}
+
+// StatusCountsForSite returns host counts by status for one site (0 = all).
+func (s *Store) StatusCountsForSite(siteID int64) (map[string]int, error) {
+	query := `SELECT status, COUNT(*) FROM hosts`
+	args := []any{}
+	if siteID > 0 {
+		query += ` WHERE site_id = ?`
+		args = append(args, siteID)
+	}
+	query += ` GROUP BY status`
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -646,7 +719,19 @@ func (s *Store) StatusCounts() (map[string]int, error) {
 
 // TypeCounts returns host counts by device type.
 func (s *Store) TypeCounts() (map[string]int, error) {
-	rows, err := s.db.Query(`SELECT device_type, COUNT(*) FROM hosts GROUP BY device_type ORDER BY COUNT(*) DESC`)
+	return s.TypeCountsForSite(0)
+}
+
+// TypeCountsForSite returns host counts by device type for one site (0 = all).
+func (s *Store) TypeCountsForSite(siteID int64) (map[string]int, error) {
+	query := `SELECT device_type, COUNT(*) FROM hosts`
+	args := []any{}
+	if siteID > 0 {
+		query += ` WHERE site_id = ?`
+		args = append(args, siteID)
+	}
+	query += ` GROUP BY device_type ORDER BY COUNT(*) DESC`
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -665,8 +750,19 @@ func (s *Store) TypeCounts() (map[string]int, error) {
 
 // CountHostsNewSince counts hosts first seen after t.
 func (s *Store) CountHostsNewSince(t time.Time) (int, error) {
+	return s.CountHostsNewSinceForSite(0, t)
+}
+
+// CountHostsNewSinceForSite counts new hosts of one site (0 = all).
+func (s *Store) CountHostsNewSinceForSite(siteID int64, t time.Time) (int, error) {
 	var n int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM hosts WHERE first_seen >= ?`, t.UnixMilli()).Scan(&n)
+	query := `SELECT COUNT(*) FROM hosts WHERE first_seen >= ?`
+	args := []any{t.UnixMilli()}
+	if siteID > 0 {
+		query += ` AND site_id = ?`
+		args = append(args, siteID)
+	}
+	err := s.db.QueryRow(query, args...).Scan(&n)
 	return n, err
 }
 

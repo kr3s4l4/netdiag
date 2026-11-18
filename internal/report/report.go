@@ -19,6 +19,7 @@ import (
 
 // Request describes a report to render.
 type Request struct {
+	SiteID  int64
 	Kind    string // inventory | executive | alerts
 	Format  string // pdf | csv | json | html
 	Title   string
@@ -97,6 +98,7 @@ func (g *Generator) Generate(req Request) (*model.Report, error) {
 		return nil, err
 	}
 	return &model.Report{
+		SiteID:    req.SiteID,
 		Name:      base,
 		Format:    strings.ToLower(req.Format),
 		Kind:      req.Kind,

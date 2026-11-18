@@ -38,8 +38,20 @@ Roles:
 | Rol | Permisos |
 | --- | --- |
 | `admin` (o `owner`) | Todo: configuración, usuarios, copias de seguridad y operación |
-| `operator` | Escaneos, inventario, redes, alertas e informes; sin configuración ni usuarios |
-| `viewer` | Solo lectura de inventario, alertas, informes y métricas |
+| `operator` | Escaneos, inventario, redes, alertas, informes e importación de sedes; sin configuración, usuarios ni gestión de sedes |
+| `viewer` | Solo lectura de inventario, alertas, informes, sedes y métricas |
+
+### Alcance por sede
+
+Todas las sedes comparten una única base SQLite. El parámetro `site_id` está disponible en las operaciones operativas:
+
+| Operación | Dónde se envía `site_id` |
+| --- | --- |
+| `GET /dashboard`, `/hosts`, `/networks`, `/scans`, `/alerts`, `/topology`, `/reports`, `/metrics` | Query string |
+| `POST /scans`, `/networks`, `/reports` | Cuerpo JSON |
+| `GET /hosts/{id}`, `/scans/{id}`, `/reports/{id}/download` | Se deriva del registro, no se envía |
+
+`site_id=0` (o ausente) en agregados y listados significa «todas las sedes». En escrituras, si se omite, se aplica la sede por defecto (`1`, `Principal`). El mismo CIDR puede repetirse en sedes distintas. La identidad de un host se namespacea como `s<site_id>:<mac|ip:...>`; los paquetes de exportación contienen la identidad sin el prefijo y la importación antepone la sede de destino.
 
 ### Errores
 
@@ -76,12 +88,38 @@ Roles:
 | DELETE | `/auth/users/{id}` | Admin; no permite eliminar al último admin |
 | POST | `/auth/users/{id}/password` | Admin; `{"password":"..."}`; cierra las sesiones del usuario |
 
+### Sedes
+
+Gestión y portabilidad de sedes. La creación, renombrado, borrado, exportación e importación son operaciones de administrador; la importación también la puede realizar `operator` por ser una escritura operativa. No se puede eliminar la última sede. Al borrar una sede, sus redes, hosts, escaneos, alertas e informes se trasladan a `move_to` y se resuelven las colisiones de CIDR.
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/sites` | Lista `{items,total}` con contadores por sede; cualquier rol autenticado |
+| POST | `/sites` | Admin; `{name, description?}` → `201` |
+| GET | `/sites/{id}` | Detalle de una sede |
+| PUT | `/sites/{id}` | Admin; `{name, description?}` |
+| DELETE | `/sites/{id}?move_to=<id>` | Admin; mueve los datos a otra sede. `409` si es la última |
+
+Exportación e importación (`schema: "netdiag.site/v1"`, paquete JSON autocontenido con redes, hosts y metadatos de identidad):
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/sites/{id}/export` | Descarga el paquete JSON de la sede |
+| POST | `/sites/{id}/import?mode=merge\|replace` | JSON crudo o multipart con campo `file`; devuelve `{summary:{networks_created,hosts_created,hosts_updated,hosts_skipped}}` |
+
+```bash
+# Exportar y reimportar en otra sede
+curl -b cookies.txt http://127.0.0.1:8080/api/v1/sites/2/export -o sede.json
+curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -F 'file=@sede.json' \
+  'http://127.0.0.1:8080/api/v1/sites/3/import?mode=merge'
+```
+
 ### Panel e inventario
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
-| GET | `/dashboard` | KPIs, tipos, estado, último escaneo |
-| GET | `/hosts` | `search, status, type, network_id, tag, favorite, sort, desc, page, limit` |
+| GET | `/dashboard?site_id=<id>` | KPIs, tipos, estado, último escaneo |
+| GET | `/hosts?site_id=<id>` | `search, status, type, network_id, tag, favorite, sort, desc, page, limit` |
 | GET | `/hosts/export?format=csv\|json` | Descarga del inventario |
 | GET | `/hosts/{id}` | Host, puertos, SNMP, vecinos y eventos recientes |
 | PATCH | `/hosts/{id}` | `notes`, `tags`, `favorite` |
@@ -96,8 +134,8 @@ Roles:
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
-| GET | `/networks` | Redes con contadores |
-| POST | `/networks` | `name`, `cidr`, `interface`, `enabled` |
+| GET | `/networks?site_id=<id>` | Redes con contadores |
+| POST | `/networks` | `site_id`, `name`, `cidr`, `interface`, `enabled` |
 | GET | `/networks/suggest` | Subredes privadas detectadas en el servidor |
 | PUT | `/networks/{id}` | |
 | DELETE | `/networks/{id}` | |
@@ -106,13 +144,14 @@ Roles:
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
-| GET | `/scans?limit=60` | Historial y escaneos activos |
+| GET | `/scans?site_id=<id>&limit=60` | Historial y escaneos activos |
 | POST | `/scans` | Ver cuerpo abajo |
 | GET | `/scans/{id}` | Estado y progreso |
 | POST | `/scans/{id}/cancel` | Cancelación cooperativa |
 
 ```json
 {
+  "site_id": 1,
   "cidr": "192.168.1.0/24",
   "network_id": 0,
   "profile": "common",
@@ -130,7 +169,7 @@ Roles:
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
-| GET | `/alerts` | `status, severity, host_id, search, from, to, page, limit` |
+| GET | `/alerts?site_id=<id>` | `status, severity, host_id, search, from, to, page, limit` |
 | GET | `/alerts/stats` | Activas, reconocidas, resueltas, críticas |
 | POST | `/alerts/{id}/ack` | Reconocer |
 | POST | `/alerts/{id}/resolve` | Resolver |
@@ -148,8 +187,8 @@ Canales: `webhook`, `slack`, `discord`, `telegram`, `pagerduty`, `smtp`, `syslog
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
-| GET | `/reports` | Últimos 200 |
-| POST | `/reports` | `kind` (`inventory\|executive\|alerts`), `format` (`pdf\|csv\|json\|html`), `title` |
+| GET | `/reports?site_id=<id>` | Últimos 200; `0` (o ausente) incluye todas las sedes |
+| POST | `/reports` | `site_id`, `kind` (`inventory\|executive\|alerts`), `format` (`pdf\|csv\|json\|html`), `title` |
 | GET | `/reports/{id}/download` | Descarga autenticada |
 | DELETE | `/reports/{id}` | Elimina registro y archivo |
 
@@ -157,7 +196,7 @@ Canales: `webhook`, `slack`, `discord`, `telegram`, `pagerduty`, `smtp`, `syslog
 
 | Método | Ruta | Notas |
 | --- | --- | --- |
-| GET | `/topology` | Nodos, aristas y estadísticas |
+| GET | `/topology?site_id=<id>` | Nodos, aristas y estadísticas |
 | GET | `/system/info` | Versión, capacidades, interfaces, tamaño de la base |
 | GET | `/system/interfaces` | Interfaces locales |
 | GET | `/system/config` | Admin; secretos enmascarados |

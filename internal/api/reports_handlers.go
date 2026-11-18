@@ -12,7 +12,7 @@ import (
 )
 
 func (s *Server) handleListReports(w http.ResponseWriter, r *http.Request) {
-	reports, err := s.st.ListReports()
+	reports, err := s.st.ListReports(queryInt64(r, "site_id"))
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudieron listar los informes: "+err.Error())
 		return
@@ -21,6 +21,7 @@ func (s *Server) handleListReports(w http.ResponseWriter, r *http.Request) {
 }
 
 type reportRequest struct {
+	SiteID int64  `json:"site_id,omitempty"`
 	Kind   string `json:"kind"`
 	Format string `json:"format"`
 	Title  string `json:"title,omitempty"`
@@ -47,19 +48,19 @@ func (s *Server) handleCreateReport(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, http.StatusBadRequest, "formato inválido; usa pdf, csv, json o html")
 		return
 	}
-	stats, err := s.st.Dashboard()
+	stats, err := s.st.Dashboard(req.SiteID)
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudieron leer las estadísticas")
 		return
 	}
-	hosts, err := s.st.ListAllHosts(20000)
+	hosts, err := s.st.ListAllHostsForSite(req.SiteID, 20000)
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudo leer el inventario")
 		return
 	}
 	from, to := parseWindow(r, 7*24*time.Hour)
 	alertLimit := 5000
-	alerts, err := s.st.ListAlerts(model.AlertFilter{From: &from, To: &to, Page: 1, Limit: alertLimit})
+	alerts, err := s.st.ListAlerts(model.AlertFilter{SiteID: req.SiteID, From: &from, To: &to, Page: 1, Limit: alertLimit})
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudieron leer las alertas")
 		return
@@ -75,6 +76,7 @@ func (s *Server) handleCreateReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rec, err := gen.Generate(report.Request{
+		SiteID:  req.SiteID,
 		Kind:    req.Kind,
 		Format:  req.Format,
 		Title:   req.Title,

@@ -31,9 +31,17 @@ var apiRoutes = []apiRoute{
 	{"DELETE", "/api/v1/auth/users/{id}", "Eliminar un usuario", "Usuarios", false, true, "", nil, false, false},
 	{"POST", "/api/v1/auth/users/{id}/password", "Restablecer la contraseña de un usuario", "Usuarios", false, true, "ResetPasswordRequest", nil, false, false},
 
-	{"GET", "/api/v1/dashboard", "Resumen operativo del panel", "Panel", false, false, "", nil, false, false},
+	{"GET", "/api/v1/dashboard", "Resumen operativo del panel", "Panel", false, false, "", []string{"site_id"}, false, false},
 
-	{"GET", "/api/v1/hosts", "Listar el inventario", "Dispositivos", false, false, "", []string{"page", "limit", "search", "status", "device_type", "network_id", "favorite", "sort", "asc"}, false, false},
+	{"GET", "/api/v1/sites", "Listar sedes", "Sedes", false, false, "", nil, false, false},
+	{"POST", "/api/v1/sites", "Crear una sede", "Sedes", false, true, "SiteRequest", nil, true, false},
+	{"GET", "/api/v1/sites/{id}", "Detalle de una sede", "Sedes", false, false, "", nil, false, false},
+	{"PUT", "/api/v1/sites/{id}", "Renombrar una sede", "Sedes", false, true, "SiteRequest", nil, false, false},
+	{"DELETE", "/api/v1/sites/{id}", "Eliminar una sede", "Sedes", false, true, "", []string{"move_to"}, false, false},
+	{"GET", "/api/v1/sites/{id}/export", "Exportar una sede como paquete JSON", "Sedes", false, false, "", nil, false, false},
+	{"POST", "/api/v1/sites/{id}/import", "Importar un paquete en una sede", "Sedes", false, false, "SiteBundle", []string{"mode"}, false, false},
+
+	{"GET", "/api/v1/hosts", "Listar el inventario", "Dispositivos", false, false, "", []string{"site_id", "page", "limit", "search", "status", "device_type", "network_id", "favorite", "sort", "asc"}, false, false},
 	{"GET", "/api/v1/hosts/export", "Exportar el inventario", "Dispositivos", false, false, "", []string{"format"}, false, false},
 	{"GET", "/api/v1/hosts/{id}", "Detalle de un dispositivo", "Dispositivos", false, false, "", nil, false, false},
 	{"PATCH", "/api/v1/hosts/{id}", "Editar notas, etiquetas y favorito", "Dispositivos", false, false, "UpdateHostRequest", nil, false, false},
@@ -42,21 +50,21 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/hosts/{id}/history", "Histórico de latencia y disponibilidad", "Dispositivos", false, false, "", []string{"from", "to", "range", "points"}, false, false},
 	{"GET", "/api/v1/hosts/{id}/neighbors", "Vecinos conocidos de un dispositivo", "Dispositivos", false, false, "", nil, false, false},
 	{"POST", "/api/v1/hosts/{id}/rescan", "Volver a escanear un dispositivo", "Dispositivos", false, false, "RescanRequest", nil, false, false},
-	{"GET", "/api/v1/ports/summary", "Puertos más expuestos", "Dispositivos", false, false, "", nil, false, false},
+	{"GET", "/api/v1/ports/summary", "Puertos más expuestos", "Dispositivos", false, false, "", []string{"site_id"}, false, false},
 
-	{"GET", "/api/v1/networks", "Listar redes monitorizadas", "Redes", false, false, "", nil, false, false},
+	{"GET", "/api/v1/networks", "Listar redes monitorizadas", "Redes", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/networks", "Añadir una red", "Redes", false, true, "NetworkRequest", nil, true, false},
-	{"GET", "/api/v1/networks/suggest", "Sugerir redes locales", "Redes", false, false, "", nil, false, false},
+	{"GET", "/api/v1/networks/suggest", "Sugerir redes locales", "Redes", false, false, "", []string{"site_id"}, false, false},
 	{"PUT", "/api/v1/networks/{id}", "Editar una red", "Redes", false, true, "NetworkRequest", nil, false, false},
 	{"DELETE", "/api/v1/networks/{id}", "Eliminar una red", "Redes", false, true, "", nil, false, false},
 
-	{"GET", "/api/v1/scans", "Listar escaneos", "Escaneos", false, false, "", []string{"limit", "status"}, false, false},
+	{"GET", "/api/v1/scans", "Listar escaneos", "Escaneos", false, false, "", []string{"site_id", "limit", "status"}, false, false},
 	{"POST", "/api/v1/scans", "Iniciar un escaneo", "Escaneos", false, false, "ScanRequest", nil, true, false},
 	{"GET", "/api/v1/scans/{id}", "Detalle de un escaneo", "Escaneos", false, false, "", nil, false, false},
 	{"POST", "/api/v1/scans/{id}/cancel", "Cancelar un escaneo", "Escaneos", false, false, "", nil, false, false},
 
-	{"GET", "/api/v1/alerts", "Listar alertas", "Alertas", false, false, "", []string{"status", "severity", "search", "page", "limit"}, false, false},
-	{"GET", "/api/v1/alerts/stats", "Estadísticas de alertas", "Alertas", false, false, "", nil, false, false},
+	{"GET", "/api/v1/alerts", "Listar alertas", "Alertas", false, false, "", []string{"site_id", "status", "severity", "search", "page", "limit"}, false, false},
+	{"GET", "/api/v1/alerts/stats", "Estadísticas de alertas", "Alertas", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/alerts/{id}/ack", "Reconocer una alerta", "Alertas", false, false, "", nil, false, false},
 	{"POST", "/api/v1/alerts/{id}/resolve", "Resolver una alerta", "Alertas", false, false, "", nil, false, false},
 	{"GET", "/api/v1/alerts/rules", "Listar reglas de alerta", "Alertas", false, false, "", nil, false, false},
@@ -69,12 +77,12 @@ var apiRoutes = []apiRoute{
 	{"DELETE", "/api/v1/alerts/channels/{id}", "Eliminar un canal de notificación", "Alertas", false, true, "", nil, false, false},
 	{"POST", "/api/v1/alerts/channels/{id}/test", "Enviar una notificación de prueba", "Alertas", false, true, "", nil, false, false},
 
-	{"GET", "/api/v1/reports", "Listar informes generados", "Informes", false, false, "", nil, false, false},
+	{"GET", "/api/v1/reports", "Listar informes generados", "Informes", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/reports", "Generar un informe", "Informes", false, false, "ReportRequest", nil, true, false},
 	{"GET", "/api/v1/reports/{id}/download", "Descargar un informe", "Informes", false, false, "", nil, false, false},
 	{"DELETE", "/api/v1/reports/{id}", "Eliminar un informe", "Informes", false, true, "", nil, false, false},
 
-	{"GET", "/api/v1/topology", "Grafo de topología L2/L3", "Topología", false, false, "", nil, false, false},
+	{"GET", "/api/v1/topology", "Grafo de topología L2/L3", "Topología", false, false, "", []string{"site_id", "network_id"}, false, false},
 
 	{"GET", "/api/v1/system/info", "Información del sistema y capacidades", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/interfaces", "Interfaces de red locales", "Sistema", false, false, "", nil, false, false},
@@ -88,7 +96,7 @@ var apiRoutes = []apiRoute{
 	{"DELETE", "/api/v1/system/backups/{name}", "Eliminar una copia de seguridad", "Sistema", false, true, "", nil, false, false},
 	{"GET", "/api/v1/ws", "Canal WebSocket de eventos en vivo", "Tiempo real", false, false, "", nil, false, true},
 	{"GET", "/api/v1/openapi.json", "Esta especificación OpenAPI", "Sistema", true, false, "", nil, false, true},
-	{"GET", "/metrics", "Métricas en formato Prometheus", "Sistema", true, false, "", nil, false, true},
+	{"GET", "/metrics", "Métricas en formato Prometheus", "Sistema", true, false, "", []string{"site_id"}, false, true},
 }
 
 func (s *Server) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +183,7 @@ func buildOpenAPI(version, commit, buildDate string) map[string]any {
 		"servers": []map[string]any{{"url": "/", "description": "Este servidor"}},
 		"tags": []map[string]any{
 			{"name": "Autenticación"}, {"name": "Usuarios"}, {"name": "Panel"},
-			{"name": "Dispositivos"}, {"name": "Redes"}, {"name": "Escaneos"},
+			{"name": "Sedes"}, {"name": "Dispositivos"}, {"name": "Redes"}, {"name": "Escaneos"},
 			{"name": "Alertas"}, {"name": "Informes"}, {"name": "Topología"},
 			{"name": "Sistema"}, {"name": "Tiempo real"},
 		},
@@ -280,16 +288,31 @@ func openAPISchemas() map[string]any {
 				"deep":    map[string]any{"type": "boolean"},
 			},
 		},
+		"SiteRequest": map[string]any{
+			"type": "object", "required": []string{"name"},
+			"properties": map[string]any{"name": str, "description": str},
+		},
+		"SiteBundle": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"schema": str, "exported_at": str,
+				"site":     map[string]any{"type": "object"},
+				"networks": map[string]any{"type": "array", "items": map[string]any{"type": "object"}},
+				"hosts":    map[string]any{"type": "array", "items": map[string]any{"type": "object"}},
+			},
+		},
 		"NetworkRequest": map[string]any{
 			"type": "object", "required": []string{"cidr"},
 			"properties": map[string]any{
-				"name": str, "cidr": str, "interface": str,
+				"site_id": map[string]any{"type": "integer", "format": "int64"},
+				"name":    str, "cidr": str, "interface": str,
 				"enabled": map[string]any{"type": "boolean"},
 			},
 		},
 		"ScanRequest": map[string]any{
 			"type": "object",
 			"properties": map[string]any{
+				"site_id":      map[string]any{"type": "integer", "format": "int64"},
 				"network_id":   map[string]any{"type": "integer", "format": "int64"},
 				"cidr":         str,
 				"profile":      map[string]any{"type": "string", "enum": []string{"quick", "common", "full", "custom"}},
@@ -318,9 +341,10 @@ func openAPISchemas() map[string]any {
 		"ReportRequest": map[string]any{
 			"type": "object",
 			"properties": map[string]any{
-				"kind":   map[string]any{"type": "string", "enum": []string{"inventory", "executive", "alerts"}},
-				"format": map[string]any{"type": "string", "enum": []string{"pdf", "csv", "json", "html"}},
-				"title":  str,
+				"site_id": map[string]any{"type": "integer", "format": "int64"},
+				"kind":    map[string]any{"type": "string", "enum": []string{"inventory", "executive", "alerts"}},
+				"format":  map[string]any{"type": "string", "enum": []string{"pdf", "csv", "json", "html"}},
+				"title":   str,
 			},
 		},
 		"Config": map[string]any{"type": "object", "additionalProperties": true},

@@ -117,10 +117,27 @@ type SNMPSummary struct {
 	Version     string          `json:"version,omitempty"`
 }
 
+// Site is a logical location (office, branch, datacenter) that groups
+// networks and hosts. A single instance can monitor several sites without
+// running several servers.
+type Site struct {
+	ID           int64      `json:"id"`
+	Name         string     `json:"name"`
+	Slug         string     `json:"slug"`
+	Description  string     `json:"description,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	NetworkCount int        `json:"network_count"`
+	HostCount    int        `json:"host_count"`
+	UpCount      int        `json:"up_count"`
+	LastScanAt   *time.Time `json:"last_scan_at,omitempty"`
+}
+
 // Host is a discovered network device.
 type Host struct {
 	ID            int64        `json:"id"`
 	Identity      string       `json:"-"`
+	SiteID        int64        `json:"site_id"`
 	IP            string       `json:"ip"`
 	MAC           string       `json:"mac,omitempty"`
 	Hostname      string       `json:"hostname,omitempty"`
@@ -149,6 +166,7 @@ type Host struct {
 // Network is a monitored CIDR.
 type Network struct {
 	ID         int64      `json:"id"`
+	SiteID     int64      `json:"site_id"`
 	Name       string     `json:"name"`
 	CIDR       string     `json:"cidr"`
 	Interface  string     `json:"interface,omitempty"`
@@ -177,6 +195,7 @@ type ScanOptions struct {
 // Scan is one discovery run.
 type Scan struct {
 	ID         int64       `json:"id"`
+	SiteID     int64       `json:"site_id"`
 	NetworkID  int64       `json:"network_id"`
 	CIDR       string      `json:"cidr"`
 	Profile    string      `json:"profile"`
@@ -326,6 +345,7 @@ type Session struct {
 // Report is a generated file.
 type Report struct {
 	ID        int64     `json:"id"`
+	SiteID    int64     `json:"site_id,omitempty"`
 	Name      string    `json:"name"`
 	Format    string    `json:"format"`
 	Kind      string    `json:"kind"`
@@ -393,6 +413,48 @@ type DashboardStats struct {
 	LastScan       *Scan          `json:"last_scan,omitempty"`
 }
 
+// SiteBundle is the portable JSON representation of one site: its identity,
+// network definitions and host metadata. It intentionally excludes scan
+// history, metrics and alerts so it stays small and mergeable.
+type SiteBundle struct {
+	Schema     string          `json:"schema"`
+	ExportedAt time.Time       `json:"exported_at"`
+	Site       SiteInfo        `json:"site"`
+	Networks   []BundleNetwork `json:"networks"`
+	Hosts      []BundleHost    `json:"hosts"`
+}
+
+// SiteInfo identifies the exported site.
+type SiteInfo struct {
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Description string `json:"description,omitempty"`
+}
+
+// BundleNetwork is a network definition inside a bundle.
+type BundleNetwork struct {
+	Name      string `json:"name"`
+	CIDR      string `json:"cidr"`
+	Interface string `json:"interface,omitempty"`
+	Enabled   bool   `json:"enabled"`
+}
+
+// BundleHost carries the stable identity and the user-maintained metadata of
+// a host. Operational telemetry (ports, metrics, counters) is not exported.
+type BundleHost struct {
+	Identity   string   `json:"identity"`
+	IP         string   `json:"ip"`
+	MAC        string   `json:"mac,omitempty"`
+	Hostname   string   `json:"hostname,omitempty"`
+	Vendor     string   `json:"vendor,omitempty"`
+	Model      string   `json:"model,omitempty"`
+	OS         string   `json:"os,omitempty"`
+	DeviceType string   `json:"device_type,omitempty"`
+	Favorite   bool     `json:"favorite"`
+	Notes      string   `json:"notes,omitempty"`
+	Tags       []string `json:"tags,omitempty"`
+}
+
 // SystemInterface describes a local NIC.
 type SystemInterface struct {
 	Name      string          `json:"name"`
@@ -452,6 +514,7 @@ type ListResult[T any] struct {
 // HostFilter is the query model for host listing.
 type HostFilter struct {
 	Search     string
+	SiteID     int64
 	Status     string
 	DeviceType string
 	NetworkID  int64
@@ -465,6 +528,7 @@ type HostFilter struct {
 
 // ScanFilter filters scan history.
 type ScanFilter struct {
+	SiteID int64
 	Status string
 	Limit  int
 	Page   int
@@ -472,6 +536,7 @@ type ScanFilter struct {
 
 // AlertFilter filters alerts.
 type AlertFilter struct {
+	SiteID   int64
 	Status   string
 	Severity string
 	HostID   int64

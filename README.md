@@ -11,7 +11,9 @@
 ## Características
 
 - **Descubrimiento en tres fases**: vecinos ARP/ICMP, barrido TCP y enriquecimiento (DNS inverso, banners, TLS, SNMP, LLDP/CDP/FDB).
-- **Identidad estable**: los hosts se rekeyean a su MAC, conservando notas, etiquetas y favoritos aunque cambie la IP.
+- **Identidad estable**: los hosts se rekeyean a su MAC, conservando notas, etiquetas y favoritos aunque cambie la IP. La identidad está namespaceada por sede, de modo que la misma IP o MAC puede existir en varias sedes sin colisionar.
+- **Multi-sede**: oficinas, plantas o datacenters conviven en una sola base SQLite. Cada sede tiene sus propias redes, hosts, escaneos, informes y métricas; el mismo CIDR puede repetirse en sedes distintas. El selector de sede de la barra superior cambia el alcance de toda la interfaz.
+- **Portabilidad por sede**: exporta una sede a un paquete JSON e impórtala en otra sede o en otra instancia, en modo `merge` (conservar) o `replace` (reemplazar).
 - **Inventario rico**: fabricante por OUI, tipo de dispositivo con puntuación y evidencia, sistema operativo probable, puertos, servicios, certificados y modelo SNMP.
 - **Topología interactiva**: SVG con zoom, arrastre y agrupación por subred; enlaces por LLDP/CDP/bridge/ARP con confianza.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
@@ -36,9 +38,11 @@ make build                 # bin/netdiag portable (sin cgo)
 
 En el primer acceso la interfaz pide crear la cuenta de administrador. Después:
 
-1. **Ajustes → Redes** para añadir la subred a monitorizar (se sugieren las locales).
-2. **Escanear** para lanzar un descubrimiento manual.
-3. **Ajustes → Escaneo** para activar el monitor periódico.
+1. Usa el **selector de sede** (barra superior) para elegir el alcance; por defecto existe la sede `Principal`.
+2. **Ajustes → Sedes** para crear, renombrar, activar, exportar o importar sedes (solo administradores).
+3. **Ajustes → Redes** para añadir la subred a monitorizar en la sede activa (se sugieren las locales).
+4. **Escanear** para lanzar un descubrimiento manual en la sede activa.
+5. **Ajustes → Escaneo** para activar el monitor periódico.
 
 Datos y configuración por defecto:
 
@@ -49,6 +53,29 @@ Datos y configuración por defecto:
 | Base de datos | `<datos>/netdiag.db` |
 | Clave de cifrado | `<datos>/secret.key` |
 | Informes | `<datos>/reports/` |
+
+## Multi-sede
+
+Todas las sedes conviven en la misma base SQLite: no hay proyectos ni directorios separados. Al arrancar se crea la sede `Principal` (id `1`). El selector de la barra superior guarda la sede activa en `localStorage` (`netdiag-site`) y la interfaz añade automáticamente `site_id` a las peticiones operativas; al cambiar de sede se recargan inventario, alertas, topología, informes, panel y métricas.
+
+- **Datos por sede**: redes, hosts, escaneos, alertas, informes y métricas. El mismo CIDR puede configurarse en sedes distintas; la unicidad se garantiza por `(site_id, cidr)`.
+- **Identidad por sede**: la clave estable de un host se guarda como `s<site_id>:<mac|ip:...>`. Exportar un paquete elimina el prefijo y al importarlo se antepone la sede de destino, por lo que el paquete es portable entre sedes e instancias.
+- **Sedes**: `admin`/`owner` pueden crear, renombrar, exportar, importar y eliminar sedes. No se puede eliminar la última sede; al borrar una sede sus datos se trasladan a otra (resolviendo colisiones de CIDR).
+- **Importación**: modo `merge` (conserva lo existente y actualiza metadatos) o `replace` (sustituye los datos de la sede destino). Acepta JSON o un formulario multipart con el campo `file`.
+- **Informes**: `site_id=0` en el panel, métricas e informes significa «todas las sedes».
+
+Ejemplo con la API:
+
+```bash
+curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -H 'Content-Type: application/json' \
+  -d '{"name":"Sucursal Norte","description":"Planta 2"}' \
+  http://127.0.0.1:8080/api/v1/sites
+
+curl -b cookies.txt http://127.0.0.1:8080/api/v1/hosts?site_id=2
+curl -b cookies.txt http://127.0.0.1:8080/api/v1/sites/2/export -o sucursal.json
+curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -F 'file=@sucursal.json' \
+  'http://127.0.0.1:8080/api/v1/sites/3/import?mode=merge'
+```
 
 ## Compilación
 
@@ -204,4 +231,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.1**: inventario, escaneos, topología, alertas, informes, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts, cifrado de canales, clasificación, utilidades de red, topología, política de contraseñas, roles, copias y endpoints públicos. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.2**: inventario, escaneos, topología, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de canales, clasificación, utilidades de red, topología, política de contraseñas, roles, copias, endpoints públicos y aislamiento entre sedes. Las contribuciones y los informes de errores son bienvenidos.

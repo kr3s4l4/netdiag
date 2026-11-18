@@ -45,7 +45,7 @@ func TestUpsertHostRekeysToMACAndPreservesMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h.Identity != "ip:192.168.1.10" {
+	if h.Identity != "s1:ip:192.168.1.10" {
 		t.Fatalf("identidad inesperada: %q", h.Identity)
 	}
 
@@ -85,7 +85,7 @@ func TestUpsertHostRekeysToMACAndPreservesMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if h.Identity != "aa:bb:cc:dd:ee:01" {
+	if h.Identity != "s1:aa:bb:cc:dd:ee:01" {
 		t.Fatalf("identidad no rekeyada: %q", h.Identity)
 	}
 	if h.Notes != notes || !h.Favorite || len(h.Tags) != 2 {
@@ -308,7 +308,7 @@ func TestDashboard(t *testing.T) {
 	if _, _, err := st.EnsureNetwork(&model.Network{Name: "LAN", CIDR: "10.2.0.0/24"}); err != nil {
 		t.Fatal(err)
 	}
-	stats, err := st.Dashboard()
+	stats, err := st.Dashboard(0)
 	if err != nil {
 		t.Fatal(err)
 	}

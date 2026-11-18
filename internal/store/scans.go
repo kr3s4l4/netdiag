@@ -9,7 +9,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/model"
 )
 
-const networkColumns = `id, name, cidr, iface, enabled, is_local, created_at, last_scan_at`
+const networkColumns = `id, site_id, name, cidr, iface, enabled, is_local, created_at, last_scan_at`
 
 type rowScannerNetwork interface {
 	Scan(dest ...any) error
@@ -25,7 +25,7 @@ func scanNetwork(r rowScannerNetwork, withCounts bool) (*model.Network, error) {
 		hostCount int
 		upCount   int
 	)
-	dest := []any{&n.ID, &n.Name, &n.CIDR, &n.Interface, &enabled, &local, &created, &lastScan}
+	dest := []any{&n.ID, &n.SiteID, &n.Name, &n.CIDR, &n.Interface, &enabled, &local, &created, &lastScan}
 	if withCounts {
 		dest = append(dest, &hostCount, &upCount)
 	}
@@ -43,10 +43,24 @@ func scanNetwork(r rowScannerNetwork, withCounts bool) (*model.Network, error) {
 
 // ListNetworks returns all configured networks with host counts.
 func (s *Store) ListNetworks() ([]model.Network, error) {
-	rows, err := s.db.Query(`SELECT ` + networkColumns + `,
+	return s.listNetworks(0)
+}
+
+// ListNetworksBySite returns the networks of one site (0 means all sites).
+func (s *Store) ListNetworksBySite(siteID int64) ([]model.Network, error) {
+	return s.listNetworks(siteID)
+}
+
+func (s *Store) listNetworks(siteID int64) ([]model.Network, error) {
+	where, args := "", []any{}
+	if siteID > 0 {
+		where = " WHERE networks.site_id = ?"
+		args = append(args, siteID)
+	}
+	rows, err := s.db.Query(`SELECT `+networkColumns+`,
 		(SELECT COUNT(*) FROM hosts h WHERE h.network_id = networks.id),
 		(SELECT COUNT(*) FROM hosts h WHERE h.network_id = networks.id AND h.status = 'up')
-		FROM networks ORDER BY is_local DESC, id ASC`)
+		FROM networks`+where+` ORDER BY is_local DESC, id ASC`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,9 +90,12 @@ func (s *Store) CreateNetwork(n *model.Network) (*model.Network, error) {
 	if n.CreatedAt.IsZero() {
 		n.CreatedAt = time.Now()
 	}
-	res, err := s.db.Exec(`INSERT INTO networks(name, cidr, iface, enabled, is_local, created_at, last_scan_at)
-		VALUES(?,?,?,?,?,?,?)`,
-		n.Name, n.CIDR, n.Interface, boolInt(n.Enabled), boolInt(n.IsLocal), n.CreatedAt.UnixMilli(), timePtrMS(n.LastScanAt))
+	if n.SiteID == 0 {
+		n.SiteID = 1
+	}
+	res, err := s.db.Exec(`INSERT INTO networks(site_id, name, cidr, iface, enabled, is_local, created_at, last_scan_at)
+		VALUES(?,?,?,?,?,?,?,?)`,
+		n.SiteID, n.Name, n.CIDR, n.Interface, boolInt(n.Enabled), boolInt(n.IsLocal), n.CreatedAt.UnixMilli(), timePtrMS(n.LastScanAt))
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +105,11 @@ func (s *Store) CreateNetwork(n *model.Network) (*model.Network, error) {
 
 // UpdateNetwork updates editable network fields.
 func (s *Store) UpdateNetwork(n *model.Network) error {
-	_, err := s.db.Exec(`UPDATE networks SET name=?, cidr=?, iface=?, enabled=?, is_local=? WHERE id=?`,
-		n.Name, n.CIDR, n.Interface, boolInt(n.Enabled), boolInt(n.IsLocal), n.ID)
+	if n.SiteID == 0 {
+		n.SiteID = 1
+	}
+	_, err := s.db.Exec(`UPDATE networks SET site_id=?, name=?, cidr=?, iface=?, enabled=?, is_local=? WHERE id=?`,
+		n.SiteID, n.Name, n.CIDR, n.Interface, boolInt(n.Enabled), boolInt(n.IsLocal), n.ID)
 	return err
 }
 
@@ -99,9 +119,20 @@ func (s *Store) DeleteNetwork(id int64) error {
 	return err
 }
 
-// FindNetworkByCIDR returns a network by exact CIDR.
+// FindNetworkByCIDR returns a network by exact CIDR. With several sites the
+// same CIDR may exist more than once, so the lowest site wins; prefer
+// FindNetworkByCIDRInSite when the site is known.
 func (s *Store) FindNetworkByCIDR(cidr string) (*model.Network, error) {
-	n, err := scanNetwork(s.db.QueryRow(`SELECT `+networkColumns+` FROM networks WHERE cidr = ?`, cidr), false)
+	n, err := scanNetwork(s.db.QueryRow(`SELECT `+networkColumns+` FROM networks WHERE cidr = ? ORDER BY id ASC LIMIT 1`, cidr), false)
+	if err == sql.ErrNoRows {
+		return nil, ErrNotFound
+	}
+	return n, err
+}
+
+// FindNetworkByCIDRInSite returns a network inside one site.
+func (s *Store) FindNetworkByCIDRInSite(siteID int64, cidr string) (*model.Network, error) {
+	n, err := scanNetwork(s.db.QueryRow(`SELECT `+networkColumns+` FROM networks WHERE site_id = ? AND cidr = ?`, siteID, cidr), false)
 	if err == sql.ErrNoRows {
 		return nil, ErrNotFound
 	}
@@ -114,9 +145,12 @@ func (s *Store) TouchNetworkScan(id int64, t time.Time) error {
 	return err
 }
 
-// EnsureNetwork inserts a network if its CIDR is new.
+// EnsureNetwork inserts a network if its CIDR is new inside the site.
 func (s *Store) EnsureNetwork(n *model.Network) (*model.Network, bool, error) {
-	if existing, err := s.FindNetworkByCIDR(n.CIDR); err == nil {
+	if n.SiteID == 0 {
+		n.SiteID = 1
+	}
+	if existing, err := s.FindNetworkByCIDRInSite(n.SiteID, n.CIDR); err == nil {
 		return existing, false, nil
 	} else if err != ErrNotFound {
 		return nil, false, err
@@ -127,7 +161,7 @@ func (s *Store) EnsureNetwork(n *model.Network) (*model.Network, bool, error) {
 
 // --- scans ---
 
-const scanColumns = `id, network_id, cidr, profile, status, stage, progress, total, scanned,
+const scanColumns = `id, site_id, network_id, cidr, profile, status, stage, progress, total, scanned,
 	hosts_found, trigger, options, error, started_at, finished_at`
 
 func scanScan(r rowScanner) (*model.Scan, error) {
@@ -137,7 +171,7 @@ func scanScan(r rowScanner) (*model.Scan, error) {
 		started  sql.NullInt64
 		finished sql.NullInt64
 	)
-	if err := r.Scan(&sc.ID, &sc.NetworkID, &sc.CIDR, &sc.Profile, &sc.Status, &sc.Stage, &sc.Progress,
+	if err := r.Scan(&sc.ID, &sc.SiteID, &sc.NetworkID, &sc.CIDR, &sc.Profile, &sc.Status, &sc.Stage, &sc.Progress,
 		&sc.Total, &sc.Scanned, &sc.HostsFound, &sc.Trigger, &opts, &sc.Error, &started, &finished); err != nil {
 		return nil, err
 	}
@@ -149,10 +183,13 @@ func scanScan(r rowScanner) (*model.Scan, error) {
 
 // CreateScan inserts a queued scan.
 func (s *Store) CreateScan(sc *model.Scan) (*model.Scan, error) {
-	res, err := s.db.Exec(`INSERT INTO scans(network_id, cidr, profile, status, stage, progress, total,
+	if sc.SiteID == 0 {
+		sc.SiteID = 1
+	}
+	res, err := s.db.Exec(`INSERT INTO scans(site_id, network_id, cidr, profile, status, stage, progress, total,
 		scanned, hosts_found, trigger, options, error, started_at, finished_at)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,'',NULL,NULL)`,
-		sc.NetworkID, sc.CIDR, sc.Profile, model.ScanQueued, "en cola", 0, sc.Total, 0, 0,
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'',NULL,NULL)`,
+		sc.SiteID, sc.NetworkID, sc.CIDR, sc.Profile, model.ScanQueued, "en cola", 0, sc.Total, 0, 0,
 		sc.Trigger, jsonMarshal(sc.Options))
 	if err != nil {
 		return nil, err
@@ -204,6 +241,10 @@ func (s *Store) ListScans(f model.ScanFilter) (*model.ListResult[model.Scan], er
 	}
 	where := "1=1"
 	var args []any
+	if f.SiteID > 0 {
+		where += " AND site_id = ?"
+		args = append(args, f.SiteID)
+	}
 	if f.Status != "" && f.Status != "all" {
 		where += " AND status = ?"
 		args = append(args, f.Status)
@@ -231,7 +272,19 @@ func (s *Store) ListScans(f model.ScanFilter) (*model.ListResult[model.Scan], er
 
 // LastScan returns the most recent finished scan, if any.
 func (s *Store) LastScan() (*model.Scan, error) {
-	sc, err := scanScan(s.db.QueryRow(`SELECT ` + scanColumns + ` FROM scans ORDER BY id DESC LIMIT 1`))
+	return s.LastScanForSite(0)
+}
+
+// LastScanForSite returns the newest scan of one site (0 means all sites).
+func (s *Store) LastScanForSite(siteID int64) (*model.Scan, error) {
+	query := `SELECT ` + scanColumns + ` FROM scans`
+	args := []any{}
+	if siteID > 0 {
+		query += ` WHERE site_id = ?`
+		args = append(args, siteID)
+	}
+	query += ` ORDER BY id DESC LIMIT 1`
+	sc, err := scanScan(s.db.QueryRow(query, args...))
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -248,8 +301,19 @@ func (s *Store) MarkInterruptedScans() error {
 
 // CountScansSince counts scans started after t.
 func (s *Store) CountScansSince(t time.Time) (int, error) {
+	return s.CountScansSinceForSite(0, t)
+}
+
+// CountScansSinceForSite counts scans started after t in one site (0 = all).
+func (s *Store) CountScansSinceForSite(siteID int64, t time.Time) (int, error) {
 	var n int
-	err := s.db.QueryRow(`SELECT COUNT(*) FROM scans WHERE COALESCE(started_at, 0) >= ?`, t.UnixMilli()).Scan(&n)
+	query := `SELECT COUNT(*) FROM scans WHERE COALESCE(started_at, 0) >= ?`
+	args := []any{t.UnixMilli()}
+	if siteID > 0 {
+		query += ` AND site_id = ?`
+		args = append(args, siteID)
+	}
+	err := s.db.QueryRow(query, args...).Scan(&n)
 	return n, err
 }
 
@@ -266,7 +330,19 @@ func (s *Store) PurgeScans(keep int) error {
 
 // ActiveScans returns queued or running scans.
 func (s *Store) ActiveScans() ([]model.Scan, error) {
-	rows, err := s.db.Query(`SELECT `+scanColumns+` FROM scans WHERE status IN (?,?) ORDER BY id`, model.ScanQueued, model.ScanRunning)
+	return s.ActiveScansForSite(0)
+}
+
+// ActiveScansForSite returns active scans of one site (0 means all).
+func (s *Store) ActiveScansForSite(siteID int64) ([]model.Scan, error) {
+	query := `SELECT ` + scanColumns + ` FROM scans WHERE status IN (?,?)`
+	args := []any{model.ScanQueued, model.ScanRunning}
+	if siteID > 0 {
+		query += ` AND site_id = ?`
+		args = append(args, siteID)
+	}
+	query += ` ORDER BY id`
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

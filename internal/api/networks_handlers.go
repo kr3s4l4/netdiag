@@ -12,7 +12,14 @@ import (
 )
 
 func (s *Server) handleListNetworks(w http.ResponseWriter, r *http.Request) {
-	nets, err := s.st.ListNetworks()
+	siteID := queryInt64(r, "site_id")
+	var nets []model.Network
+	var err error
+	if siteID > 0 {
+		nets, err = s.st.ListNetworksBySite(siteID)
+	} else {
+		nets, err = s.st.ListNetworks()
+	}
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudieron listar las redes: "+err.Error())
 		return
@@ -21,6 +28,7 @@ func (s *Server) handleListNetworks(w http.ResponseWriter, r *http.Request) {
 }
 
 type networkRequest struct {
+	SiteID    int64  `json:"site_id,omitempty"`
 	Name      string `json:"name"`
 	CIDR      string `json:"cidr"`
 	Interface string `json:"interface"`
@@ -62,7 +70,7 @@ type errText string
 func (e errText) Error() string { return string(e) }
 
 func (s *Server) handleCreateNetwork(w http.ResponseWriter, r *http.Request) {
-	if !s.requireAdmin(w, r) {
+	if !s.canWrite(w, r) {
 		return
 	}
 	var req networkRequest
@@ -75,6 +83,14 @@ func (s *Server) handleCreateNetwork(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
+	siteID := req.SiteID
+	if siteID == 0 {
+		siteID = 1
+	}
+	if siteID <= 0 || !s.st.SiteExists(siteID) {
+		s.fail(w, r, http.StatusBadRequest, "la sede indicada no existe")
+		return
+	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		name = cidr
@@ -84,6 +100,7 @@ func (s *Server) handleCreateNetwork(w http.ResponseWriter, r *http.Request) {
 		enabled = *req.Enabled
 	}
 	n := &model.Network{
+		SiteID:    siteID,
 		Name:      name,
 		CIDR:      cidr,
 		Interface: strings.TrimSpace(req.Interface),
@@ -105,7 +122,7 @@ func (s *Server) handleCreateNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUpdateNetwork(w http.ResponseWriter, r *http.Request) {
-	if !s.requireAdmin(w, r) {
+	if !s.canWrite(w, r) {
 		return
 	}
 	id, err := pathInt64(r, "id")
@@ -133,6 +150,13 @@ func (s *Server) handleUpdateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	existing.CIDR = cidr
+	if req.SiteID > 0 && req.SiteID != existing.SiteID {
+		if !s.st.SiteExists(req.SiteID) {
+			s.fail(w, r, http.StatusBadRequest, "la sede indicada no existe")
+			return
+		}
+		existing.SiteID = req.SiteID
+	}
 	if name := strings.TrimSpace(req.Name); name != "" {
 		existing.Name = name
 	}
@@ -155,7 +179,7 @@ func (s *Server) handleUpdateNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDeleteNetwork(w http.ResponseWriter, r *http.Request) {
-	if !s.requireAdmin(w, r) {
+	if !s.canWrite(w, r) {
 		return
 	}
 	id, err := pathInt64(r, "id")
@@ -183,8 +207,15 @@ func (s *Server) handleSuggestNetworks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ifaces, _ := s.systemInterfaces()
+	siteID := queryInt64(r, "site_id")
 	known := map[string]bool{}
-	if nets, err := s.st.ListNetworks(); err == nil {
+	var nets []model.Network
+	if siteID > 0 {
+		nets, err = s.st.ListNetworksBySite(siteID)
+	} else {
+		nets, err = s.st.ListNetworks()
+	}
+	if err == nil {
 		for _, n := range nets {
 			known[n.CIDR] = true
 		}
@@ -195,6 +226,9 @@ func (s *Server) handleSuggestNetworks(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]suggestion, 0, len(suggested))
 	for _, n := range suggested {
+		if siteID > 0 {
+			n.SiteID = siteID
+		}
 		out = append(out, suggestion{Network: n, AlreadyAdded: known[n.CIDR]})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": out, "interfaces": ifaces})

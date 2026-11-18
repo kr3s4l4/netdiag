@@ -824,6 +824,7 @@ async function submitScan(form) {
   const cidr = String(fd.get('cidr') || '').trim();
   if (!networkID && !cidr) throw new Error('Indica una red o un CIDR');
   const req = {
+    site_id: Number(state.siteId) || 1,
     profile,
     network_id: networkID,
     cidr,
@@ -931,6 +932,7 @@ async function submitReport(form) {
   const rec = await api('/reports', {
     method: 'POST',
     body: {
+      site_id: Number(state.siteId) || 0,
       kind: String(fd.get('kind') || 'inventory'),
       format: String(fd.get('format') || 'pdf'),
       title: String(fd.get('title') || '').trim(),
@@ -953,6 +955,7 @@ async function deleteReport(id) {
 /* ------------------------------------------------------------------ */
 
 const SETTINGS_TABS = [
+  ['sedes', 'Sedes'],
   ['general', 'General'],
   ['escaneo', 'Escaneo'],
   ['alertas', 'Alertas'],
@@ -1162,7 +1165,9 @@ async function renderSettings() {
     ${SETTINGS_TABS.map(([key, label]) => `<div class="tab ${tab === key ? 'active' : ''}" data-action="settings-tab" data-tab="${key}">${label}</div>`).join('')}
   </div>`;
   let body = '';
-  if (tab === 'redes') {
+  if (tab === 'sedes') {
+    body = await settingsSitesBody();
+  } else if (tab === 'redes') {
     body = await settingsNetworksBody();
   } else if (tab === 'usuarios') {
     body = await settingsUsersBody();
@@ -1176,6 +1181,157 @@ async function renderSettings() {
     body = configFormBody(res.config);
   }
   content.innerHTML = tabsHTML + body;
+}
+
+function siteOptions(selected, includeAll = false) {
+  const all = includeAll ? `<option value="0" ${!selected ? 'selected' : ''}>Todas las sedes</option>` : '';
+  return all + (state.sites || []).map((s) =>
+    `<option value="${s.id}" ${Number(selected) === Number(s.id) ? 'selected' : ''}>${esc(s.name)}</option>`
+  ).join('');
+}
+
+async function settingsSitesBody() {
+  await loadSites(true);
+  const sites = state.sites || [];
+  const rows = sites.map((s) => {
+    const active = Number(s.id) === Number(state.siteId);
+    return `<tr>
+      <td><div class="name-cell"><b>${esc(s.name)}</b><span class="mono">${esc(s.slug)}</span></div></td>
+      <td class="tiny muted">${esc(s.description || '—')}</td>
+      <td class="right">${s.network_count || 0}</td>
+      <td class="right">${s.host_count || 0}</td>
+      <td class="right">${s.up_count || 0}</td>
+      <td class="tiny muted">${s.last_scan_at ? ago(s.last_scan_at) : 'Nunca'}</td>
+      <td class="right nowrap">
+        ${active ? '<span class="badge up">Activa</span>' : `<button class="btn sm" data-action="site-activate" data-id="${s.id}">${esc(tr('Activar'))}</button>`}
+        ${isAdmin() ? `<button class="btn sm" data-action="site-edit" data-id="${s.id}">${icon('edit')}</button>
+        <button class="btn sm" data-action="site-export" data-id="${s.id}" title="Exportar">${icon('download')}</button>
+        <button class="btn sm" data-action="site-import" data-id="${s.id}" title="Importar">${icon('plus')}</button>
+        <button class="btn sm danger" data-action="site-delete" data-id="${s.id}" title="Eliminar">${icon('trash')}</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="spread mb">
+      <div class="muted small">Cada sede tiene sus propias redes, dispositivos, escaneos e informes. El mismo CIDR puede existir en varias sedes. Selecciona la sede activa en la barra superior.</div>
+      ${isAdmin() ? `<button class="btn primary" data-action="site-new">${icon('plus')} Nueva sede</button>` : ''}
+    </div>
+    <div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Sede</th><th>Descripción</th><th class="right">Redes</th><th class="right">Dispositivos</th><th class="right">En línea</th><th>Último escaneo</th><th></th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="7"><div class="empty">${icon('network')}Sin sedes</div></td></tr>`}</tbody>
+    </table></div></div>
+    <div class="notice mt"><span>Las copias de seguridad incluyen todas las sedes. Puedes exportar una sede como paquete JSON e importarlo en otra instancia o en otra sede.</span></div>`;
+}
+
+function openSiteModal(id) {
+  const site = (state.sites || []).find((s) => Number(s.id) === Number(id)) || null;
+  const body = `
+    <form data-form="site" data-id="${site ? site.id : ''}">
+      <div class="form-grid">
+        <div class="field full"><label>Nombre</label>
+          <input class="input" name="name" required maxlength="80" value="${esc(site ? site.name : '')}" placeholder="Ej.: Oficina norte"></div>
+        <div class="field full"><label>Descripción</label>
+          <input class="input" name="description" maxlength="200" value="${esc(site ? site.description || '' : '')}" placeholder="Ubicación, responsable, alcance…"></div>
+      </div>
+    </form>`;
+  openModal(site ? 'Editar sede' : 'Nueva sede', body, {
+    footer: `<button class="btn" data-action="modal-close">Cancelar</button>
+      <button class="btn primary" data-action="site-save" data-id="${site ? site.id : ''}">${icon('check')} Guardar</button>`,
+  });
+}
+
+async function saveSiteFromModal(id) {
+  const form = document.querySelector('form[data-form="site"]');
+  if (!form) return;
+  const fd = new FormData(form);
+  const payload = {
+    name: String(fd.get('name') || '').trim(),
+    description: String(fd.get('description') || '').trim(),
+  };
+  if (!payload.name) throw new Error('El nombre de la sede es obligatorio');
+  if (id) await api('/sites/' + id, { method: 'PUT', body: payload });
+  else await api('/sites', { method: 'POST', body: payload });
+  closeModal();
+  toast(id ? 'Sede actualizada' : 'Sede creada', { type: 'ok' });
+  await loadSites(true);
+  await renderSettings();
+}
+
+async function deleteSite(id) {
+  const site = (state.sites || []).find((s) => Number(s.id) === Number(id));
+  if (!site) return;
+  if (!confirm(`¿Eliminar la sede "${site.name}"? Sus redes, dispositivos y escaneos se moverán a otra sede.`)) return;
+  const others = (state.sites || []).filter((s) => Number(s.id) !== Number(id));
+  const target = others.find((s) => Number(s.id) !== 1) || others[0];
+  const moveTo = target ? target.id : 0;
+  await api('/sites/' + id + '?move_to=' + moveTo, { method: 'DELETE' });
+  if (Number(state.siteId) === Number(id)) {
+    state.siteId = Number(target ? target.id : 1);
+    try { localStorage.setItem('netdiag-site', String(state.siteId)); } catch {}
+  }
+  toast('Sede eliminada', { type: 'ok' });
+  await loadSites(true);
+  await renderSettings();
+}
+
+async function exportSite(id) {
+  const site = (state.sites || []).find((s) => Number(s.id) === Number(id));
+  try {
+    const res = await fetch('/api/v1/sites/' + id + '/export', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('No se pudo exportar la sede');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'netdiag-sede-' + (site ? site.slug : id) + '.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('Paquete de sede descargado', { type: 'ok' });
+  } catch (err) {
+    toast(err.message || String(err), { type: 'err', title: 'Error' });
+  }
+}
+
+function openImportSiteModal(id) {
+  const site = (state.sites || []).find((s) => Number(s.id) === Number(id));
+  const body = `
+    <form data-form="site-import" data-id="${id}">
+      <div class="field"><label>Paquete JSON de sede</label>
+        <input class="input" type="file" name="file" accept="application/json,.json" required></div>
+      <div class="field mt"><label>Modo</label>
+        <select class="select" name="mode">
+          <option value="merge">Combinar — conservar datos existentes</option>
+          <option value="replace">Reemplazar — borrar datos actuales de la sede</option>
+        </select></div>
+      <div class="notice mt"><span>Se importarán redes, dispositivos y sus etiquetas/notas. El historial de escaneos y las métricas no se incluyen.</span></div>
+    </form>`;
+  openModal('Importar en ' + (site ? site.name : 'sede'), body, {
+    footer: `<button class="btn" data-action="modal-close">Cancelar</button>
+      <button class="btn primary" data-action="site-import-run" data-id="${id}">${icon('download')} Importar</button>`,
+  });
+}
+
+async function submitSiteImport(form) {
+  const id = Number(form.dataset.id || 0);
+  const fd = new FormData(form);
+  const file = fd.get('file');
+  if (!file || !file.name) throw new Error('Selecciona un paquete JSON');
+  const mode = String(fd.get('mode') || 'merge');
+  const res = await fetch('/api/v1/sites/' + id + '/import?mode=' + encodeURIComponent(mode), {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: state.csrf ? { 'X-CSRF-Token': state.csrf } : {},
+    body: file,
+  });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch {}
+  if (!res.ok) throw new Error((data && data.error) || 'No se pudo importar el paquete');
+  const s = (data && data.summary) || {};
+  closeModal();
+  toast(`Importados ${s.networks_created || 0} redes y ${s.hosts_created || 0} dispositivos`, { type: 'ok' });
+  await loadSites(true);
+  await renderSettings();
 }
 
 async function settingsNetworksBody() {
@@ -1363,6 +1519,7 @@ async function submitNetwork(form) {
     interface: String(fd.get('interface') || '').trim(),
     enabled: fd.get('enabled') === 'on',
   };
+  if (!id) payload.site_id = Number(state.siteId) || 1;
   if (!payload.cidr) throw new Error('El CIDR es obligatorio');
   if (id) await api('/networks/' + id, { method: 'PUT', body: payload });
   else await api('/networks', { method: 'POST', body: payload });
@@ -1382,7 +1539,7 @@ async function deleteNetwork(id) {
 
 async function addSuggestedNetwork(cidr, iface) {
   if (!cidr) { await renderSettings(); return; }
-  await api('/networks', { method: 'POST', body: { name: cidr, cidr, interface: iface || '' } });
+  await api('/networks', { method: 'POST', body: { name: cidr, cidr, interface: iface || '', site_id: Number(state.siteId) || 1 } });
   toast('Red añadida: ' + cidr, { type: 'ok' });
   state.networks = [];
   await renderSettings();

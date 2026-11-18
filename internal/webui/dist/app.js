@@ -11,6 +11,8 @@ const state = {
   csrf: '',
   view: 'dashboard',
   networks: [],
+  sites: [],
+  siteId: 0,
   stats: null,
   hosts: {
     page: 1, limit: 50, total: 0, items: [],
@@ -241,13 +243,24 @@ class ApiError extends Error {
   constructor(message, status, code) { super(message); this.status = status; this.code = code; }
 }
 
+// The active site scopes every operational query. Endpoints that do not
+// understand site_id simply ignore the extra query parameter.
+function withSite(path) {
+  if (!state.siteId || /^\/auth\//.test(path) || /^\/sites(\/|\?|$)/.test(path)) return path;
+  return path + (path.includes('?') ? '&' : '?') + 'site_id=' + encodeURIComponent(state.siteId);
+}
+
+function currentSite() {
+  return state.sites.find((s) => Number(s.id) === Number(state.siteId)) || null;
+}
+
 async function api(path, opts = {}) {
   const headers = { Accept: 'application/json' };
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
   if (state.csrf) headers['X-CSRF-Token'] = state.csrf;
   let res;
   try {
-    res = await fetch('/api/v1' + path, {
+    res = await fetch('/api/v1' + withSite(path), {
       method: opts.method || 'GET',
       headers: Object.assign(headers, opts.headers || {}),
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
@@ -355,9 +368,11 @@ async function submitAuth(form) {
   }
 }
 
-function enterApp() {
+async function enterApp() {
   $('#boot').classList.add('hidden');
+  try { state.siteId = Number(localStorage.getItem('netdiag-site') || 0) || 0; } catch {}
   renderShell();
+  await loadSites(true);
   connectWS();
   const current = (location.hash || '').replace(/^#\/?/, '');
   if (!current) location.hash = '#/dashboard';
@@ -428,6 +443,9 @@ function renderShell() {
         <h2 id="page-title">Panel</h2>
         <span class="crumb" id="page-crumb"></span>
         <div class="spacer"></div>
+        <label class="site-picker" title="${esc(tr('Sede activa'))}">${icon('network')}
+          <select class="select sm" id="site-select" aria-label="${esc(tr('Sede activa'))}"></select>
+        </label>
         <span class="clock" id="clock">—</span>
         <button class="btn sm ghost lang-btn" data-action="lang" title="Cambiar idioma">${i18n ? i18n.label : 'EN'}</button>
         <button class="btn ghost icon" data-action="theme" title="Cambiar tema" id="theme-btn">${icon(document.documentElement.dataset.theme === 'light' ? 'moon' : 'sun')}</button>
@@ -440,6 +458,47 @@ function renderShell() {
   refreshAlertBadge();
   const burger = $('#burger');
   if (window.innerWidth <= 820 && burger) burger.style.display = '';
+}
+
+async function loadSites(keepSelection = true) {
+  try {
+    const res = await api('/sites');
+    state.sites = res.items || [];
+  } catch {
+    state.sites = [];
+  }
+  if (!state.sites.some((s) => Number(s.id) === Number(state.siteId))) {
+    let saved = 0;
+    if (keepSelection) {
+      try { saved = Number(localStorage.getItem('netdiag-site') || 0) || 0; } catch {}
+    }
+    const valid = state.sites.find((s) => Number(s.id) === saved);
+    state.siteId = valid ? Number(valid.id) : (state.sites[0] ? Number(state.sites[0].id) : 1);
+  }
+  updateSiteSelect();
+}
+
+function updateSiteSelect() {
+  const sel = document.getElementById('site-select');
+  if (!sel) return;
+  sel.innerHTML = state.sites.map((s) =>
+    `<option value="${s.id}" ${Number(s.id) === Number(state.siteId) ? 'selected' : ''}>${esc(s.name)}</option>`
+  ).join('');
+  sel.disabled = state.sites.length <= 1;
+  const label = document.getElementById('site-hint');
+  if (label) label.textContent = currentSite() ? currentSite().name : '';
+}
+
+async function switchSite(id) {
+  const n = Number(id) || 0;
+  if (!n || n === Number(state.siteId)) return;
+  state.siteId = n;
+  try { localStorage.setItem('netdiag-site', String(n)); } catch {}
+  state.hosts.page = 1;
+  state.alerts.page = 1;
+  updateSiteSelect();
+  await route(true);
+  refreshAlertBadge();
 }
 
 function updateNav() {
@@ -591,6 +650,9 @@ function handleEvent(ev) {
       break;
     case 'dashboard.updated':
       if (state.view === 'dashboard') scheduleRefresh();
+      break;
+    case 'sites.updated':
+      loadSites(true).then(() => { if (state.view === 'settings') route(true); });
       break;
   }
 }
@@ -1118,6 +1180,18 @@ document.addEventListener('click', async (e) => {
       case 'report-delete': await deleteReport(Number(target.dataset.id)); break;
       case 'scan-start': await startScanFromModal(); break;
       case 'settings-tab': state.settingsTab = target.dataset.tab; await renderSettings(); break;
+      case 'site-new': openSiteModal(); break;
+      case 'site-edit': openSiteModal(Number(target.dataset.id)); break;
+      case 'site-save': await saveSiteFromModal(Number(target.dataset.id) || 0); break;
+      case 'site-delete': await deleteSite(Number(target.dataset.id)); break;
+      case 'site-activate': await switchSite(Number(target.dataset.id)); if (state.view === 'settings') await renderSettings(); break;
+      case 'site-export': await exportSite(Number(target.dataset.id)); break;
+      case 'site-import': openImportSiteModal(Number(target.dataset.id)); break;
+      case 'site-import-run': {
+        const form = document.querySelector('form[data-form="site-import"]');
+        if (form) await submitSiteImport(form);
+        break;
+      }
       case 'network-new': openNetworkModal(); break;
       case 'network-edit': openNetworkModal(Number(target.dataset.id)); break;
       case 'network-save': await saveNetworkFromModal(Number(target.dataset.id) || 0); break;
@@ -1139,6 +1213,10 @@ document.addEventListener('click', async (e) => {
 
 document.addEventListener('change', (e) => {
   const el = e.target;
+  if (el.id === 'site-select') {
+    switchSite(el.value).catch((err) => toast(err.message || String(err), { type: 'err', title: 'Error' }));
+    return;
+  }
   if (el.dataset.filter !== undefined) {
     const key = el.dataset.filter;
     if (el.type === 'checkbox') state.hosts.filters[key] = el.checked;

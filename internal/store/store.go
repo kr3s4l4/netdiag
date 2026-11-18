@@ -266,6 +266,54 @@ var migrations = [][]string{
 		)`,
 		`CREATE INDEX idx_reports_created ON reports(created_at DESC)`,
 	},
+	{
+		// v1.2: multi-site. Networks keep uniqueness per site, so two offices
+		// may monitor the same private range, which is the common case.
+		`CREATE TABLE sites (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			slug TEXT NOT NULL UNIQUE,
+			description TEXT NOT NULL DEFAULT '',
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		)`,
+		`INSERT INTO sites(id, name, slug, description, created_at, updated_at)
+			VALUES(1, 'Principal', 'principal', '', CAST(strftime('%s','now') AS INTEGER) * 1000,
+			CAST(strftime('%s','now') AS INTEGER) * 1000)`,
+		`CREATE TABLE networks_v2 (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			name TEXT NOT NULL DEFAULT '',
+			cidr TEXT NOT NULL,
+			iface TEXT NOT NULL DEFAULT '',
+			enabled INTEGER NOT NULL DEFAULT 1,
+			is_local INTEGER NOT NULL DEFAULT 0,
+			created_at INTEGER NOT NULL,
+			last_scan_at INTEGER,
+			UNIQUE(site_id, cidr)
+		)`,
+		`INSERT INTO networks_v2(id, site_id, name, cidr, iface, enabled, is_local, created_at, last_scan_at)
+			SELECT id, 1, name, cidr, iface, enabled, is_local, created_at, last_scan_at FROM networks`,
+		`DROP TABLE networks`,
+		`ALTER TABLE networks_v2 RENAME TO networks`,
+		`ALTER TABLE hosts ADD COLUMN site_id INTEGER NOT NULL DEFAULT 1`,
+		`ALTER TABLE scans ADD COLUMN site_id INTEGER NOT NULL DEFAULT 1`,
+		`CREATE INDEX idx_networks_site ON networks(site_id)`,
+		`CREATE INDEX idx_hosts_site ON hosts(site_id)`,
+		`CREATE INDEX idx_scans_site ON scans(site_id)`,
+		`UPDATE hosts SET site_id = COALESCE((SELECT n.site_id FROM networks n WHERE n.id = hosts.network_id), 1)`,
+		`UPDATE scans SET site_id = COALESCE((SELECT n.site_id FROM networks n WHERE n.id = scans.network_id), 1)`,
+	},
+	{
+		// v1.2.1: reports can be attributed to a site (0 = global report).
+		`ALTER TABLE reports ADD COLUMN site_id INTEGER NOT NULL DEFAULT 0`,
+		`CREATE INDEX idx_reports_site ON reports(site_id)`,
+	},
+	{
+		// v1.2.2: namespace host identities by site so the same IP or MAC can
+		// exist in several sites without colliding.
+		`UPDATE hosts SET identity = printf('s%d:%s', site_id, identity)`,
+	},
 }
 
 func (s *Store) migrate() error {

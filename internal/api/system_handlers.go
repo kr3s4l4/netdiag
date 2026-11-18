@@ -141,7 +141,8 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTopology(w http.ResponseWriter, r *http.Request) {
-	hosts, err := s.st.ListAllHosts(20000)
+	siteID := queryInt64(r, "site_id")
+	hosts, err := s.st.ListAllHostsForSite(siteID, 20000)
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudo leer el inventario: "+err.Error())
 		return
@@ -150,7 +151,12 @@ func (s *Server) handleTopology(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		neighbors = map[int64][]model.Neighbor{}
 	}
-	networks, err := s.st.ListNetworks()
+	var networks []model.Network
+	if siteID > 0 {
+		networks, err = s.st.ListNetworksBySite(siteID)
+	} else {
+		networks, err = s.st.ListNetworks()
+	}
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, err.Error())
 		return
