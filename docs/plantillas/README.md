@@ -21,6 +21,8 @@ Plantillas listas para copiar y pegar. Sustituye los campos entre corchetes `[..
 | [REVOCATION.md](REVOCATION.md) | Revocación firmada de un artefacto | Compromiso de clave o versión insegura |
 | [encuesta-5-preguntas.md](encuesta-5-preguntas.md) | Encuesta voluntaria sin telemetría | F42 |
 | [correo-piloto.md](correo-piloto.md) | Invitación al piloto de 30 días | F42 |
+| [correo-entrega.md](correo-entrega.md) | Entrega de binarios y licencia firmada | Venta |
+| [license-unsigned-ejemplo.json](license-unsigned-ejemplo.json) | Datos ficticios para generar una licencia | Venta |
 | [registro-evidencia-f42.md](registro-evidencia-f42.md) | Evidencia escrita de uso y pago | F42 |
 
 La fuente de verdad de precios es `docs/comercializacion.md`. La política de seguridad es `SECURITY.md`.

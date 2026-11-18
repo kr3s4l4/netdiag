@@ -82,6 +82,15 @@ Son cálculos orientativos. La plataforma puede añadir conversión de divisa y 
 - [ ] Respuesta de soporte por correo.
 - [ ] Datos fiscales y bancarios de la plataforma solo cuando decidas dar el paso.
 
+El ZIP y el correo ya están automatizados:
+
+- Plantilla de licencia ficticia: `docs/plantillas/license-unsigned-ejemplo.json`.
+- Correo listo: `docs/plantillas/correo-entrega.md`.
+- Empaquetador: `bash scripts/pack-delivery.sh --release-dir DIR --license license.json --out netdiag-entrega-1.5.1.zip`.
+- Atajo: `make delivery-zip DELIVERY_RELEASE=DIR DELIVERY_LICENSE=license.json DELIVERY_OUT=paquete.zip`.
+
+El empaquetador no usa claves, no accede a la red y genera `ENTREGA.txt` con los SHA256 de todo el contenido.
+
 ### Maduración sin crear cuentas
 
 1. **Entender el modelo:** esta sección. Sin prisa.

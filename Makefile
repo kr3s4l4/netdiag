@@ -19,8 +19,11 @@ MIN_VERSION     ?=
 RELEASE_OUT     ?=
 RELEASE_DIR     ?=
 KEYS_DIR        ?=
+DELIVERY_RELEASE ?=
+DELIVERY_LICENSE ?=
+DELIVERY_OUT     ?=
 
-.PHONY: all build build-pcap test test-race vet fmt fmt-check tidy run clean install release release-secure verify-release release-keygen help
+.PHONY: all build build-pcap test test-race vet fmt fmt-check tidy run clean install release release-secure verify-release release-keygen delivery-zip help
 
 all: build
 
@@ -99,6 +102,14 @@ verify-release:
 	scripts/verify-release.sh --dir "$(RELEASE_DIR)" \
 		$(if $(RELEASE_VERSION),--version "$(RELEASE_VERSION)",) \
 		$(if $(PUBLIC_KEY),--key "$(PUBLIC_KEY)",)
+
+## delivery-zip: empaqueta release firmado y licencia para entrega manual
+delivery-zip:
+	@test -n "$(DELIVERY_RELEASE)" || { echo "Define DELIVERY_RELEASE=/ruta/al/release" >&2; exit 1; }
+	@test -n "$(DELIVERY_LICENSE)" || { echo "Define DELIVERY_LICENSE=/ruta/license.json" >&2; exit 1; }
+	@test -n "$(DELIVERY_OUT)" || { echo "Define DELIVERY_OUT=/ruta/paquete.zip" >&2; exit 1; }
+	bash scripts/pack-delivery.sh --release-dir "$(DELIVERY_RELEASE)" \
+		--license "$(DELIVERY_LICENSE)" --out "$(DELIVERY_OUT)"
 
 ## clean: elimina artefactos
 clean:
