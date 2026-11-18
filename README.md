@@ -282,7 +282,7 @@ El roadmap clasifica F13, F14, F15, F16, F17 y F26 como opcionales/de baja prior
 | F17 — Threat Intel | Requiere servicios externos, claves, límites de tasa y listas que generan falsos positivos; contradice el funcionamiento offline y autohospedado. | Reglas y canales de alertas, integraciones salientes y detección de AP no autorizado en F11, todo local y auditable. |
 | F26 — Cloud sync | Igual que F13: solo aplica a un servicio SaaS centralizado y envía inventario de red a terceros. Requiere F25. | Copias ZIP cifradas localmente, exportación por sede y despliegue autocontenido sin dependencia de nube. |
 
-Estas decisiones no borran las ideas del roadmap: quedan como extensiones condicionadas a un modelo SaaS o a una necesidad operativa explícita, y no bloquean el cierre de la versión 1.5.
+Estas decisiones no borran las ideas del roadmap: quedan como extensiones condicionadas a un modelo SaaS o a una necesidad operativa explícita, y no bloquean el cierre de la versión 1.5. Las mejoras propuestas para 1.5.1 y las decisiones comerciales pendientes están en [docs/roadmap.md](docs/roadmap.md).
 
 ## Compilación
 
