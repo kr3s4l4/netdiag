@@ -56,7 +56,9 @@ func Handler(apiHandler http.Handler) http.Handler {
 			if f, err := dist.Open(strings.TrimPrefix(clean, "/")); err == nil {
 				_ = f.Close()
 				if ext == ".js" || ext == ".css" {
-					h.Set("Cache-Control", "public, max-age=3600")
+					// Los assets no llevan hash en el nombre: una caché larga
+					// deja la UI antigua después de actualizar el binario.
+					h.Set("Cache-Control", "no-cache")
 				}
 				files.ServeHTTP(w, r)
 				return
