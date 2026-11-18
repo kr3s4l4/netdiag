@@ -236,6 +236,19 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 
 **Esfuerzo:** 8–12 h de proceso y plantillas, más la gestión continua.
 
+### F42 — Validación de mercado sin telemetría
+
+- Publicar Community y medir solo fuentes públicas: descargas de GitHub, estrellas, forks, issues y Discussions.
+- Discussion fijado con tres preguntas: dónde se desplegó, qué se intentó hacer, qué faltó.
+- Encuesta voluntaria de 5 preguntas; **nunca instrumentar el binario**.
+- Piloto de 30 días con 3–5 organizaciones, sin SLA y con una llamada semanal de 20 minutos.
+- Umbral para pasar a F35/F37/F38: 3 instalaciones reales con 7 días de uso, 2 casos de uso concretos y 1 disposición a pagar o carta de intención.
+- Plan completo y plantillas en `docs/validacion.md`.
+
+**Criterio de cierre:** existe evidencia escrita de uso real y disposición a pagar antes de contratar seguros, espejo privado, SLA o demo completa.
+
+**Esfuerzo:** 4–6 h de plantillas y seguimiento; la gestión es continua pero ligera.
+
 ## Dependencias y orden recomendado
 
 | Fase | Depende de | Prioridad |
@@ -250,15 +263,17 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 | F39 | F27, F28 para lucir la demo | Media: ventas y documentación |
 | F40 | F29 | Media: retención de usuarios |
 | F41 | F33, F37, F38 | Alta: obligación legal y contractual |
+| F42 | Ninguna | Alta: se ejecuta antes de F35/F37/F38 |
 
 ## Cierre de salida al mercado
 
 NetDiag se considera listo para vender cuando:
 
-1. Los documentos legales y de precios están publicados y revisados.
-2. El espejo oficial publica artefactos firmados y verificables desde un checkout limpio.
-3. Una licencia de prueba de 30 días puede emitirse y activarse sin red.
-4. Existe una reproducción completa del flujo: demo → PoC → presupuesto → factura → licencia → soporte → renovación.
-5. El paquete Enterprise incluye SBOM, atestación, DPA/EULA, SLA y guía de verificación.
-6. `SECURITY.md` define canal privado de reporte, plazos de respuesta, obligaciones CRA 24/72 h y proceso de rotación de claves.
-7. Existe un responsable identificado para la Single Reporting Platform y se ha ensayado el runbook de CVE en dependencia de terceros.
+1. F42 ha mostrado uso real y al menos una disposición a pagar antes de invertir en estructura comercial.
+2. Los documentos legales y de precios están publicados y revisados.
+3. El espejo oficial publica artefactos firmados y verificables desde un checkout limpio.
+4. Una licencia de prueba de 30 días puede emitirse y activarse sin red.
+5. Existe una reproducción completa del flujo: demo → PoC → presupuesto → factura → licencia → soporte → renovación.
+6. El paquete Enterprise incluye SBOM, atestación, DPA/EULA, SLA y guía de verificación.
+7. `SECURITY.md` define canal privado de reporte, plazos de respuesta, obligaciones CRA 24/72 h y proceso de rotación de claves.
+8. Existe un responsable identificado para la Single Reporting Platform y se ha ensayado el runbook de CVE en dependencia de terceros.

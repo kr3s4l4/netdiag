@@ -286,6 +286,7 @@ Estas decisiones no borran las ideas del roadmap: quedan como extensiones condic
 
 ## Licenciamiento, compra y publicación
 
+- Antes de montar estructura comercial, el plan de [validación sin telemetría](docs/validacion.md) mide uso real y disposición a pagar.
 - **Community** es software libre bajo [AGPL-3.0](LICENSE), con avisos de terceros en [NOTICE](NOTICE) y [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 - **Pro y Enterprise** se venden con licencia comercial anual. El cobro es por banda de **hosts gestionados**, nunca por informe, alerta o host detectado.
 - La licencia se activa localmente, sin telemetría ni servidor online; el espejo de actualizaciones es opcional o puede ser interno.
