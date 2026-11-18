@@ -409,6 +409,20 @@ var migrations = [][]string{
 		)`,
 		`CREATE INDEX idx_history_snapshots_ts ON history_snapshots(site_id, ts DESC)`,
 	},
+	{
+		// v1.5.4: F22 audit mode. Full, gzip-compressed baselines per site.
+		`CREATE TABLE audit_snapshots (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			name TEXT NOT NULL,
+			notes TEXT NOT NULL DEFAULT '',
+			ts INTEGER NOT NULL,
+			raw_size INTEGER NOT NULL DEFAULT 0,
+			size INTEGER NOT NULL DEFAULT 0,
+			data BLOB NOT NULL
+		)`,
+		`CREATE INDEX idx_audit_snapshots_site_ts ON audit_snapshots(site_id, ts DESC)`,
+	},
 }
 
 func (s *Store) migrate() error {

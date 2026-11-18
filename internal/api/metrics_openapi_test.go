@@ -31,7 +31,7 @@ func newMetricsServer(t *testing.T) *Server {
 	return &Server{
 		st:        st,
 		cfg:       cfg,
-		version:   "1.4.0",
+		version:   "1.5.0",
 		commit:    "abc123",
 		buildDate: "2026-11-17",
 		startedAt: time.Now().Add(-time.Minute),
@@ -55,7 +55,7 @@ func TestMetricsExposition(t *testing.T) {
 		"# TYPE netdiag_hosts_total gauge",
 		"netdiag_hosts_total 0",
 		"# TYPE netdiag_uptime_seconds gauge",
-		`netdiag_info{commit="abc123",version="1.4.0"} 1`,
+		`netdiag_info{commit="abc123",version="1.5.0"} 1`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("falta %q en la salida Prometheus", want)
@@ -108,7 +108,7 @@ func TestOpenAPISpecIsValidJSON(t *testing.T) {
 	if info == nil || info["title"] != "NetDiag API" {
 		t.Fatalf("info inválida: %v", spec["info"])
 	}
-	if info["version"] != "1.4.0" {
+	if info["version"] != "1.5.0" {
 		t.Fatalf("versión de la API inesperada: %v", info["version"])
 	}
 	paths, _ := spec["paths"].(map[string]any)

@@ -52,6 +52,12 @@ var apiRoutes = []apiRoute{
 	{"POST", "/api/v1/hosts/{id}/rescan", "Volver a escanear un dispositivo", "Dispositivos", false, false, "RescanRequest", nil, false, false},
 	{"GET", "/api/v1/ports/summary", "Puertos más expuestos", "Dispositivos", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/history/compare", "Comparar dos momentos (por defecto hoy vs hace 7 días)", "Historial", false, false, "HistoryCompareRequest", []string{"site_id", "days", "window"}, false, false},
+	{"POST", "/api/v1/audits/snapshot", "Guardar un snapshot de auditoría", "Auditoría", false, false, "AuditSnapshotRequest", []string{"site_id"}, true, false},
+	{"GET", "/api/v1/audits", "Listar snapshots de auditoría", "Auditoría", false, false, "", []string{"site_id", "limit"}, false, false},
+	{"GET", "/api/v1/audits/{id}", "Detalle de un snapshot de auditoría", "Auditoría", false, false, "", []string{"data"}, false, false},
+	{"DELETE", "/api/v1/audits/{id}", "Eliminar un snapshot de auditoría", "Auditoría", false, false, "", nil, false, false},
+	{"POST", "/api/v1/audits/{id}/diff/{id2}", "Comparar dos snapshots de auditoría", "Auditoría", false, false, "", nil, false, false},
+	{"GET", "/api/v1/audits/{id}/export", "Exportar un snapshot (json|gzip)", "Auditoría", false, false, "", []string{"format"}, false, false},
 
 	{"GET", "/api/v1/networks", "Listar redes monitorizadas", "Redes", false, false, "", []string{"site_id"}, false, false},
 	{"POST", "/api/v1/networks", "Añadir una red", "Redes", false, true, "NetworkRequest", nil, true, false},
@@ -389,6 +395,14 @@ func openAPISchemas() map[string]any {
 						"config":   map[string]any{"type": "object", "additionalProperties": true},
 					},
 				}},
+			},
+		},
+		"AuditSnapshotRequest": map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"site_id": str,
+				"name":    str,
+				"notes":   str,
 			},
 		},
 		"HistoryCompareRequest": map[string]any{

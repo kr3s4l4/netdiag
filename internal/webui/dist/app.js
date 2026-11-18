@@ -23,6 +23,7 @@ const state = {
   hostHistoryRange: '24h',
   compareDays: 7,
   compareWindow: '24h',
+  audits: { items: [], from: 0, to: 0, diff: null },
   hostTab: 'resumen',
   alerts: { page: 1, limit: 50, status: 'active', severity: '', search: '' },
   rules: [],
@@ -414,6 +415,7 @@ const NAV = [
   { view: 'alerts', label: 'Alertas', icon: 'alerts', badge: true },
   { section: 'Historial' },
   { view: 'compare', label: 'Comparativa', icon: 'clock' },
+  { view: 'audits', label: 'Auditoría', icon: 'shield' },
   { view: 'scans', label: 'Escaneos', icon: 'scans' },
   { view: 'reports', label: 'Informes', icon: 'reports' },
   { section: 'Sistema' },
@@ -530,6 +532,7 @@ const PAGE_META = {
   vpn: ['VPN', 'Túneles detectados'],
   alerts: ['Alertas', 'Reglas y canales'],
   compare: ['Comparativa temporal', 'Hoy vs hace 7 días'],
+  audits: ['Auditoría', 'Snapshots y diff'],
   scans: ['Escaneos', 'Historial y ejecución'],
   reports: ['Informes', 'Exportación'],
   guide: ['Guía', 'Guía interactiva'],
@@ -680,7 +683,7 @@ async function route(silent = false) {
   if (!state.me) return;
   const raw = (location.hash || '#/dashboard').replace(/^#\/?/, '');
   const [view, ...rest] = raw.split('/');
-  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'diagnostics', 'wifi', 'vpn', 'alerts', 'compare', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
+  state.view = ['dashboard', 'hosts', 'topology', 'dashboards', 'diagnostics', 'wifi', 'vpn', 'alerts', 'compare', 'audits', 'scans', 'reports', 'guide', 'settings'].includes(view) ? view : 'dashboard';
   if (state.view === 'settings' && !isAdmin()) state.view = 'dashboard';
   updateNav();
   const content = $('#content');
@@ -702,6 +705,7 @@ async function route(silent = false) {
       case 'vpn': await renderVPN(); break;
       case 'alerts': await renderAlerts(rest[0]); break;
       case 'compare': await renderHistoryCompare(); break;
+      case 'audits': await renderAudits(); break;
       case 'scans': await renderScans(); break;
       case 'reports': await renderReports(); break;
       case 'guide': await renderGuide(); break;
@@ -1148,6 +1152,38 @@ document.addEventListener('click', async (e) => {
         state.compareDays = Number(target.dataset.days || state.compareDays);
         renderHistoryCompare().catch((err) => toast(err.message || String(err), { type: 'err' }));
         break;
+      case 'audit-save':
+        try {
+          const input = document.getElementById('audit-name');
+          const name = input && input.value ? input.value.trim() : '';
+          const snap = await api('/audits/snapshot', {
+            method: 'POST',
+            body: { site_id: state.siteId || 1, name },
+          });
+          state.audits.to = snap.id;
+          if (!state.audits.from) state.audits.from = snap.id;
+          toast(t('Snapshot guardado'), { type: 'ok' });
+          await renderAudits();
+        } catch (err) { toast(err.message || String(err), { type: 'err' }); }
+        break;
+      case 'audit-diff':
+        await renderAudits(true).catch((err) => toast(err.message || String(err), { type: 'err' }));
+        break;
+      case 'audit-export': {
+        const format = target.dataset.format === 'gzip' ? 'gzip' : 'json';
+        window.open('/api/v1/audits/' + target.dataset.id + '/export?format=' + format, '_blank', 'noopener');
+        break;
+      }
+      case 'audit-delete':
+        if (!window.confirm(t('¿Eliminar este snapshot?'))) break;
+        try {
+          await api('/audits/' + target.dataset.id, { method: 'DELETE' });
+          if (state.audits.from === Number(target.dataset.id)) state.audits.from = 0;
+          if (state.audits.to === Number(target.dataset.id)) state.audits.to = 0;
+          toast(t('Snapshot eliminado'), { type: 'ok' });
+          await renderAudits();
+        } catch (err) { toast(err.message || String(err), { type: 'err' }); }
+        break;
       case 'dash-create':
         try {
           const name = (document.getElementById('dash-name') || {}).value || '';
@@ -1324,6 +1360,12 @@ document.addEventListener('change', (e) => {
   if (el.dataset.action === 'compare-window') {
     state.compareWindow = el.value;
     renderHistoryCompare().catch((err) => toast(err.message || String(err), { type: 'err', title: 'Error' }));
+    return;
+  }
+  if (el.dataset.action === 'audit-from' || el.dataset.action === 'audit-to') {
+    const key = el.dataset.action === 'audit-from' ? 'from' : 'to';
+    state.audits[key] = Number(el.value) || 0;
+    state.audits.diff = null;
     return;
   }
   if (el.dataset.filter !== undefined) {

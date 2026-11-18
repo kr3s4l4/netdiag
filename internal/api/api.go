@@ -186,6 +186,14 @@ func (s *Server) register() {
 	// ---- F21 temporal comparison ----
 	m.HandleFunc("POST /api/v1/history/compare", s.handleHistoryCompare)
 
+	// ---- F22 audit mode ----
+	m.HandleFunc("POST /api/v1/audits/snapshot", s.handleCreateAuditSnapshot)
+	m.HandleFunc("GET /api/v1/audits", s.handleListAuditSnapshots)
+	m.HandleFunc("GET /api/v1/audits/{id}", s.handleGetAuditSnapshot)
+	m.HandleFunc("DELETE /api/v1/audits/{id}", s.handleDeleteAuditSnapshot)
+	m.HandleFunc("POST /api/v1/audits/{id}/diff/{id2}", s.handleDiffAuditSnapshots)
+	m.HandleFunc("GET /api/v1/audits/{id}/export", s.handleExportAuditSnapshot)
+
 	// ---- networks ----
 	m.HandleFunc("GET /api/v1/networks", s.handleListNetworks)
 	m.HandleFunc("POST /api/v1/networks", s.handleCreateNetwork)

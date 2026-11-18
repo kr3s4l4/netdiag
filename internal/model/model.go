@@ -828,6 +828,169 @@ type DiffReport struct {
 	Truncated   bool            `json:"truncated,omitempty"`
 }
 
+// AuditSnapshot is a manually captured, compressed baseline of a site (F22).
+// Data is only populated when explicitly requested by the API.
+type AuditSnapshot struct {
+	ID      int64              `json:"id"`
+	SiteID  int64              `json:"site_id"`
+	Name    string             `json:"name"`
+	Notes   string             `json:"notes,omitempty"`
+	TS      time.Time          `json:"ts"`
+	Size    int                `json:"size"`     // compressed bytes stored
+	RawSize int                `json:"raw_size"` // JSON bytes before compression
+	Data    *AuditSnapshotData `json:"data,omitempty"`
+}
+
+// AuditSnapshotData is the portable, redacted content of an audit baseline.
+// Secrets are never included: only configuration key names are retained.
+type AuditSnapshotData struct {
+	Schema       string             `json:"schema"`
+	SiteID       int64              `json:"site_id"`
+	SiteName     string             `json:"site_name,omitempty"`
+	CapturedAt   time.Time          `json:"captured_at"`
+	Hosts        []AuditHost        `json:"hosts"`
+	Networks     []AuditNetwork     `json:"networks"`
+	Neighbors    []AuditNeighbor    `json:"neighbors"`
+	Rules        []AuditRule        `json:"rules"`
+	Channels     []AuditChannel     `json:"channels"`
+	Integrations []AuditIntegration `json:"integrations"`
+	Topology     AuditTopologyData  `json:"topology"`
+	Scans        []AuditScan        `json:"scans"`
+	Alerts       AuditAlertSummary  `json:"alerts"`
+	Config       AuditConfigSummary `json:"config"`
+}
+
+// AuditHost is a compact inventory entry inside an audit baseline.
+type AuditHost struct {
+	ID         int64      `json:"id"`
+	Identity   string     `json:"identity"`
+	IP         string     `json:"ip"`
+	MAC        string     `json:"mac,omitempty"`
+	Hostname   string     `json:"hostname,omitempty"`
+	Vendor     string     `json:"vendor,omitempty"`
+	Model      string     `json:"model,omitempty"`
+	OS         string     `json:"os,omitempty"`
+	DeviceType DeviceType `json:"device_type"`
+	Status     HostStatus `json:"status"`
+	Confidence int        `json:"confidence"`
+	IsGateway  bool       `json:"is_gateway,omitempty"`
+	Favorite   bool       `json:"favorite,omitempty"`
+	Notes      string     `json:"notes,omitempty"`
+	Tags       []string   `json:"tags,omitempty"`
+	Ports      []Port     `json:"ports,omitempty"`
+	FirstSeen  time.Time  `json:"first_seen,omitempty"`
+	LastSeen   time.Time  `json:"last_seen,omitempty"`
+}
+
+type AuditNetwork struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	CIDR      string `json:"cidr"`
+	Interface string `json:"interface,omitempty"`
+	Enabled   bool   `json:"enabled"`
+	IsLocal   bool   `json:"is_local,omitempty"`
+}
+
+type AuditNeighbor struct {
+	HostIdentity  string `json:"host_identity"`
+	Protocol      string `json:"protocol"`
+	RemoteName    string `json:"remote_name,omitempty"`
+	RemoteIP      string `json:"remote_ip,omitempty"`
+	RemoteMAC     string `json:"remote_mac,omitempty"`
+	RemotePort    string `json:"remote_port,omitempty"`
+	LocalPort     string `json:"local_port,omitempty"`
+	RemoteChassis string `json:"remote_chassis,omitempty"`
+	Confidence    int    `json:"confidence"`
+}
+
+type AuditRule struct {
+	ID          int64    `json:"id"`
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Enabled     bool     `json:"enabled"`
+	Severity    string   `json:"severity"`
+	ChannelIDs  []int64  `json:"channel_ids,omitempty"`
+	CooldownSec int      `json:"cooldown_sec"`
+	Builtin     bool     `json:"builtin,omitempty"`
+	ConfigKeys  []string `json:"config_keys,omitempty"`
+}
+
+type AuditChannel struct {
+	ID         int64    `json:"id"`
+	Name       string   `json:"name"`
+	Type       string   `json:"type"`
+	Enabled    bool     `json:"enabled"`
+	HasSecret  bool     `json:"has_secret,omitempty"`
+	ConfigKeys []string `json:"config_keys,omitempty"`
+}
+
+type AuditIntegration struct {
+	ID         int64    `json:"id"`
+	Name       string   `json:"name"`
+	Type       string   `json:"type"`
+	Enabled    bool     `json:"enabled"`
+	HasSecret  bool     `json:"has_secret,omitempty"`
+	ConfigKeys []string `json:"config_keys,omitempty"`
+}
+
+type AuditTopologyData struct {
+	Nodes       []GraphNode `json:"nodes"`
+	Edges       []GraphEdge `json:"edges"`
+	Fingerprint string      `json:"fingerprint,omitempty"`
+}
+
+type AuditScan struct {
+	ID         int64      `json:"id"`
+	CIDR       string     `json:"cidr"`
+	Profile    string     `json:"profile,omitempty"`
+	Status     string     `json:"status"`
+	HostsFound int        `json:"hosts_found"`
+	StartedAt  *time.Time `json:"started_at,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+}
+
+type AuditAlertSummary struct {
+	Active   int `json:"active"`
+	Critical int `json:"critical"`
+	Warnings int `json:"warnings"`
+}
+
+type AuditConfigSummary struct {
+	MonitorEnabled      bool   `json:"monitor_enabled"`
+	MonitorInterval     string `json:"monitor_interval,omitempty"`
+	EnterpriseMode      bool   `json:"enterprise_mode"`
+	AlertsEnabled       bool   `json:"alerts_enabled"`
+	IntegrationsEnabled bool   `json:"integrations_enabled"`
+	MetricsDays         int    `json:"metrics_days"`
+	RetentionDays       int    `json:"retention_days"`
+}
+
+// AuditChange is one difference between two audit baselines.
+type AuditChange struct {
+	Type     string   `json:"type"`
+	Entity   string   `json:"entity"`
+	ID       string   `json:"id"`
+	Label    string   `json:"label,omitempty"`
+	Field    string   `json:"field,omitempty"`
+	From     any      `json:"from,omitempty"`
+	To       any      `json:"to,omitempty"`
+	Evidence []string `json:"evidence,omitempty"`
+}
+
+// AuditDiff is the result of comparing two audit baselines.
+type AuditDiff struct {
+	FromID      int64          `json:"from_id"`
+	ToID        int64          `json:"to_id"`
+	FromName    string         `json:"from_name"`
+	ToName      string         `json:"to_name"`
+	FromTS      time.Time      `json:"from_ts"`
+	ToTS        time.Time      `json:"to_ts"`
+	Changes     []AuditChange  `json:"changes"`
+	Summary     map[string]int `json:"summary"`
+	Truncated   bool           `json:"truncated,omitempty"`
+	Limitations []string       `json:"limitations,omitempty"`
+}
+
 // AuditFilter filters audit entries.
 type AuditFilter struct {
 	From   *time.Time

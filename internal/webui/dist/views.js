@@ -461,6 +461,153 @@ async function renderHistoryCompare() {
 }
 
 /* ------------------------------------------------------------------ */
+/* F22 audit mode                                                      */
+/* ------------------------------------------------------------------ */
+
+const AUDIT_CHANGE_LABELS = {
+  'host.added': 'Dispositivo nuevo',
+  'host.removed': 'Dispositivo ausente',
+  'host.changed': 'Dispositivo modificado',
+  'host.port_added': 'Puerto abierto',
+  'host.port_removed': 'Puerto cerrado',
+  'host.port_changed': 'Puerto modificado',
+  'network.added': 'Red nueva',
+  'network.removed': 'Red eliminada',
+  'network.changed': 'Red modificada',
+  'neighbor.added': 'Vecino nuevo',
+  'neighbor.removed': 'Vecino eliminado',
+  'neighbor.changed': 'Vecino modificado',
+  'rule.added': 'Regla nueva',
+  'rule.removed': 'Regla eliminada',
+  'rule.changed': 'Regla modificada',
+  'channel.added': 'Canal nuevo',
+  'channel.removed': 'Canal eliminado',
+  'channel.changed': 'Canal modificado',
+  'integration.added': 'Integración nueva',
+  'integration.removed': 'Integración eliminada',
+  'integration.changed': 'Integración modificada',
+  'scan.added': 'Escaneo nuevo',
+  'scan.removed': 'Escaneo eliminado',
+  'scan.changed': 'Escaneo modificado',
+  'topology.node_added': 'Nodo nuevo',
+  'topology.node_removed': 'Nodo eliminado',
+  'topology.node_changed': 'Nodo modificado',
+  'topology.edge_added': 'Enlace nuevo',
+  'topology.edge_removed': 'Enlace eliminado',
+  'topology.edge_changed': 'Enlace modificado',
+  'alerts.changed': 'Alertas modificadas',
+  'config.changed': 'Configuración modificada',
+};
+
+function auditSnapshotOption(snap, selected) {
+  const label = `${snap.name || tr('Sin nombre')} · ${fmtDate(snap.ts)}`;
+  return `<option value="${snap.id}" ${Number(selected) === snap.id ? 'selected' : ''}>${esc(label)}</option>`;
+}
+
+function auditChangeRows(diff) {
+  if (!diff || !diff.changes || !diff.changes.length) {
+    return `<tr><td colspan="7"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin cambios entre snapshots'))}</b>
+      <div class="tiny">${esc(tr('Las dos líneas base son equivalentes según los campos auditados.'))}</div></div></div></td></tr>`;
+  }
+  return diff.changes.map((c) => {
+    const label = AUDIT_CHANGE_LABELS[c.type] || c.type;
+    const evidence = (c.evidence || []).map((e) => `<div>· ${esc(e)}</div>`).join('');
+    return `<tr>
+      <td><span class="badge info">${esc(tr(label))}</span></td>
+      <td class="tiny">${esc(c.entity)}</td>
+      <td class="tiny">${esc(c.label || c.id)}</td>
+      <td class="mono tiny">${esc(c.field || '—')}</td>
+      <td class="mono tiny">${esc(compareValue(c.from))}</td>
+      <td class="mono tiny">${esc(compareValue(c.to))}</td>
+      <td class="tiny muted">${evidence || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function renderAudits(withDiff = false) {
+  setPageTitle('audits');
+  const content = document.getElementById('content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  const list = await api('/audits?limit=50');
+  const items = list.items || [];
+  state.audits.items = items;
+  if (items.length && !state.audits.to) state.audits.to = items[0].id;
+  if (items.length > 1 && !state.audits.from) state.audits.from = items[1].id;
+
+  let diff = state.audits.diff;
+  if (withDiff && state.audits.from && state.audits.to && state.audits.from !== state.audits.to) {
+    diff = await api(`/audits/${state.audits.from}/diff/${state.audits.to}`, { method: 'POST' });
+    state.audits.diff = diff;
+  }
+
+  const optionsFrom = items.map((s) => auditSnapshotOption(s, state.audits.from)).join('');
+  const optionsTo = items.map((s) => auditSnapshotOption(s, state.audits.to)).join('');
+  const canCompare = items.length > 1;
+
+  const rows = items.length ? items.map((s) => `<tr>
+    <td><b>${esc(s.name || tr('Sin nombre'))}</b>${s.notes ? `<div class="tiny muted">${esc(s.notes)}</div>` : ''}</td>
+    <td class="tiny">${esc(fmtDate(s.ts))}</td>
+    <td class="mono tiny">${fmtBytes(s.raw_size || 0)} → ${fmtBytes(s.size || 0)}</td>
+    <td class="tiny">${esc(s.site_id || 1)}</td>
+    <td class="tiny">
+      <button class="btn sm" data-action="audit-export" data-id="${s.id}" data-format="json">${esc(tr('JSON'))}</button>
+      <button class="btn sm" data-action="audit-export" data-id="${s.id}" data-format="gzip">${esc(tr('GZIP'))}</button>
+      ${canWrite() ? `<button class="btn sm danger" data-action="audit-delete" data-id="${s.id}">${esc(tr('Eliminar'))}</button>` : ''}
+    </td>
+  </tr>`).join('') : `<tr><td colspan="5"><div class="empty">${icon('shield')}<div><b>${esc(tr('Todavía no hay snapshots'))}</b>
+      <div class="tiny">${esc(tr('Guarda una línea base, haz cambios en la red y comparámosla con otra snapshot.'))}</div></div></div></td></tr>`;
+
+  const diffCard = diff ? `<div class="card mb">
+    <div class="card-head"><h3>${esc(tr('Diff de auditoría'))}</h3>
+      <span class="tiny muted">${esc(diff.from_name || ('#' + diff.from_id))} → ${esc(diff.to_name || ('#' + diff.to_id))}
+        · ${fmtNum(diff.summary && diff.summary.total, 0)} ${esc(tr('cambios'))}
+        ${diff.truncated ? `<span class="badge warning">${esc(tr('truncado'))}</span>` : ''}
+      </span>
+    </div>
+    ${(diff.limitations || []).length ? `<div class="notice warn mb">${icon('warn')}<div>
+      <ul class="diag-limits">${diff.limitations.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>` : ''}
+    <div class="table-wrap"><table class="compare-changes">
+      <thead><tr><th>${esc(tr('Tipo'))}</th><th>${esc(tr('Entidad'))}</th><th>${esc(tr('Objeto'))}</th>
+        <th>${esc(tr('Campo'))}</th><th>${esc(tr('Antes'))}</th><th>${esc(tr('Ahora'))}</th><th>${esc(tr('Evidencia'))}</th></tr></thead>
+      <tbody>${auditChangeRows(diff)}</tbody>
+    </table></div>
+  </div>` : '';
+
+  content.innerHTML = `
+    <div class="spread mb">
+      <div class="muted small">${esc(tr('Guarda una línea base del estado actual, realiza cambios y compara dos snapshots para ver qué cambió.'))}</div>
+      ${canWrite() ? `<div class="row-gap">
+        <input id="audit-name" class="input sm" maxlength="120" placeholder="${esc(tr('Nombre del snapshot (opcional)'))}">
+        <button class="btn primary sm" data-action="audit-save">${esc(tr('Guardar snapshot'))}</button>
+      </div>` : ''}
+    </div>
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Comparar snapshots'))}</h3></div>
+      <div class="card-body row-gap">
+        <label class="tiny">${esc(tr('Desde'))}
+          <select class="select sm" data-action="audit-from" ${canCompare ? '' : 'disabled'}>${optionsFrom}</select>
+        </label>
+        <label class="tiny">${esc(tr('Hasta'))}
+          <select class="select sm" data-action="audit-to" ${canCompare ? '' : 'disabled'}>${optionsTo}</select>
+        </label>
+        <button class="btn primary sm" data-action="audit-diff" ${canCompare ? '' : 'disabled'}>${esc(tr('Ver diff'))}</button>
+      </div>
+    </div>
+    ${diffCard}
+    <div class="card">
+      <div class="card-head"><h3>${esc(tr('Líneas base guardadas'))}</h3>
+        <span class="tiny muted">${fmtNum(items.length, 0)} ${esc(tr('snapshots'))}</span>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>${esc(tr('Nombre'))}</th><th>${esc(tr('Fecha'))}</th><th>${esc(tr('Tamaño'))}</th>
+          <th>${esc(tr('Sede'))}</th><th>${esc(tr('Acciones'))}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+    <div class="card pad mt"><div class="tiny muted">${esc(tr('Los snapshots se comprimen y se guardan sin secretos: solo se conservan los nombres de las claves de configuración, nunca sus valores.'))}</div></div>`;
+}
+
+/* ------------------------------------------------------------------ */
 /* F18 custom dashboards                                               */
 /* ------------------------------------------------------------------ */
 

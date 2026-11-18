@@ -302,6 +302,37 @@ Los tipos de cambio son `host.added`, `host.removed`, `host.status_changed`, `ho
 
 Los snapshots de topología se capturan tras cada escaneo correcto y cada hora. Si faltan en una ventana, el campo `topology.snapshot_at` es nulo y se añade una entrada a `limitations`; la ausencia de datos nunca se reporta como «sin cambios».
 
+### Modo auditoría (F22)
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| POST | `/audits/snapshot` | Guarda una línea base de una sede. Requiere `admin`, `owner` u `operator` |
+| GET | `/audits?site_id=<id>&limit=<n>` | Lista metadatos; `limit` entre 1 y 200, por defecto 50 |
+| GET | `/audits/{id}?data=1` | Devuelve el snapshot. Sin `data=1`, omite el payload para respuestas ligeras |
+| DELETE | `/audits/{id}` | Elimina una línea base. Requiere `admin`, `owner` u `operator` |
+| POST | `/audits/{id}/diff/{id2}` | Compara `{id}` (antes) con `{id2}` (después) |
+| GET | `/audits/{id}/export?format=json\|gzip` | Descarga portable; por defecto JSON |
+
+Cuerpo de creación (todo opcional):
+
+```json
+{
+  "site_id": 1,
+  "name": "Antes del cambio",
+  "notes": "Auditoría trimestral"
+}
+```
+
+Si se omite `site_id`, se usa el parámetro de query string o la sede `1` (`Principal`). `name` admite hasta 120 caracteres y `notes` hasta 1000; si se omite `name`, se genera `Auditoría YYYY-MM-DD HH:MM`. La respuesta de creación es un `AuditSnapshot` ligero con `{id, site_id, name, notes, ts, size, raw_size}`; el campo `data` se omite y se recupera con `GET /audits/{id}?data=1` o mediante exportación. `size` son los bytes gzip almacenados y `raw_size` los bytes JSON antes de comprimir.
+
+El payload (`AuditSnapshotData`) incluye `schema`, `site_id`, `site_name`, `captured_at`, `hosts`, `networks`, `neighbors`, `rules`, `channels`, `integrations`, `topology`, `scans`, `alerts` y `config`. Los hosts incluyen identidad, IP, MAC, nombre, fabricante, modelo, SO, tipo, estado, confianza, puertos, etiquetas y notas. Los campos volátiles (`last_seen` y muestras de latencia) se conservan en el snapshot pero **no** se comparan en el diff.
+
+**Redacción de secretos:** de reglas, canales e integraciones solo se guardan sus identificadores, metadatos y `config_keys` (nombres ordenados de las claves). Los valores de `password`, `token`, `api_key`, `url`, `secret` y cualquier otra clave sensible nunca se escriben en la base ni aparecen en exportaciones. Las operaciones de creación, borrado y diff generan entradas `audits.snapshot.*` en la auditoría de seguridad.
+
+La respuesta del diff (`AuditDiff`) contiene `from_id`, `to_id`, `from_name`, `to_name`, `from_ts`, `to_ts`, `changes`, `summary`, `truncated` y `limitations`. Cada cambio es `{type, entity, id, label, field, from, to, evidence}` con al menos una cadena de evidencia. Los tipos incluyen `host.*`, `network.*`, `neighbor.*`, `rule.*`, `channel.*`, `integration.*`, `scan.*`, `topology.node_*`, `topology.edge_*`, `alerts.changed` y `config.changed`. Los resultados se ordenan por tipo, entidad, identificador y campo; el máximo es 500 cambios por respuesta y `truncated: true` indica que se alcanzó el límite. Si alguno de los snapshots no tiene datos, `changes` queda vacío y se añade una entrada a `limitations`: nunca se reporta un diff incompleto como «sin cambios».
+
+Los snapshots se comprimen con gzip antes de persistirse en SQLite. Los límites son 64 MiB de JSON antes de comprimir y 16 MiB comprimidos por snapshot; se conservan como máximo 100 capturas por sede, descartando las más antiguas. La exportación `format=gzip` devuelve `application/gzip` con el mismo documento JSON comprimido y un nombre de archivo `netdiag-audit-<id>-<fecha>.json.gz`.
+
 ### Topología y sistema
 
 | Método | Ruta | Notas |

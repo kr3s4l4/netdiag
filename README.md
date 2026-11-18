@@ -22,6 +22,7 @@
 - **Análisis WiFi (F11)**: captura pasiva 802.11 (binario `-tags pcap`) con APs (BSSID, SSID, canal, banda, cifrado, señal), clientes por AP, interferencia por canal y detección heurística de AP no autorizado.
 - **Dashboards personalizables (F18)**: vistas por sede con hasta 16 widgets reordenables en una rejilla de 12 columnas, fuentes limitadas a un catálogo seguro de endpoints ya autorizados.
 - **Comparativa temporal (F21)**: diff de dos ventanas equivalentes (por defecto hoy frente a hace 7 días) con cambios por dispositivo, topología y flota, evidencia para cada hallazgo y limitaciones explícitas cuando falta información.
+- **Modo auditoría (F22)**: líneas base manuales comprimidas por sede, diff detallado entre snapshots y exportación JSON/GZIP, sin secretos en los datos guardados.
 - **Monitor periódico**: escaneos programados, detección de hosts caídos y nuevos, histórico de latencia y disponibilidad.
 - **Alertas**: reglas integradas y personalizadas, cooldown, deduplicación y siete canales (webhook HMAC, Slack, Discord, Telegram, PagerDuty, SMTP y syslog).
 - **Informes**: PDF, CSV, JSON y HTML con portada, resumen ejecutivo, inventario y alertas.
@@ -200,6 +201,36 @@ Los snapshots se capturan automáticamente tras cada escaneo correcto y cada hor
 curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
   -d '{}' http://127.0.0.1:8080/api/v1/history/compare | python3 -m json.tool
 ```
+
+## Modo auditoría
+
+La vista **Auditoría** cierra F22 («guardar snapshot, hacer cambios, ver diff»). Guarda una línea base completa de la sede activa, permite cambiar la red o la configuración y compara dos snapshots para mostrar qué cambió. Cada captura incluye hosts, puertos, redes, vecinos, topología, escaneos recientes, reglas, canales, integraciones, resumen de alertas y valores no sensibles de configuración. Se comprime con gzip en SQLite (máximo 16 MiB almacenados por snapshot) y se conservan como máximo 100 líneas base por sede.
+
+**Los secretos nunca se guardan**: de canales, integraciones y reglas solo se conservan los *nombres* de las claves de configuración (`config_keys`), nunca sus valores. Las notas de hosts sí forman parte del inventario auditado. Cada creación, borrado y diff queda registrado en la auditoría de seguridad.
+
+El diff excluye campos volátiles (`last_seen` y muestras de latencia) y compara exclusivamente hechos estables. Incluye cambios en hosts (`host.added`, `host.changed`, `host.port_added`, `host.port_changed`, `host.port_removed`), redes, vecinos, reglas, canales, integraciones, escaneos, topología (`topology.node_*`, `topology.edge_*`), alertas y configuración. Cada entrada lleva evidencia legible; el informe se ordena por tipo, se trunca en 500 cambios e indica `truncated: true` si se supera el límite.
+
+```bash
+# 1) línea base antes de los cambios
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"site_id":1,"name":"Antes del cambio"}' \
+  http://127.0.0.1:8080/api/v1/audits/snapshot
+
+# 2) ... hacer cambios en inventario, reglas o configuración ...
+
+# 3) segunda línea base y diff
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json' \
+  -d '{"site_id":1,"name":"Después"}' \
+  http://127.0.0.1:8080/api/v1/audits/snapshot
+curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -X POST \
+  http://127.0.0.1:8080/api/v1/audits/1/diff/2 | python3 -m json.tool
+
+# 4) exportar para archivo o análisis externo
+curl -sb cookies.txt -o auditoria.json.gz \
+  'http://127.0.0.1:8080/api/v1/audits/1/export?format=gzip'
+```
+
+Crear y borrar snapshots requiere `admin`, `owner` u `operator`; listar, consultar, comparar y exportar está disponible para cualquier rol autenticado. El detalle (`GET /api/v1/audits/{id}`) devuelve solo metadatos salvo que se pida `?data=1`.
 
 ## Compilación
 
@@ -382,4 +413,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.4**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus y copias de seguridad. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos y aislamiento entre sedes. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal y modo auditoría. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia y líneas base auditables. Las contribuciones y los informes de errores son bienvenidos.
