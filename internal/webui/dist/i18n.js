@@ -48,7 +48,7 @@
     'En vivo': 'Live',
     'Reconectando…': 'Reconnecting…',
     'Conectando…': 'Connecting…',
-    'network diagnostics': 'network diagnostics',
+    'network diagnostics · kr3s4l4': 'network diagnostics · kr3s4l4',
     'servidor local': 'local server',
     'Sin datos todavía': 'No data yet',
     'Sin puertos escaneados': 'No scanned ports',

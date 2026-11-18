@@ -340,7 +340,7 @@ function renderAuthCard(mode, st) {
       <div id="auth-error" class="notice err hidden"></div>
       <button class="btn primary w-full mt" type="submit">${setup ? 'Crear cuenta y entrar' : 'Entrar'}</button>
     </form>
-    <p class="auth-foot">NetDiag ${esc((st && st.version) || '')} · servidor local</p>
+    <p class="auth-foot">NetDiag ${esc((st && st.version) || '')} · kr3s4l4 · servidor local</p>
   </div></div>`;
   const input = $('#auth-user');
   if (input) input.focus();
@@ -442,7 +442,7 @@ function renderShell() {
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <div class="mark">N</div>
-        <div><div class="name">NetDiag</div><div class="sub">network diagnostics</div></div>
+        <div><div class="name">NetDiag</div><div class="sub">network diagnostics · kr3s4l4</div></div>
       </div>
       <nav class="nav">${nav}</nav>
       <div class="sidebar-foot">

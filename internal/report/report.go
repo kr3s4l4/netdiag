@@ -124,7 +124,7 @@ func writePDF(path string, req Request) error {
 	pdf.SetMargins(14, 16, 14)
 	pdf.SetAutoPageBreak(true, 18)
 	pdf.SetTitle(req.Title, true)
-	pdf.SetAuthor("NetDiag", true)
+	pdf.SetAuthor("NetDiag · kr3s4l4", true)
 	tr := pdf.UnicodeTranslatorFromDescriptor("")
 	page := 0
 	pdf.SetFooterFunc(func() {
@@ -133,7 +133,7 @@ func writePDF(path string, req Request) error {
 		pdf.SetTextColor(120, 120, 120)
 		footer := req.Footer
 		if footer == "" {
-			footer = "Generado por NetDiag"
+			footer = "Generado por NetDiag · kr3s4l4"
 		}
 		pdf.CellFormat(120, 5, tr(footer), "", 0, "L", false, 0, "")
 		pdf.CellFormat(60, 5, fmt.Sprintf("Página %d", page), "", 0, "R", false, 0, "")

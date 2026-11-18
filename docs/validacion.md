@@ -14,6 +14,7 @@ Esto es presentación, **no código**. No hace falta implementar F27–F40 para 
 
 - [ ] 3–5 capturas reales de la interfaz: inventario, topología, diagnósticos y ajustes. Usa datos de tu laboratorio; no montes un entorno ficticio.
 - [ ] Un GIF corto (10–20 s) del primer valor: añadir red → escanear → ver hosts identificados.
+- [ ] Firma discreta `kr3s4l4` en barra lateral, pie de acceso e informes PDF, sin sustituir el nombre del producto (ya implementada).
 - [ ] El bloque «Hacia dónde va NetDiag» visible cerca del inicio del README, con enlace al roadmap.
 - [ ] En la nota de Release: el mismo bloque de dirección y las tres preguntas del Discussion fijado.
 - [ ] **El repo tiene `remote` configurado y los commits están pusheados.** Sin esto, todo el trabajo sigue solo en local y nadie puede encontrarlo.
