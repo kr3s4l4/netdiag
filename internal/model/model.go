@@ -477,6 +477,7 @@ type GraphNode struct {
 	DeviceType DeviceType `json:"device_type,omitempty"`
 	Status     HostStatus `json:"status,omitempty"`
 	IsGateway  bool       `json:"is_gateway,omitempty"`
+	IsSelf     bool       `json:"is_self,omitempty"`
 	NetworkID  int64      `json:"network_id,omitempty"`
 	Network    string     `json:"network,omitempty"`
 	Confidence int        `json:"confidence,omitempty"`

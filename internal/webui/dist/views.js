@@ -32,6 +32,7 @@ const TOPO_KIND_COLORS = {
 };
 
 function topoNodeColor(n) {
+  if (n.is_self) return '#fb923c';
   if (n.kind === 'network') return TOPO_KIND_COLORS.network;
   if (n.is_gateway) return TOPO_KIND_COLORS.gateway;
   return TOPO_KIND_COLORS[n.device_type] || TOPO_KIND_COLORS.unknown;
@@ -139,7 +140,7 @@ function drawTopology() {
     const deg = degree.get(n.id) || 0;
     const isNet = n.kind === 'network';
     const r = isNet ? 14 : n.is_gateway ? 11 : Math.min(10, 6 + Math.sqrt(deg));
-    const important = isNet || n.is_gateway || ['router', 'switch', 'firewall'].includes(n.device_type);
+    const important = isNet || n.is_self || n.is_gateway || ['router', 'switch', 'firewall'].includes(n.device_type);
     const title = esc(topoNodeLabel(n) + (n.ip ? ' · ' + n.ip : '') + (n.vendor ? ' · ' + n.vendor : ''));
     const label = n.kind === 'network' ? topoNodeLabel(n) : (n.label || n.ip || '');
     const truncated = label.length > 26 ? label.slice(0, 25) + '…' : label;
@@ -147,6 +148,7 @@ function drawTopology() {
     const shape = isNet
       ? `<rect x="${(n.x - r).toFixed(1)}" y="${(n.y - r).toFixed(1)}" width="${r * 2}" height="${r * 2}" rx="4" fill="${color}" fill-opacity=".18" stroke="${color}" stroke-width="2"/>`
       : `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r}" fill="${color}" fill-opacity=".16" stroke="${color}" stroke-width="2"/>
+         ${n.is_self ? `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${(r + 4).toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="2 3"/>` : ''}
          <circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${Math.max(1.8, r * 0.28)}" fill="${color}"/>`;
     return `<g class="topo-node" data-host-id="${n.host_id || ''}" data-node-id="${esc(n.id)}" style="cursor:${n.host_id ? 'pointer' : 'default'}">
       ${shape}

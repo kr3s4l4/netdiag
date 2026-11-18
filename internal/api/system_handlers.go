@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"runtime"
 	"strings"
@@ -195,14 +196,52 @@ func (s *Server) handleTopology(w http.ResponseWriter, r *http.Request) {
 		hosts, networks = filtered, nets
 	}
 	graph := topology.Build(hosts, neighbors, networks)
-	s.mergeNeighborTopology(r.Context(), &graph, hosts)
+	s.mergeEnvironmentTopology(r.Context(), &graph, hosts)
+	s.ensureSelfInventory()
 	writeJSON(w, http.StatusOK, graph)
 }
 
-// mergeNeighborTopology adds auto-detected private networks and their routers
-// to the rendered graph. Existing nodes are reused by IP/CIDR so the same
-// device never appears twice, and edges follow the real traced hop sequence.
-func (s *Server) mergeNeighborTopology(ctx context.Context, graph *model.Graph, hosts []model.Host) {
+// ensureSelfInventory registers the local machine in the inventory with the
+// "self" and "excluded" tags. It stays visible to the operator but is never
+// counted as a managed (billable) host.
+func (s *Server) ensureSelfInventory() {
+	ifaces, err := s.systemInterfaces()
+	if err != nil {
+		return
+	}
+	hostname, _ := os.Hostname()
+	tags := []string{"self", "excluded"}
+	for _, iface := range ifaces {
+		if iface.Loopback || !iface.Up || iface.MAC == "" {
+			continue
+		}
+		for _, addr := range iface.Addrs {
+			if addr.Family != "ipv4" || !addr.Private {
+				continue
+			}
+			h := &model.Host{
+				SiteID:     1,
+				IP:         addr.IP,
+				MAC:        iface.MAC,
+				Hostname:   hostname,
+				DeviceType: model.DevWorkstation,
+				Status:     model.StatusUp,
+				Confidence: 100,
+				Evidence:   []string{"equipo local"},
+			}
+			id, _, _, _, err := s.st.UpsertHost(h)
+			if err == nil {
+				_ = s.st.UpdateHostMeta(id, nil, &tags, nil)
+			}
+		}
+	}
+}
+
+// mergeEnvironmentTopology adds the local machine, auto-detected private
+// networks and their routers to the rendered graph. Existing nodes are reused
+// by IP/CIDR so the same device never appears twice, and edges follow the real
+// traced hop sequence.
+func (s *Server) mergeEnvironmentTopology(ctx context.Context, graph *model.Graph, hosts []model.Host) {
 	local := []string{}
 	ifaces, err := s.systemInterfaces()
 	if err == nil {
@@ -218,9 +257,6 @@ func (s *Server) mergeNeighborTopology(ctx context.Context, graph *model.Graph, 
 		}
 	}
 	detected := s.ensureNeighbors(ctx, local, neighborSeeds(hosts))
-	if len(detected.Networks) == 0 {
-		return
-	}
 
 	byID := map[string]bool{}
 	byIP := map[string]string{}
@@ -300,6 +336,53 @@ func (s *Server) mergeNeighborTopology(ctx context.Context, graph *model.Graph, 
 		return false
 	}
 
+	// The scanner excludes its own addresses from discovery. Add the local
+	// machine explicitly so the operator can see where NetDiag is running.
+	hostname, _ := os.Hostname()
+	for _, iface := range ifaces {
+		if iface.Loopback || !iface.Up {
+			continue
+		}
+		for _, addr := range iface.Addrs {
+			if addr.Family != "ipv4" || !addr.Private {
+				continue
+			}
+			selfID := "self:" + addr.IP
+			label := "Este equipo"
+			if hostname != "" {
+				label += " · " + hostname
+			} else if iface.Name != "" {
+				label += " · " + iface.Name
+			}
+			if !byID[selfID] {
+				byID[selfID] = true
+				graph.Nodes = append(graph.Nodes, model.GraphNode{
+					ID:         selfID,
+					Kind:       "host",
+					Label:      label,
+					IP:         addr.IP,
+					MAC:        iface.MAC,
+					DeviceType: model.DevWorkstation,
+					Status:     model.StatusUp,
+					IsSelf:     true,
+					Confidence: 100,
+				})
+				graph.Stats.Nodes++
+				graph.Stats.ByType[string(model.DevWorkstation)]++
+			}
+			if byIP[addr.IP] == "" {
+				byIP[addr.IP] = selfID
+			}
+			netID := byCIDR[maskedCIDR(addr.CIDR)]
+			if netID == "" {
+				netID = byIP[iface.Gateway]
+			}
+			if netID != "" {
+				addEdge(netID, selfID, "local", "equipo local", 100)
+			}
+		}
+	}
+
 	for _, nw := range detected.Networks {
 		netID := byCIDR[nw.CIDR]
 		if netID == "" {
@@ -341,6 +424,14 @@ func (s *Server) mergeNeighborTopology(ctx context.Context, graph *model.Graph, 
 	graph.Stats.Isolated = countIsolated(graph)
 	graph.Stats.Nodes = len(graph.Nodes)
 	graph.Stats.Edges = len(graph.Edges)
+}
+
+func maskedCIDR(value string) string {
+	p, err := netip.ParsePrefix(strings.TrimSpace(value))
+	if err != nil || !p.Addr().Is4() {
+		return value
+	}
+	return netip.PrefixFrom(p.Addr().Unmap(), p.Bits()).Masked().String()
 }
 
 func countIsolated(g *model.Graph) int {
