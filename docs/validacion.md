@@ -112,6 +112,6 @@ Si tras 6–8 semanas solo hay descargas y silencio:
 ## Estado de publicación (18/11/2026)
 
 - Repo público: <https://github.com/kr3s4l4/netdiag>, rama `master` por defecto, descripción, `topics` y homepage configurados.
-- Release preview: <https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.0>, con `netdiag-linux-amd64`, `netdiag-linux-arm64` y `SHA256SUMS`. Marcada como *pre-release*; aún no hay clave oficial de firma.
+- Release preview: <https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.0>, con `netdiag-linux-amd64`, `netdiag-linux-arm64`, `SHA256SUMS` y `SHA256SUMS.minisig`. Marcada como *pre-release*; el resumen está firmado con la clave `netdiag-release` publicada en `docs/public_keys.md`.
 - Discussion: <https://github.com/kr3s4l4/netdiag/discussions/1>. Creado; **queda fijarlo a mano** desde el menú ⋯ → *Pin discussion* porque la API de GitHub no expone esa acción.
 - El repo antiguo `kr3s4l4/Netdiag` (programa anterior) se borró. Su último commit `11fdf866bb9c` sigue intacto en la copia local de referencia.
