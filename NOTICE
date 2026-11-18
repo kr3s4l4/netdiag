@@ -1,0 +1,21 @@
+NetDiag
+Copyright (c) 2026 kr3s4l4 and NetDiag contributors
+
+This product includes software developed by the NetDiag contributors.
+The Community edition is licensed under the GNU Affero General Public License,
+version 3 or (at your option) any later version. See the LICENSE file.
+
+Pro and Enterprise editions are offered under a separate commercial license.
+See docs/licenciamiento.md and docs/comercializacion.md for the rights and
+limits of each edition.
+
+Third-party components are included under their own licenses. Their copyright
+notices and full license texts are reproduced in THIRD_PARTY_LICENSES.md and in
+the SBOM shipped with each release.
+
+NetDiag is self-hosted software: it does not require telemetry, an online
+license server, or a cloud account for its core functions.
+
+Security reports: see SECURITY.md.
+Build and signature verification: see docs/publicacion-segura.md.
+Public release keys: see docs/public_keys.md.

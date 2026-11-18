@@ -282,7 +282,16 @@ El roadmap clasifica F13, F14, F15, F16, F17 y F26 como opcionales/de baja prior
 | F17 — Threat Intel | Requiere servicios externos, claves, límites de tasa y listas que generan falsos positivos; contradice el funcionamiento offline y autohospedado. | Reglas y canales de alertas, integraciones salientes y detección de AP no autorizado en F11, todo local y auditable. |
 | F26 — Cloud sync | Igual que F13: solo aplica a un servicio SaaS centralizado y envía inventario de red a terceros. Requiere F25. | Copias ZIP cifradas localmente, exportación por sede y despliegue autocontenido sin dependencia de nube. |
 
-Estas decisiones no borran las ideas del roadmap: quedan como extensiones condicionadas a un modelo SaaS o a una necesidad operativa explícita, y no bloquean el cierre de la versión 1.5. Las mejoras propuestas para 1.5.1 y las decisiones comerciales pendientes están en [docs/roadmap.md](docs/roadmap.md).
+Estas decisiones no borran las ideas del roadmap: quedan como extensiones condicionadas a un modelo SaaS o a una necesidad operativa explícita, y no bloquean el cierre de la versión 1.5. Las mejoras propuestas para 1.5.1, las decisiones cerradas F33–F34 y la implementación pendiente F35–F40 están en [docs/roadmap.md](docs/roadmap.md).
+
+## Licenciamiento, compra y publicación
+
+- **Community** es software libre bajo [AGPL-3.0](LICENSE), con avisos de terceros en [NOTICE](NOTICE) y [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+- **Pro y Enterprise** se venden con licencia comercial anual. El cobro es por banda de **hosts gestionados**, nunca por informe, alerta o host detectado.
+- La licencia se activa localmente, sin telemetría ni servidor online; el espejo de actualizaciones es opcional o puede ser interno.
+- Los artefactos oficiales se construyen de forma reproducible, se firman con minisign y se publican con SBOM y atestación: [docs/publicacion-segura.md](docs/publicacion-segura.md).
+- Los precios, SKU y flujo de compra están en [docs/comercializacion.md](docs/comercializacion.md); el paquete que recibe un comprador corporativo, en [docs/confianza-empresarial.md](docs/confianza-empresarial.md).
+- Las dudas legales se resuelven en [docs/licenciamiento.md](docs/licenciamiento.md); las vulnerabilidades se reportan por [SECURITY.md](SECURITY.md).
 
 ## Compilación
 
@@ -474,4 +483,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal, modo auditoría y auto-actualización firmada con rollback. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia, líneas base auditables, manifiestos manipulados, instalación atómica, confirmación y reversión. F13, F14, F15, F16, F17 y F26 quedan documentados como opcionales diferidos. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal, modo auditoría y auto-actualización firmada con rollback. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia, líneas base auditables, manifiestos manipulados, instalación atómica, confirmación y reversión. F13, F14, F15, F16, F17 y F26 quedan documentados como opcionales diferidos. La licencia AGPL, los avisos de terceros, el modelo comercial, el pipeline de publicación firmada y el paquete de confianza empresarial están documentados y enlazados desde esta página. Las mejoras F27–F40 están priorizadas en [docs/roadmap.md](docs/roadmap.md). Las contribuciones y los informes de errores son bienvenidos.

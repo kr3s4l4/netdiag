@@ -1,6 +1,6 @@
 # Roadmap de NetDiag
 
-Este documento registra el estado del producto a partir de la versión **1.5.0**. El roadmap original F0–F26 se conserva como referencia histórica en `notes/14-roadmap.md`; aquí se añaden las mejoras posteriores y las decisiones comerciales pendientes.
+Este documento registra el estado del producto a partir de la versión **1.5.0**. El roadmap original F0–F26 se conserva como referencia histórica en `notes/14-roadmap.md`; aquí se añaden las mejoras posteriores, las decisiones comerciales ya tomadas y el plan de salida al mercado.
 
 ## Estado actual
 
@@ -10,6 +10,8 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F13, F14, F15, F16, F17, F26 | Diferidos y justificados en `README.md` |
 | F23 | Cerrado: notificación + descarga verificada + instalación con rollback + reinicio |
 | F24 | Backup automático programado |
+| F33, F34 | Decisiones cerradas; documentación legal y comercial añadida en `1.5.0` |
+| F35–F40 | Planificados; detallados más abajo |
 | Pruebas | `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -42,6 +44,8 @@ Añadir al panel una tarjeta con:
 - Tendencia de los últimos 7 datos usando `/history/compare`.
 - Las tres incidencias más importantes de `/diagnostics`.
 - Acceso directo a la evidencia de cada incidencia.
+
+La puntuación debe ser explicable: disponibilidad 40 %, latencia 20 %, cambios no esperados 20 % y severidad de hallazgos 20 %. Nunca se muestra un número sin su desglose.
 
 **Criterio de cierre:** la tarjeta explica de dónde sale la puntuación y permite abrir el hallazgo relacionado.
 
@@ -96,33 +100,150 @@ Generar un PDF de una página con:
 - Disponibilidad y latencia de los últimos 7 días.
 - Cambios principales de `/history/compare`.
 - Hallazgos de mayor severidad.
-- Pie con versión de NetDiag y fecha de generación.
+- Pie con versión de NetDiag, retención activa, edición y fecha de generación.
 
 **Criterio de cierre:** el informe se genera desde un botón y no expone secretos ni datos de configuración.
 
 **Esfuerzo:** 4–6 h.
 
-## Decisiones pendientes de producto
+## Decisiones de producto cerradas
 
-Estas tareas no están implementadas; requieren una decisión de negocio antes de codificar.
+Estas decisiones ya no están pendientes: definen la licencia, el cobro y el canal de publicación. Los documentos ejecutivos están en `docs/licenciamiento.md`, `docs/comercializacion.md`, `docs/publicacion-segura.md` y `docs/confianza-empresarial.md`.
 
 ### F33 — Licenciamiento
 
-- Elegir licencia de código abierto: recomendación **`AGPL-3.0`** para la edición comunidad, con licencia comercial aparte para empresa.
-- Añadir `LICENSE`, `NOTICE` y un inventario de licencias de terceros.
-- Definir una edición Enterprise con derechos de uso cerrados.
-- No condicionar el funcionamiento básico a un servidor de licencias en línea.
+**Decisión:** doble licencia.
+
+- **Community:** `AGPL-3.0`. Archivo `LICENSE` en la raíz; `NOTICE` y `THIRD_PARTY_LICENSES.md` con los avisos de terceros.
+- **Enterprise/Pro:** licencia comercial de pago, sin obligación de publicar modificaciones, con derechos de uso, soporte y actualizaciones definidos en contrato.
+- El funcionamiento básico **no depende** de un servidor de licencias en línea. La edición de pago se acredita con una licencia firmada localmente.
+- El código aportado por terceros se acepta bajo DCO; no se exige CLA para Community. La licencia comercial se firma aparte con el cliente.
+
+**Criterio de cierre:** toda versión utilizable incluye `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md` y `SECURITY.md`, y la oferta comercial queda descrita sin ambigüedad.
 
 ### F34 — Modelo comercial
 
-- Definir ediciones y límites por sede/activo.
-- Evaluar cobro por suscripción anual frente a cobro por informe.
-- Usar ventanas de retención (7 días, 1 mes, 1 año) como diferenciador de plan, no como duración del acceso.
-- Diseñar un periodo de prueba limitado.
+**Decisión:** suscripción anual por banda de hosts gestionados; no se cobra por informe ni por host detectado.
+
+| SKU | Precio anual | Hosts gestionados | Sedes | Retención | Incluye |
+| --- | ---: | ---: | ---: | --- | --- |
+| `community` | 0 € | Sin límite de descubrimiento | 1 | 7 días | Binario AGPL, actualización manual, soporte comunitario |
+| `pro-25` | 990 € | 25 | 3 | 1 mes | Actualizaciones firmadas automáticas, informe ejecutivo, soporte por correo |
+| `pro-100` | 2.490 € | 100 | 10 | 1 mes | Igual que `pro-25` |
+| `pro-500` | 5.900 € | 500 | Ilimitadas | 1 año | Igual que `pro-25` |
+| `enterprise-500` | 9.900 € | 500 | Ilimitadas | 7 años | Licencia offline, SLA, paquete de confianza, onboarding |
+| `enterprise-2000` | 19.900 € | 2.000 | Ilimitadas | 7 años | Igual que `enterprise-500` |
+| `enterprise-custom` | A medida | Ilimitados | Ilimitadas | 7 años o según contrato | Espejo privado, condiciones a medida |
+
+**Definición de host gestionado:** identificador único `s<siteID>:<identity>` observado en los últimos 30 días, excluyendo hosts con etiqueta `guest` o `excluded`. El descubrimiento y el escaneo son ilimitados: un host detectado una sola vez no factura.
+
+**Reglas de facturación:**
+
+- Factura anual por adelantado; IVA no incluido; transferencia/SEPA y orden de compra aceptadas.
+- La banda se revisa en la renovación; superar la banda durante el año genera aviso, nunca una factura sorpresa ni borrado de datos.
+- La retención es un diferenciador del plan (7 días / 1 mes / 1 año; Enterprise 7 años), no un producto de duración de acceso.
+- Prueba de 30 días con todas las funciones Pro; al caducar se conservan los datos y se vuelve a capacidades Community.
+- No hay cargo por informe, alerta, escaneo, usuario ni puerto.
+
+**Criterio de cierre:** un cliente puede elegir SKU, entender qué paga y recibir una factura predecible sin hablar con ventas para los planes Pro.
+
+## Implementación pendiente
 
 ### F35 — Activación offline
 
-- Clave de licencia firmada con Ed25519 y guardada en el directorio de datos.
-- Campos: identificador de cliente, edición, límites, caducidad y capacidades.
-- Comandos `netdiag license show` y `netdiag license activate`.
-- Verificación local sin telemetría; el derecho real se apoya en soporte y acceso a actualizaciones firmadas.
+- Clave de licencia firmada con Ed25519 y guardada en `<data_dir>/license.json`.
+- Campos: `schema`, `license_id`, `customer`, `edition`, `max_managed_hosts`, `max_sites`, `retention_days`, `expires_at`, `capabilities` y `support_level`.
+- Comandos `netdiag license show`, `netdiag license activate <archivo>` y `netdiag license clear`.
+- Endpoint `GET /api/v1/system/license` para cualquier rol autenticado; devuelve estado, edición, límites y caducidad, nunca la firma ni datos de cliente ajenos.
+- Verificación local sin telemetría; el derecho real se apoya en soporte, SLA y acceso a actualizaciones firmadas.
+- Si se supera una banda o caduca la licencia: aviso en UI y API, sin bloquear lectura ni destruir datos.
+
+**Criterio de cierre:** una licencia firmada puede activarse en una máquina sin red y `netdiag license show` explica edición, límites y motivo de cualquier aviso.
+
+**Esfuerzo:** 6–8 h.
+
+### F36 — Contenedor firmado `.ndc`
+
+- Formato abierto y versionado: ZIP con `manifest.json`, `payload/`, `signature.minisig` y opcionalmente `sbom.cdx.json`.
+- `manifest.json` incluye `schema`, `version`, `kind` (`release`|`evidence`|`site`), `created_at`, `files[{path,sha256,size}]` y `producer`.
+- La firma cubre el manifiesto canónico; el comentario de confianza liga `version:` y `sha256:` del manifiesto.
+- CLI: `netdiag container inspect <archivo>` y `netdiag container verify --key <pub> <archivo>`.
+- JSON/CSV/PDF/ZIP sin firma siguen siendo formatos abiertos y prioritarios; `.ndc` se usa solo cuando se necesita integridad y procedencia.
+- Un `.ndc` de evidencia puede contener el informe ejecutivo, el diff de auditoría y el snapshot de configuración sin secretos.
+
+**Criterio de cierre:** un cliente verifica un `.ndc` modificado y la verificación falla con un mensaje claro; el archivo puede inspeccionarse con `unzip` sin NetDiag.
+
+**Esfuerzo:** 6–8 h.
+
+### F37 — Publicación segura y reproducible
+
+- Build reproducible: Go 1.27.x fijado, `CGO_ENABLED=0`, `-trimpath`, `-buildvcs=false`, `SOURCE_DATE_EPOCH` derivado del commit, `go mod verify`.
+- Generar por versión: binarios linux/amd64 y linux/arm64, variante `-tags pcap`, `SHA256SUMS`, `SHA256SUMS.minisig`, `manifest.json` F23, `RELEASE_NOTES.md` firmado, SBOM CycloneDX y atestación de procedencia.
+- Clave minisign de release en hardware/offline; clave raíz aparte solo para rotar la de release; publicación de clave y revocación en `docs/public_keys.md`.
+- Espejo HTTPS inmutable (`releases/<versión>/`) con tags de git inmutables; sin HTTP, sin credenciales en URL, HSTS y listado de checksums en la página de descarga.
+- F23 consume exactamente `manifest.json` + `public_key` del espejo oficial; el cliente puede sustituir ambos por su espejo interno.
+- Enterprise recibe el mismo artefacto firmado, licencia offline y manifiesto para alojarlo en su red sin conexión externa.
+
+**Criterio de cierre:** desde un checkout limpio se reconstruye el mismo SHA256 publicado, todos los artefactos verifican con la clave pública documentada y una nota manipulada rompe la verificación.
+
+**Esfuerzo:** 8–12 h.
+
+### F38 — Paquete de confianza empresarial
+
+- Documentos: whitepaper de seguridad, modelo de amenazas, flujo de datos, DPA/EULA, matriz SLA, guía de endurecimiento y política de vulnerabilidades.
+- Proceso: prueba de 30 días, PoC guiado, presupuesto con SKU, orden de compra, factura anual, licencia firmada y alta en soporte.
+- SLA Enterprise: P1 respuesta 1 h / workaround 8 h / objetivo de solución 24 h; P2 4 h hábiles / 2 días; P3 1 día hábil / 5 días.
+- Pro: soporte por correo con objetivo 48 h hábiles, sin SLA contractual.
+- Kit de venta: ficha de precios, one-pager de ROI, demo con datos sintéticos (F39), preguntas frecuentes de seguridad y checklist de compras.
+- Transparencia: declarar que SQLite no cifra toda la base por defecto; `secret.key` protege secretos de integraciones; la edición portable no captura 802.11 crudo.
+
+**Criterio de cierre:** un comprador recibe un paquete único con licencia, factura, SBOM firmado, documentos legales y pasos de verificación antes de firmar.
+
+**Esfuerzo:** 10–16 h (mayormente documentación y plantillas).
+
+### F39 — Modo demo con datos sintéticos
+
+- `netdiag demo --seed 1 [--sites 3] [--hosts 120]` genera sedes, hosts, puertos, alertas, métricas, topología y snapshots de auditoría ficticios.
+- No ejecuta escaneos reales ni abre sockets hacia la red; los datos se marcan con `demo: true` en la UI y en exportaciones.
+- Se usa para demostraciones, documentación, pruebas de UI y evaluaciones sin exponer inventario real.
+- Opción de reiniciar el dataset demo sin borrar datos reales: base separada bajo `<data_dir>/demo/netdiag.db`.
+
+**Criterio de cierre:** una demo de 5 minutos muestra panel, topología, diagnósticos e informe ejecutivo sin tocar la red ni un dato real.
+
+**Esfuerzo:** 6–10 h.
+
+### F40 — Filtros y vistas guardadas
+
+- Guardar filtros de inventario y alertas por usuario: nombre, `site_id`, consulta, severidad/estado, columnas y orden.
+- Vistas por defecto: `Críticas`, `Nuevos hosts`, `Caídos`, `Cambios de la semana`.
+- Compartir una vista mediante URL con parámetros; el nombre y la consulta se sanean antes de persistir.
+- Integración con F29: `Ctrl+K` puede abrir una vista guardada.
+
+**Criterio de cierre:** un operador vuelve a su vista `Críticas` tras recargar la página y puede enviar el enlace a otro operador sin perder el filtro.
+
+**Esfuerzo:** 4–6 h.
+
+## Dependencias y orden recomendado
+
+| Fase | Depende de | Prioridad |
+| --- | --- | --- |
+| F27, F28, F29 | Ninguna | Alta, entrega 1.5.1 |
+| F30, F31, F32 | F28 para el panel y F21/F22 para datos | Alta, entrega 1.5.1 |
+| F33, F34 | Ninguna | Cerradas en 1.5.0 |
+| F35 | F33, F34 | Alta: habilita prueba y venta |
+| F36 | F23 | Media: reutiliza minisign y canonicalización |
+| F37 | F23, F36 | Alta: es el canal de distribución |
+| F38 | F33–F37 | Alta: es el paquete que se entrega al comprador |
+| F39 | F27, F28 para lucir la demo | Media: ventas y documentación |
+| F40 | F29 | Media: retención de usuarios |
+
+## Cierre de salida al mercado
+
+NetDiag se considera listo para vender cuando:
+
+1. Los documentos legales y de precios están publicados y revisados.
+2. El espejo oficial publica artefactos firmados y verificables desde un checkout limpio.
+3. Una licencia de prueba de 30 días puede emitirse y activarse sin red.
+4. Existe una reproducción completa del flujo: demo → PoC → presupuesto → factura → licencia → soporte → renovación.
+5. El paquete Enterprise incluye SBOM, atestación, DPA/EULA, SLA y guía de verificación.
+6. `SECURITY.md` define canal privado de reporte, plazos de respuesta y proceso de rotación de claves.
