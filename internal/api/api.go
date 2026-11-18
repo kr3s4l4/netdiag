@@ -15,6 +15,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/integrations"
+	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
@@ -57,6 +58,7 @@ type Deps struct {
 	Reports      *report.Generator
 	Backups      *backup.Manager
 	Updates      *update.Manager
+	Licenses     *license.Manager
 	Scanner      Scanner
 	Logger       *slog.Logger
 	Version      string
@@ -78,6 +80,7 @@ type Server struct {
 	reports      *report.Generator
 	backups      *backup.Manager
 	updates      *update.Manager
+	licenses     *license.Manager
 	scanner      Scanner
 	log          *slog.Logger
 	hub          *Hub
@@ -110,6 +113,7 @@ func New(d Deps) *Server {
 		reports:      d.Reports,
 		backups:      d.Backups,
 		updates:      d.Updates,
+		licenses:     d.Licenses,
 		scanner:      d.Scanner,
 		log:          log,
 		hub:          NewHub(log),
@@ -277,6 +281,7 @@ func (s *Server) register() {
 
 	// ---- system ----
 	m.HandleFunc("GET /api/v1/system/info", s.handleSystemInfo)
+	m.HandleFunc("GET /api/v1/system/license", s.handleSystemLicense)
 	m.HandleFunc("GET /api/v1/system/interfaces", s.handleSystemInterfaces)
 	m.HandleFunc("GET /api/v1/system/config", s.handleGetConfig)
 	m.HandleFunc("PUT /api/v1/system/config", s.handleUpdateConfig)

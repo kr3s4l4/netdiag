@@ -389,6 +389,7 @@ curl -sb cookies.txt -H "X-CSRF-Token: $CSRF" -H 'Content-Type: application/json
 | --- | --- | --- |
 | GET | `/topology?site_id=<id>` | Nodos, aristas y estadísticas |
 | GET | `/system/info` | Versión, capacidades, interfaces, tamaño de la base |
+| GET | `/system/license` | Edición, límites, caducidad y avisos; cualquier rol autenticado |
 | GET | `/system/interfaces` | Interfaces locales |
 | GET | `/system/config` | Admin; secretos enmascarados |
 | PUT | `/system/config` | Admin; valida, guarda y aplica en caliente |

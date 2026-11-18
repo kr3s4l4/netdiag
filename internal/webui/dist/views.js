@@ -2272,8 +2272,9 @@ async function settingsBackupsBody() {
 }
 
 async function settingsSystemBody() {
-  const [info, audit, status] = await Promise.all([
+  const [info, audit, status, license] = await Promise.all([
     api('/system/info'), api('/system/audit?limit=40'), api('/update/status').catch(() => null),
+    api('/system/license').catch(() => null),
   ]);
   const upd = Object.assign({ available: false }, state.update || {}, status || {});
   state.update = upd;
@@ -2334,6 +2335,21 @@ async function settingsSystemBody() {
         </div>
       </div>
     </div>
+    ${license ? `<div class="card mb">
+      <div class="card-head"><h3>Licencia</h3>
+        <span class="badge ${license.status === 'active' ? 'up' : (license.status === 'community' ? 'unknown' : 'down')}">${esc(license.status)}</span></div>
+      <div class="card pad" style="padding-top:0">
+        <div class="spread">
+          <div>
+            <div class="label muted tiny" style="letter-spacing:.08em;text-transform:uppercase">Edición</div>
+            <div style="font-size:19px;font-weight:700;margin-top:4px">${esc(license.edition)}</div>
+          </div>
+          <div class="tiny muted">${license.expires_at ? `Caducidad ${esc(fmtDate(license.expires_at))}` : 'Sin caducidad'}</div>
+        </div>
+        <div class="tiny muted" style="margin-top:8px">${esc(license.license_id || 'Sin licencia (Community)')} · ${esc(license.managed_hosts || 0)} hosts gestionados · ${esc(license.sites || 0)} sedes</div>
+        ${(license.warnings || []).map((w) => `<div class="notice warn" style="margin-top:10px">${icon('shield')}<div><div class="tiny">${esc(w)}</div></div></div>`).join('')}
+      </div>
+    </div>` : ''}
     <div class="card pad mb">
       <div class="spread mb"><h3 style="margin:0;font-size:13.5px">Capacidades</h3>
         <span class="tiny muted">activo desde ${fmtDate(info.started_at)} (${Math.floor((info.uptime_secs || 0) / 3600)} h)</span></div>

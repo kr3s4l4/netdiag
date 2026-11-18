@@ -21,6 +21,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/cryptoutil"
 	"github.com/kr3s4l4/netdiag/internal/discover"
 	"github.com/kr3s4l4/netdiag/internal/integrations"
+	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/store"
@@ -53,6 +54,7 @@ type App struct {
 	reports      *report.Generator
 	backups      *backup.Manager
 	updates      *update.Manager
+	licenses     *license.Manager
 	engine       *discover.Engine
 	api          *api.Server
 	hub          *api.Hub
@@ -100,6 +102,13 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 	if err := st.EnsureBuiltinRules(); err != nil {
 		log.Warn("no se pudieron crear las reglas integradas", "error", err)
 	}
+	licenses, err := license.New(cfg.Storage.DataDir)
+	if err != nil {
+		return nil, fmt.Errorf("no se pudo preparar la licencia: %w", err)
+	}
+	if problem := licenses.Problem(); problem != "" {
+		log.Warn("licencia local no válida; se aplica Community", "motivo", problem)
+	}
 
 	hostname, _ := os.Hostname()
 	footer := "NetDiag · " + hostname
@@ -134,6 +143,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		reports:      reports,
 		backups:      backup.New(st, cfg, cfgPath, log),
 		updates:      updates,
+		licenses:     licenses,
 		engine:       discover.New(),
 		runs:         make(map[int64]*runState),
 		busyCIDR:     make(map[string]int64),
@@ -151,6 +161,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		Reports:      reports,
 		Backups:      a.backups,
 		Updates:      a.updates,
+		Licenses:     a.licenses,
 		Scanner:      a,
 		Logger:       log,
 		Version:      build.Version,
@@ -187,6 +198,9 @@ func (a *App) Backups() *backup.Manager { return a.backups }
 
 // Updates exposes the update manager (used by CLI subcommands).
 func (a *App) Updates() *update.Manager { return a.updates }
+
+// Licenses exposes the offline licence manager (used by CLI subcommands).
+func (a *App) Licenses() *license.Manager { return a.licenses }
 
 // Close releases the database.
 func (a *App) Close() error {

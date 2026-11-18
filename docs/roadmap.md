@@ -11,7 +11,8 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F23 | Cerrado: notificación + descarga verificada + instalación con rollback + reinicio |
 | F24 | Backup automático programado |
 | F33, F34 | Decisiones cerradas; documentación legal y comercial añadida en `1.5.0` |
-| F35–F40 | Planificados; detallados más abajo |
+| F35 | Implementado: licencia Ed25519 offline, CLI, API, UI y backup |
+| F36–F40 | Planificados; detallados más abajo |
 | Pruebas | `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -149,7 +150,9 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 
 ## Implementación pendiente
 
-### F35 — Activación offline
+### F35 — Activación offline — **implementado, pendiente de release**
+
+Detalle de uso, claves y restauración en `docs/licenciamiento.md`.
 
 - Clave de licencia firmada con Ed25519 y guardada en `<data_dir>/license.json`.
 - Campos: `schema`, `license_id`, `customer`, `edition`, `max_managed_hosts`, `max_sites`, `retention_days`, `expires_at`, `capabilities` y `support_level`.
@@ -158,9 +161,9 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 - Verificación local sin telemetría; el derecho real se apoya en soporte, SLA y acceso a actualizaciones firmadas.
 - Si se supera una banda o caduca la licencia: aviso en UI y API, sin bloquear lectura ni destruir datos.
 
-**Criterio de cierre:** una licencia firmada puede activarse en una máquina sin red y `netdiag license show` explica edición, límites y motivo de cualquier aviso.
+**Criterio de cierre (cumplido):** una licencia firmada puede activarse en una máquina sin red y `netdiag license show` explica edición, límites y motivo de cualquier aviso. Verificado con `go vet ./...`, `go test ./...`, prueba end-to-end de `sign → activate → show → clear` y manipulación de la firma.
 
-**Esfuerzo:** 6–8 h.
+**Esfuerzo:** 6–8 h (realizado).
 
 ### F36 — Contenedor firmado `.ndc`
 

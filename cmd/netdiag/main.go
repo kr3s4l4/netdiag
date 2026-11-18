@@ -34,6 +34,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/backup"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/discover"
+	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/netutil"
 	"github.com/kr3s4l4/netdiag/internal/report"
@@ -83,6 +84,8 @@ func run(args []string) int {
 		return userCmd(rest)
 	case "backup":
 		return backupCmd(rest)
+	case "license", "licenses":
+		return licenseCmd(rest)
 	case "update", "updates":
 		return updateCmd(rest)
 	default:
@@ -107,6 +110,7 @@ Comandos:
   doctor                Comprueba el entorno y los permisos necesarios
   user                  Gestiona usuarios (list, add, passwd, role, delete)
   backup                Crea una copia de seguridad completa en ZIP
+  license show|activate|clear|sign  Gestiona la licencia offline
   update check|apply|rollback|commit  Gestiona actualizaciones firmadas
   version               Muestra la versión
   help                  Muestra esta ayuda
@@ -1054,6 +1058,147 @@ Subcomandos:
 			return fail("%v", err)
 		}
 		fmt.Printf("Usuario %s eliminado\n", u.Username)
+		return 0
+	default:
+		fs.Usage()
+		return 2
+	}
+}
+
+func licenseCmd(args []string) int {
+	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+		fmt.Fprintln(os.Stderr, `Uso: netdiag license <subcomando> [opciones]
+
+Subcomandos:
+  show                     Muestra la licencia activa o el estado Community
+  activate <archivo>      Verifica e instala una licencia firmada
+  clear                   Elimina la licencia local (no borra datos)
+  sign <archivo>          Firma una licencia con la clave del emisor
+
+Opciones:
+  --json                  Salida JSON en "show"
+  --seed-file RUTA        Semilla Ed25519 para "sign"
+  --out RUTA              Archivo de salida para "sign"`)
+		return 2
+	}
+	sub := args[0]
+	fs := flag.NewFlagSet("license "+sub, flag.ExitOnError)
+	cf := addCommonFlags(fs)
+	jsonOut := fs.Bool("json", false, "muestra la licencia en JSON")
+	home, _ := os.UserHomeDir()
+	seedPath := fs.String("seed-file", filepath.Join(home, ".config", "netdiag", "license-signing.seed"), "archivo con la semilla del emisor (solo sign)")
+	outPath := fs.String("out", "", "archivo de salida (solo sign)")
+	fs.Usage = func() { fmt.Fprintf(os.Stderr, "Uso: netdiag license %s [opciones]\n", sub) }
+	if err := parseFlags(fs, args[1:]); err != nil {
+		return 2
+	}
+	cfg, _, err := loadConfig(cf)
+	if err != nil {
+		return fail("%v", err)
+	}
+	if err := cfg.EnsureDirs(); err != nil {
+		return fail("%v", err)
+	}
+	lic, err := license.New(cfg.Storage.DataDir)
+	if err != nil {
+		return fail("%v", err)
+	}
+
+	switch sub {
+	case "show":
+		l := lic.Current()
+		if *jsonOut {
+			if l == nil {
+				printUpdateJSON(map[string]any{
+					"status": "community", "edition": "community", "problem": lic.Problem(),
+					"path": lic.Path(),
+				})
+				return 0
+			}
+			printUpdateJSON(l)
+			return 0
+		}
+		fmt.Printf("Archivo: %s\n", lic.Path())
+		if l == nil {
+			if problem := lic.Problem(); problem != "" {
+				fmt.Printf("Estado: inválida\nMotivo: %s\n", problem)
+				fmt.Println("Se aplican capacidades Community; los datos se conservan.")
+				return 0
+			}
+			fmt.Println("Estado: Community (sin licencia instalada)")
+			return 0
+		}
+		expiry := l.ExpiresAt
+		if t, err := time.Parse(time.RFC3339, l.ExpiresAt); err == nil {
+			expiry = t.Format("2006-01-02")
+		}
+		state := "activa"
+		if t, err := time.Parse(time.RFC3339, l.ExpiresAt); err == nil && time.Now().After(t) {
+			state = "caducada"
+		}
+		fmt.Printf("Estado: %s\n", state)
+		fmt.Printf("Edición: %s\n", l.Edition)
+		fmt.Printf("ID: %s\n", l.LicenseID)
+		fmt.Printf("Cliente: %s\n", l.Customer)
+		fmt.Printf("Caducidad: %s\n", expiry)
+		fmt.Printf("Límites: %d hosts gestionados, %d sedes, %d días de retención\n", l.MaxManagedHosts, l.MaxSites, l.RetentionDays)
+		fmt.Printf("Soporte: %s\n", l.SupportLevel)
+		if len(l.Capabilities) > 0 {
+			fmt.Printf("Capacidades: %s\n", strings.Join(l.Capabilities, ", "))
+		}
+		if problem := lic.Problem(); problem != "" {
+			fmt.Printf("Aviso: %s\n", problem)
+		}
+		return 0
+	case "activate":
+		src := fs.Arg(0)
+		if src == "" {
+			return fail("indica el archivo de licencia")
+		}
+		activated, err := lic.Activate(src)
+		if err != nil {
+			return fail("%v", err)
+		}
+		fmt.Printf("Licencia %s activada para %s (edición %s)\n", activated.LicenseID, activated.Customer, activated.Edition)
+		return 0
+	case "clear":
+		if err := lic.Clear(); err != nil {
+			return fail("%v", err)
+		}
+		fmt.Printf("Licencia eliminada de %s; se aplica Community. Los datos se conservan.\n", lic.Path())
+		return 0
+	case "sign":
+		src := fs.Arg(0)
+		if src == "" {
+			return fail("indica el archivo de licencia a firmar")
+		}
+		raw, err := os.ReadFile(src)
+		if err != nil {
+			return fail("%v", err)
+		}
+		var l license.License
+		if err := json.Unmarshal(raw, &l); err != nil {
+			return fail("la licencia no es JSON válido: %v", err)
+		}
+		seed, err := os.ReadFile(*seedPath)
+		if err != nil {
+			return fail("no se pudo leer la semilla del emisor: %v", err)
+		}
+		if err := license.Sign(&l, string(seed)); err != nil {
+			return fail("%v", err)
+		}
+		signed, err := json.MarshalIndent(l, "", "  ")
+		if err != nil {
+			return fail("%v", err)
+		}
+		dest := *outPath
+		if dest == "" {
+			dest = src
+		}
+		if err := os.WriteFile(dest, append(signed, '\n'), 0o600); err != nil {
+			return fail("%v", err)
+		}
+		fmt.Printf("Licencia %s firmada en %s\n", l.LicenseID, dest)
 		return 0
 	default:
 		fs.Usage()

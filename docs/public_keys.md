@@ -1,4 +1,4 @@
-# Claves públicas de release
+# Claves públicas del proyecto
 
 Esta página publica las claves minisign oficiales de NetDiag. Solo las claves que aparecen aquí son válidas para verificar artefactos; cualquier clave recibida por correo o por otro canal debe ignorarse.
 
@@ -16,6 +16,21 @@ RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY
 ```
 
 La clave privada `netdiag-release.key` está cifrada con contraseña, se guarda fuera del repositorio y nunca se sube a GitHub. La contraseña se conserva por separado, en papel.
+
+## `netdiag-license` — Ed25519, activa desde 2026-11-18
+
+- **Uso:** firma de licencias offline (F35). **No** sirve para verificar binarios ni actualizaciones.
+- **Creada:** 2026-11-18.
+- **Clave pública (base64, 32 bytes):**
+
+```text
+pNc3VNWpOKBid1TQsm6rF52MqvBxyNdvPJxvqSNha/s=
+```
+
+- **Huella SHA256:** `b4ac3d75b7c93902624636aa07ad7c867983c52bc3746119a9033b3bcb9739f1`
+  (SHA256 de los 32 bytes de la clave pública decodificada desde base64)
+
+La semilla privada se guarda como `~/.config/netdiag/license-signing.seed` con permisos `0600`, fuera del repositorio y del binario. Está compilada en el programa solo como clave pública; no hay forma de emitir licencias válidas desde una instalación normal. El detalle del formato está en `docs/licenciamiento.md`.
 
 ## `netdiag-root` — pendiente de generar
 

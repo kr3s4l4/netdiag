@@ -42,6 +42,9 @@ func newTestManager(t *testing.T) (*Manager, *store.Store, *config.Config, strin
 	if err := os.WriteFile(cfgPath, []byte("server:\n  listen: 127.0.0.1:8080\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(cfg.Storage.DataDir, "license.json"), []byte("{}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	return New(st, cfg, cfgPath, nil), st, cfg, dir
 }
 
@@ -64,7 +67,7 @@ func TestCreateToWritesCompleteZip(t *testing.T) {
 	for _, f := range zr.File {
 		names[f.Name] = true
 	}
-	for _, want := range []string{"manifest.json", "netdiag.db", "config.yaml", "secret.key"} {
+	for _, want := range []string{"manifest.json", "netdiag.db", "config.yaml", "secret.key", "license.json"} {
 		if !names[want] {
 			t.Errorf("falta %s en el ZIP (contenido: %v)", want, names)
 		}

@@ -137,6 +137,7 @@ func (m *Manager) CreateTo(path string) (*Entry, error) {
 		"database":   "netdiag.db",
 		"config":     "config.yaml",
 		"secret":     "secret.key",
+		"license":    "license.json",
 	}
 	if err := addJSON(zw, "manifest.json", manifest); err != nil {
 		zw.Close()
@@ -157,6 +158,12 @@ func (m *Manager) CreateTo(path string) (*Entry, error) {
 	}
 	secret := filepath.Join(cfg.Storage.DataDir, "secret.key")
 	if err := addFile(zw, "secret.key", secret); err != nil && !errors.Is(err, os.ErrNotExist) {
+		zw.Close()
+		tmpZip.Close()
+		return nil, err
+	}
+	licence := filepath.Join(cfg.Storage.DataDir, "license.json")
+	if err := addFile(zw, "license.json", licence); err != nil && !errors.Is(err, os.ErrNotExist) {
 		zw.Close()
 		tmpZip.Close()
 		return nil, err

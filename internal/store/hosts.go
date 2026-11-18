@@ -823,3 +823,37 @@ func (s *Store) MarkMissingHosts(networkID int64, seen []int64) ([]model.Host, e
 	}
 	return candidates, nil
 }
+
+// CountManagedHosts returns the number of distinct site-qualified identities
+// observed since "since", excluding hosts tagged "guest" or "excluded". It is
+// the billing definition documented in docs/comercializacion.md.
+func (s *Store) CountManagedHosts(since time.Time) (int, error) {
+	rows, err := s.db.Query(`SELECT identity, tags FROM hosts WHERE last_seen >= ?`, since.UnixMilli())
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+	seen := make(map[string]struct{})
+	for rows.Next() {
+		var identity, raw string
+		if err := rows.Scan(&identity, &raw); err != nil {
+			return 0, err
+		}
+		var tags []string
+		if err := json.Unmarshal([]byte(raw), &tags); err != nil {
+			continue
+		}
+		skip := false
+		for _, tag := range tags {
+			t := strings.ToLower(strings.TrimSpace(tag))
+			if t == "guest" || t == "excluded" {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			seen[identity] = struct{}{}
+		}
+	}
+	return len(seen), rows.Err()
+}

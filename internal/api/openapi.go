@@ -123,6 +123,7 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/diagnostics/vlan", "Posibles fugas de VLAN", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 
 	{"GET", "/api/v1/system/info", "Información del sistema y capacidades", "Sistema", false, false, "", nil, false, false},
+	{"GET", "/api/v1/system/license", "Estado de la licencia offline y avisos", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/interfaces", "Interfaces de red locales", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/config", "Leer la configuración", "Sistema", false, true, "", nil, false, false},
 	{"PUT", "/api/v1/system/config", "Guardar la configuración", "Sistema", false, true, "Config", nil, false, false},
@@ -284,6 +285,24 @@ func openAPISchemas() map[string]any {
 			"type": "object", "required": []string{"error"},
 			"properties": map[string]any{
 				"error": str, "code": str, "details": str,
+			},
+		},
+		"LicenseStatus": map[string]any{
+			"type": "object", "required": []string{"status", "edition", "limits", "warnings"},
+			"properties": map[string]any{
+				"status": str, "edition": str, "license_id": str, "expires_at": str,
+				"support_level": str, "capabilities": strArray,
+				"managed_hosts": map[string]any{"type": "integer"},
+				"sites":         map[string]any{"type": "integer"},
+				"limits": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"max_managed_hosts": map[string]any{"type": "integer"},
+						"max_sites":         map[string]any{"type": "integer"},
+						"retention_days":    map[string]any{"type": "integer"},
+					},
+				},
+				"warnings": map[string]any{"type": "array", "items": str},
 			},
 		},
 		"LoginRequest": map[string]any{
