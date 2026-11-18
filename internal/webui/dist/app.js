@@ -472,7 +472,7 @@ function renderShell() {
         <span class="clock" id="clock">—</span>
         <button class="btn ghost icon" data-action="view-palette" title="${esc(tr('Buscar y ejecutar (Ctrl+K)'))}" aria-label="${esc(tr('Buscar y ejecutar (Ctrl+K)'))}">${icon('search')}</button>
         <button class="btn sm ghost lang-btn" data-action="lang" title="Cambiar idioma">${i18n ? i18n.label : 'EN'}</button>
-        <button class="btn ghost icon" data-action="theme" title="${esc(t('Cambiar tema'))}" id="theme-btn">${icon(themeIcon(document.documentElement.dataset.theme || 'dark'))}</button>
+        <button class="btn ghost icon" data-action="theme" title="${esc(tr('Cambiar tema'))}" id="theme-btn">${icon(themeIcon(document.documentElement.dataset.theme || 'dark'))}</button>
         <button class="btn primary" data-action="open-scan">${icon('radar')} Escanear</button>
       </header>
       <div class="content" id="content"><div class="loading"><div class="spinner"></div></div></div>
@@ -1245,7 +1245,7 @@ document.addEventListener('click', async (e) => {
           });
           state.audits.to = snap.id;
           if (!state.audits.from) state.audits.from = snap.id;
-          toast(t('Snapshot guardado'), { type: 'ok' });
+          toast(tr('Snapshot guardado'), { type: 'ok' });
           await renderAudits();
         } catch (err) { toast(err.message || String(err), { type: 'err' }); }
         break;
@@ -1258,12 +1258,12 @@ document.addEventListener('click', async (e) => {
         break;
       }
       case 'audit-delete':
-        if (!window.confirm(t('¿Eliminar este snapshot?'))) break;
+        if (!window.confirm(tr('¿Eliminar este snapshot?'))) break;
         try {
           await api('/audits/' + target.dataset.id, { method: 'DELETE' });
           if (state.audits.from === Number(target.dataset.id)) state.audits.from = 0;
           if (state.audits.to === Number(target.dataset.id)) state.audits.to = 0;
-          toast(t('Snapshot eliminado'), { type: 'ok' });
+          toast(tr('Snapshot eliminado'), { type: 'ok' });
           await renderAudits();
         } catch (err) { toast(err.message || String(err), { type: 'err' }); }
         break;
@@ -1272,26 +1272,26 @@ document.addEventListener('click', async (e) => {
           const name = (document.getElementById('dash-name') || {}).value || '';
           const created = await api('/dashboards', { method: 'POST', body: { name, site_id: state.siteId || 1, widgets: [] } });
           state.dashboardId = created.id;
-          toast(t('Dashboard creado'), { type: 'ok' });
+          toast(tr('Dashboard creado'), { type: 'ok' });
           await renderDashboards();
-        } catch (err) { toast(err.message || t('No se pudo crear'), { type: 'err' }); }
+        } catch (err) { toast(err.message || tr('No se pudo crear'), { type: 'err' }); }
         break;
       case 'dash-example':
         try {
           const created = await api('/dashboards/example', { method: 'POST', body: { site_id: state.siteId || 1 } });
           state.dashboardId = created.id;
-          toast(`${t('Dashboard creado')}: ${created.name} (${created.widgets.length} ${t('widgets')})`, { type: 'ok' });
+          toast(`${tr('Dashboard creado')}: ${created.name} (${created.widgets.length} ${tr('widgets')})`, { type: 'ok' });
           await renderDashboards();
-        } catch (err) { toast(err.message || t('No se pudo crear'), { type: 'err' }); }
+        } catch (err) { toast(err.message || tr('No se pudo crear'), { type: 'err' }); }
         break;
       case 'dash-delete':
-        if (!confirm(t('¿Eliminar este dashboard?'))) break;
+        if (!confirm(tr('¿Eliminar este dashboard?'))) break;
         try {
           await api('/dashboards/' + target.dataset.id, { method: 'DELETE' });
           state.dashboardId = null;
-          toast(t('Dashboard eliminado'), { type: 'ok' });
+          toast(tr('Dashboard eliminado'), { type: 'ok' });
           await renderDashboards();
-        } catch (err) { toast(err.message || t('No se pudo eliminar'), { type: 'err' }); }
+        } catch (err) { toast(err.message || tr('No se pudo eliminar'), { type: 'err' }); }
         break;
       case 'dash-add-widget':
         try {
@@ -1307,7 +1307,7 @@ document.addEventListener('click', async (e) => {
           });
           await api('/dashboards/' + state.dashboardId, { method: 'PUT', body: { name: current.name, site_id: current.site_id, widgets } });
           await renderDashboards();
-        } catch (err) { toast(err.message || t('No se pudo guardar'), { type: 'err' }); }
+        } catch (err) { toast(err.message || tr('No se pudo guardar'), { type: 'err' }); }
         break;
       case 'dash-remove-widget':
         try {
@@ -1316,21 +1316,21 @@ document.addEventListener('click', async (e) => {
             .map((w, idx) => Object.assign({}, w, { position: { x: (idx % 2) * 6, y: Math.floor(idx / 2) } }));
           await api('/dashboards/' + state.dashboardId, { method: 'PUT', body: { name: current.name, site_id: current.site_id, widgets } });
           await renderDashboards();
-        } catch (err) { toast(err.message || t('No se pudo guardar'), { type: 'err' }); }
+        } catch (err) { toast(err.message || tr('No se pudo guardar'), { type: 'err' }); }
         break;
       case 'wifi-scan':
         try {
           const r = await api('/wifi/scan', { method: 'POST' });
-          toast(`${r.result.aps} ${t('APs observados')} · ${r.result.clients} ${t('clientes observados')}`, { type: 'ok' });
+          toast(`${r.result.aps} ${tr('APs observados')} · ${r.result.clients} ${tr('clientes observados')}`, { type: 'ok' });
           await renderWiFi();
-        } catch (err) { toast(err.message || t('No se pudo capturar'), { type: 'err' }); }
+        } catch (err) { toast(err.message || tr('No se pudo capturar'), { type: 'err' }); }
         break;
       case 'vpn-scan':
         try {
           const r = await api('/vpn/scan', { method: 'POST' });
-          toast(`${r.stored} ${t('túneles observados')}`, { type: 'ok' });
+          toast(`${r.stored} ${tr('túneles observados')}`, { type: 'ok' });
           await renderVPN();
-        } catch (err) { toast(err.message || t('No se pudo observar'), { type: 'err' }); }
+        } catch (err) { toast(err.message || tr('No se pudo observar'), { type: 'err' }); }
         break;
       case 'logout': logout(); break;
       case 'theme': toggleTheme(); break;
@@ -1539,7 +1539,7 @@ function themeIcon(theme) {
 }
 
 function themeLabel(theme) {
-  return t(theme === 'dark' ? 'Tema oscuro' : theme === 'light' ? 'Tema claro' : 'Alto contraste');
+  return tr(theme === 'dark' ? 'Tema oscuro' : theme === 'light' ? 'Tema claro' : 'Alto contraste');
 }
 
 function applyTheme(theme, persist = true) {
@@ -1551,7 +1551,7 @@ function applyTheme(theme, persist = true) {
   const btn = $('#theme-btn');
   if (btn) {
     btn.innerHTML = icon(themeIcon(next));
-    btn.title = t('Cambiar tema') + ': ' + themeLabel(next);
+    btn.title = tr('Cambiar tema') + ': ' + themeLabel(next);
   }
 }
 
