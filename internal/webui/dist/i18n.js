@@ -951,8 +951,8 @@
     let v = '';
     try { v = localStorage.getItem(STORAGE_KEY) || ''; } catch {}
     if (SUPPORTED.includes(v)) return v;
-    const nav = (navigator.language || 'es').toLowerCase();
-    return nav.startsWith('en') ? 'en' : 'es';
+    // Español por defecto: el idioma del navegador no cambia el producto.
+    return 'es';
   }
 
   let lang = savedLang();
