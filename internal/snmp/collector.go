@@ -20,6 +20,7 @@ type Config struct {
 	Version     string // 1 | 2c | 3
 	Timeout     time.Duration
 	Retries     int
+	Deep        bool // F46: walk IP-MIB and Q-BRIDGE/BRIDGE tables
 	V3User      string
 	V3AuthPass  string
 	V3PrivPass  string
@@ -74,6 +75,11 @@ func (c *Collector) Collect(ctx context.Context, ip string) (*model.SNMPSummary,
 	for _, community := range communities {
 		sum, err := c.collectWith(ctx, ip, community)
 		if err == nil {
+			if strings.EqualFold(c.cfg.Version, "3") {
+				sum.Community = "v3:" + c.cfg.V3User
+			} else {
+				sum.Community = maskCommunity(community)
+			}
 			return sum, nil
 		}
 		lastErr = err
@@ -193,6 +199,9 @@ func (c *Collector) collectWith(ctx context.Context, ip, community string) (*mod
 	sum.Interfaces = c.interfaces(client)
 	sum.Neighbors = append(c.lldpNeighbors(client), c.cdpNeighbors(client)...)
 	sum.Neighbors = append(sum.Neighbors, c.bridgeNeighbors(client, sum.Interfaces)...)
+	if c.cfg.Deep && ctx.Err() == nil {
+		sum.Deep = c.collectDeep(client)
+	}
 	return sum, nil
 }
 

@@ -495,6 +495,64 @@ var migrations = [][]string{
 		`ALTER TABLE alerts ADD COLUMN site_id INTEGER NOT NULL DEFAULT 0`,
 		`CREATE INDEX idx_alerts_site ON alerts(site_id, created_at DESC)`,
 	},
+	{
+		// v1.5.9: F46 raw SNMP evidence. Separate tables keep each family
+		// queryable and let retention prune them without touching inventory.
+		`CREATE TABLE snmp_ip_addresses (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			host_ip TEXT NOT NULL DEFAULT '',
+			community TEXT NOT NULL DEFAULT '',
+			ip TEXT NOT NULL,
+			if_index INTEGER NOT NULL DEFAULT 0,
+			mask TEXT NOT NULL DEFAULT '',
+			scan_id INTEGER NOT NULL DEFAULT 0,
+			observed_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_snmp_ip_time ON snmp_ip_addresses(site_id, observed_at DESC)`,
+		`CREATE TABLE snmp_arp_rows (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			host_ip TEXT NOT NULL DEFAULT '',
+			community TEXT NOT NULL DEFAULT '',
+			ip TEXT NOT NULL,
+			mac TEXT NOT NULL DEFAULT '',
+			if_index INTEGER NOT NULL DEFAULT 0,
+			row_type TEXT NOT NULL DEFAULT '',
+			table_name TEXT NOT NULL DEFAULT '',
+			scan_id INTEGER NOT NULL DEFAULT 0,
+			observed_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_snmp_arp_ip ON snmp_arp_rows(site_id, ip, observed_at DESC)`,
+		`CREATE INDEX idx_snmp_arp_time ON snmp_arp_rows(site_id, observed_at DESC)`,
+		`CREATE TABLE snmp_vlans (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			host_ip TEXT NOT NULL DEFAULT '',
+			community TEXT NOT NULL DEFAULT '',
+			vlan_id INTEGER NOT NULL,
+			name TEXT NOT NULL DEFAULT '',
+			scan_id INTEGER NOT NULL DEFAULT 0,
+			observed_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_snmp_vlan_time ON snmp_vlans(site_id, observed_at DESC)`,
+		`CREATE TABLE snmp_fdb_rows (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			host_ip TEXT NOT NULL DEFAULT '',
+			community TEXT NOT NULL DEFAULT '',
+			mac TEXT NOT NULL DEFAULT '',
+			port INTEGER NOT NULL DEFAULT 0,
+			if_index INTEGER NOT NULL DEFAULT 0,
+			vlan INTEGER NOT NULL DEFAULT 0,
+			status TEXT NOT NULL DEFAULT '',
+			table_name TEXT NOT NULL DEFAULT '',
+			scan_id INTEGER NOT NULL DEFAULT 0,
+			observed_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_snmp_fdb_mac ON snmp_fdb_rows(site_id, mac, observed_at DESC)`,
+		`CREATE INDEX idx_snmp_fdb_time ON snmp_fdb_rows(site_id, observed_at DESC)`,
+	},
 }
 
 func (s *Store) migrate() error {

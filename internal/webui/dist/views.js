@@ -404,7 +404,47 @@ const DIAG_TYPE_LABELS = {
   dhcp_unauthorized_server: 'Servidor DHCP no autorizado',
   dhcp_gateway_spoof: 'Suplantación del servidor DHCP',
   dhcp_server_mac_changed: 'Cambió la MAC del servidor DHCP',
+  snmp_gateway_arp_conflict: 'Posible MITM: cambió la MAC del gateway en el switch',
+  snmp_arp_conflict: 'Cambió la MAC en la tabla ARP del switch',
+  snmp_fdb_mac_moved: 'Una MAC cambió de puerto en el switch',
+  snmp_fdb_port_conflict: 'Una MAC aparece en varios puertos',
+  snmp_fdb_vlan_conflict: 'Una MAC aparece en varias VLAN',
+  snmp_lldp_fdb_disagree: 'LLDP y FDB no coinciden en el puerto',
+  snmp_vlan_unknown: 'FDB referencia una VLAN sin nombre',
 };
+
+function snmpDeepSection(snmp) {
+  const ips = snmp.ip_addresses || [];
+  const arp = snmp.arp || [];
+  const vlans = snmp.vlans || [];
+  const fdb = snmp.fdb || [];
+  if (!ips.length && !arp.length && !vlans.length && !fdb.length) return '';
+  const communities = Object.entries(snmp.communities || {})
+    .map(([ip, value]) => `<span class="mono-ip">${esc(ip)}</span> → <span class="mono">${esc(value)}</span>`)
+    .join(' · ') || '—';
+  return `<div class="card mb">
+    <div class="card-head"><h3>${esc(tr('SNMP profundo'))}</h3><span class="tiny muted">${esc(tr('IP-MIB, Q-BRIDGE y BRIDGE por SNMP'))}</span></div>
+    <div class="card pad">
+      <div class="tiny muted mb"><b>${esc(tr('Comunidades usadas'))}:</b> ${communities}</div>
+      ${ips.length ? `<h4 class="tiny mb">${esc(tr('Direcciones IP (IP-MIB)'))}</h4>
+        <div class="table-wrap mb"><table><thead><tr><th>IP</th><th>${esc(tr('Interfaz'))}</th><th>${esc(tr('Máscara'))}</th></tr></thead><tbody>
+        ${ips.slice(-12).reverse().map((o) => `<tr><td class="mono-ip">${esc(o.ip)}</td><td class="mono">${esc(o.if_index)}</td><td class="mono-ip">${esc(o.mask || '—')}</td></tr>`).join('')}
+        </tbody></table></div>` : ''}
+      ${arp.length ? `<h4 class="tiny mb">${esc(tr('ARP del switch (IP-MIB)'))}</h4>
+        <div class="table-wrap mb"><table><thead><tr><th>IP</th><th>MAC</th><th>${esc(tr('Interfaz'))}</th><th>${esc(tr('Tipo'))}</th><th>${esc(tr('Tabla'))}</th></tr></thead><tbody>
+        ${arp.slice(-12).reverse().map((o) => `<tr><td class="mono-ip">${esc(o.ip)}</td><td class="mono">${esc(o.mac)}</td><td class="mono">${esc(o.if_index)}</td><td>${esc(o.type || '—')}</td><td>${esc(o.table || '—')}</td></tr>`).join('')}
+        </tbody></table></div>` : ''}
+      ${vlans.length ? `<h4 class="tiny mb">${esc(tr('VLAN (Q-BRIDGE)'))}</h4>
+        <div class="table-wrap mb"><table><thead><tr><th>VLAN</th><th>${esc(tr('Nombre'))}</th><th>${esc(tr('Equipo sondeado'))}</th></tr></thead><tbody>
+        ${vlans.slice(-12).reverse().map((o) => `<tr><td class="mono">${esc(o.vlan)}</td><td>${esc(o.name || '—')}</td><td class="mono-ip">${esc(o.host_ip || '—')}</td></tr>`).join('')}
+        </tbody></table></div>` : ''}
+      ${fdb.length ? `<h4 class="tiny mb">${esc(tr('FDB (Q-BRIDGE / BRIDGE)'))}</h4>
+        <div class="table-wrap"><table><thead><tr><th>MAC</th><th>${esc(tr('Puerto'))}</th><th>${esc(tr('Interfaz'))}</th><th>VLAN</th><th>${esc(tr('Estado'))}</th><th>${esc(tr('Tabla'))}</th></tr></thead><tbody>
+        ${fdb.slice(-12).reverse().map((o) => `<tr><td class="mono">${esc(o.mac)}</td><td class="mono">${esc(o.port)}</td><td class="mono">${esc(o.if_index || '—')}</td><td class="mono">${esc(o.vlan || '—')}</td><td>${esc(o.status || '—')}</td><td>${esc(o.table || '—')}</td></tr>`).join('')}
+        </tbody></table></div>` : ''}
+    </div>
+  </div>`;
+}
 
 function diagConfidenceBar(value) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
@@ -417,10 +457,11 @@ async function renderDiagnostics() {
   setPageTitle('diagnostics');
   const content = document.getElementById('content');
   content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-  const [report, arp, dhcp] = await Promise.all([
+  const [report, arp, dhcp, snmp] = await Promise.all([
     api('/diagnostics/enterprise'),
     api('/diagnostics/arp').catch(() => ({ observations: [] })),
     api('/diagnostics/dhcp').catch(() => ({ observations: [] })),
+    api('/diagnostics/snmp').catch(() => ({ ip_addresses: [], arp: [], vlans: [], fdb: [], communities: {} })),
   ]);
   const anomalies = report.anomalies || [];
   const counts = report.counts || {};
@@ -440,7 +481,7 @@ async function renderDiagnostics() {
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
       <div class="tiny">${esc(tr('Las heurísticas no encontraron señales suficientes en la ventana analizada.'))}</div></div></div></td></tr>`;
 
-  const categoryCounts = ['arp', 'dhcp', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
+  const categoryCounts = ['arp', 'dhcp', 'snmp', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
     .map((k) => [k, counts[k] || 0]).filter(([, v]) => v > 0);
   const hasEnterprise = report.enterprise_mode !== false;
 
@@ -488,6 +529,7 @@ async function renderDiagnostics() {
         </tr>`).join('')}</tbody>
       </table></div>
     </div>` : ''}
+    ${snmpDeepSection(snmp)}
     <div class="card pad">
       <div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Limitaciones del análisis'))}</h3><span class="badge info">${esc(tr('Heurístico'))}</span></div>
       <ul class="diag-limits">${(report.limitations || []).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>

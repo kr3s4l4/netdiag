@@ -67,6 +67,14 @@ func (s *Server) diagnosticsInput(r *http.Request) (diagnostics.Input, time.Time
 	if err != nil {
 		in.DHCP = nil
 	}
+	snmpDays := cfg.SNMPHistoryDays
+	if snmpDays < 1 {
+		snmpDays = 30
+	}
+	in.SNMP, err = s.st.ListSNMPDeep(siteID, to.AddDate(0, 0, -snmpDays), 50000)
+	if err != nil {
+		in.SNMP = nil
+	}
 	return in, from, to
 }
 
@@ -135,6 +143,53 @@ func (s *Server) handleDHCPDiagnostics(w http.ResponseWriter, r *http.Request) {
 		"site_id": in.SiteID, "generated_at": report.GeneratedAt,
 		"from": from, "to": to,
 		"anomalies": findings, "observations": in.DHCP,
+		"limitations": report.Limitations,
+	})
+}
+
+// handleSNMPDiagnostics returns deep SNMP findings with the raw IP-MIB, FDB
+// and VLAN rows behind them. Communities are masked by the collector.
+func (s *Server) handleSNMPDiagnostics(w http.ResponseWriter, r *http.Request) {
+	in, from, to := s.diagnosticsInput(r)
+	report := diagnostics.Analyzer{}.Analyze(in)
+	findings := make([]model.DiagnosticAnomaly, 0)
+	for _, a := range report.Anomalies {
+		if strings.HasPrefix(a.Type, "snmp_") {
+			findings = append(findings, a)
+		}
+	}
+	snap := in.SNMP
+	if snap == nil {
+		snap = &model.SNMPDeepSnapshot{
+			IPAddresses: []model.SNMPIPAddress{}, ARP: []model.SNMPARPRow{},
+			VLANs: []model.SNMPVLAN{}, FDB: []model.SNMPFDBRow{},
+		}
+	}
+	communities := map[string]string{}
+	for _, h := range in.Hosts {
+		if h.SNMP != nil && h.SNMP.Community != "" {
+			communities[h.IP] = h.SNMP.Community
+		}
+	}
+	if snap.IPAddresses == nil {
+		snap.IPAddresses = []model.SNMPIPAddress{}
+	}
+	if snap.ARP == nil {
+		snap.ARP = []model.SNMPARPRow{}
+	}
+	if snap.VLANs == nil {
+		snap.VLANs = []model.SNMPVLAN{}
+	}
+	if snap.FDB == nil {
+		snap.FDB = []model.SNMPFDBRow{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"site_id": in.SiteID, "generated_at": report.GeneratedAt,
+		"from": from, "to": to,
+		"anomalies":    findings,
+		"communities":  communities,
+		"ip_addresses": snap.IPAddresses, "arp": snap.ARP,
+		"vlans": snap.VLANs, "fdb": snap.FDB,
 		"limitations": report.Limitations,
 	})
 }

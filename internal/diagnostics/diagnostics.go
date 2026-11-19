@@ -26,6 +26,7 @@ type Input struct {
 	Interfaces []model.SystemInterface
 	ARP        []model.ARPObservation
 	DHCP       []model.DHCPObservation
+	SNMP       *model.SNMPDeepSnapshot
 	Config     config.Diagnostics
 }
 
@@ -71,11 +72,12 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 		MTU:             []model.MTUProblem{},
 		Limitations: []string{
 			"Sin captura de BPDUs 802.1D/802.1w: los ciclos se infieren de vecindades LLDP/CDP/FDB de alta confianza.",
-			"Sin OID de VLAN ni contadores broadcast: las fugas y tormentas se infieren de adyacencias L2 y muestras de pérdida/latencia.",
+			"Los OID de VLAN (Q-BRIDGE), ARP y FDB se leen por SNMP sin captura: las fugas se infieren de esas tablas y de las adyacencias L2; no hay contadores broadcast.",
 			"Sin OID de dúplex ni contadores de error: la discrepancia se compara entre velocidades IF-MIB de ambos extremos.",
 			"Sin sondeo de fragmentación activo: los problemas de MTU se correlacionan con interfaces locales de MTU bajo y pérdida observada.",
 			"Sin captura ARP en vivo: los cambios IP→MAC se infieren del histórico de escaneos y son pistas, no confirmación de spoofing activo.",
 			"El sondeo DHCP usa UDP/68 sin raw sockets: solo ve respuestas a DHCPINFORM/DHCPDISCOVER, no el tráfico de otros clientes.",
+			"La comunidad SNMP se guarda enmascarada; los walks profundos tienen límite de filas y pueden desactivarse con diagnostics.snmp_deep: false.",
 		},
 	}
 
@@ -108,6 +110,9 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 			add(report, a)
 		}
 		for _, a := range DetectDHCP(in.DHCP, in.ARP, cfg) {
+			add(report, a)
+		}
+		for _, a := range DetectSNMP(in.SNMP, in.ARP, in.Hosts, in.Neighbors, cfg) {
 			add(report, a)
 		}
 	}

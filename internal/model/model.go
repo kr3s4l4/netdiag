@@ -91,6 +91,82 @@ type SNMPInterface struct {
 	Alias     string `json:"alias,omitempty"`
 }
 
+// SNMPIPAddress is one row of IP-MIB ipAddrTable (1.3.6.1.2.1.4.20).
+type SNMPIPAddress struct {
+	ID         int64     `json:"id,omitempty"`
+	SiteID     int64     `json:"site_id,omitempty"`
+	HostIP     string    `json:"host_ip,omitempty"` // equipo sondeado
+	Community  string    `json:"community,omitempty"`
+	ScanID     int64     `json:"scan_id,omitempty"`
+	ObservedAt time.Time `json:"observed_at,omitempty"`
+	IP         string    `json:"ip"`
+	IfIndex    int       `json:"if_index"`
+	Mask       string    `json:"mask,omitempty"`
+}
+
+// SNMPARPRow is one row of the switch ARP table (IP-MIB ipNetToMediaTable or
+// ipNetToPhysicalTable). It is evidence, not a live packet capture.
+type SNMPARPRow struct {
+	ID         int64     `json:"id,omitempty"`
+	SiteID     int64     `json:"site_id,omitempty"`
+	HostIP     string    `json:"host_ip,omitempty"`
+	Community  string    `json:"community,omitempty"`
+	ScanID     int64     `json:"scan_id,omitempty"`
+	ObservedAt time.Time `json:"observed_at,omitempty"`
+	IP         string    `json:"ip"`
+	MAC        string    `json:"mac"`
+	IfIndex    int       `json:"if_index,omitempty"`
+	Type       string    `json:"type,omitempty"`  // dynamic | static | other
+	Table      string    `json:"table,omitempty"` // net_to_media | net_to_physical
+}
+
+// SNMPVLAN is one VLAN learned from Q-BRIDGE-MIB dot1qVlanStaticTable.
+type SNMPVLAN struct {
+	ID         int64     `json:"id,omitempty"`
+	SiteID     int64     `json:"site_id,omitempty"`
+	HostIP     string    `json:"host_ip,omitempty"`
+	Community  string    `json:"community,omitempty"`
+	ScanID     int64     `json:"scan_id,omitempty"`
+	ObservedAt time.Time `json:"observed_at,omitempty"`
+	VLAN       int       `json:"vlan"`
+	Name       string    `json:"name,omitempty"`
+}
+
+// SNMPFDBRow is one forwarding database entry from Q-BRIDGE-MIB (vlan aware)
+// or BRIDGE-MIB (flat). Port is the bridge port; IfIndex is its IF-MIB mapping.
+type SNMPFDBRow struct {
+	ID         int64     `json:"id,omitempty"`
+	SiteID     int64     `json:"site_id,omitempty"`
+	HostIP     string    `json:"host_ip,omitempty"`
+	Community  string    `json:"community,omitempty"`
+	ScanID     int64     `json:"scan_id,omitempty"`
+	ObservedAt time.Time `json:"observed_at,omitempty"`
+	MAC        string    `json:"mac"`
+	Port       int       `json:"port"`
+	IfIndex    int       `json:"if_index,omitempty"`
+	VLAN       int       `json:"vlan,omitempty"`
+	Status     string    `json:"status,omitempty"` // learned | static | other
+	Table      string    `json:"table,omitempty"`  // q_bridge | bridge
+}
+
+// SNMPDeep groups the F46 evidence collected beyond the basic SNMP snapshot.
+// It stays out of the host JSON so inventory payloads do not grow with FDB and
+// ARP tables; the dedicated diagnostics endpoint returns the persisted rows.
+type SNMPDeep struct {
+	IPAddresses []SNMPIPAddress `json:"-"`
+	ARP         []SNMPARPRow    `json:"-"`
+	VLANs       []SNMPVLAN      `json:"-"`
+	FDB         []SNMPFDBRow    `json:"-"`
+}
+
+// SNMPDeepSnapshot is the retained deep evidence for one site and window.
+type SNMPDeepSnapshot struct {
+	IPAddresses []SNMPIPAddress `json:"ip_addresses"`
+	ARP         []SNMPARPRow    `json:"arp"`
+	VLANs       []SNMPVLAN      `json:"vlans"`
+	FDB         []SNMPFDBRow    `json:"fdb"`
+}
+
 // Neighbor is a discovered L2/L3 adjacency (LLDP, CDP or bridge FDB).
 type Neighbor struct {
 	Protocol      string `json:"protocol"` // lldp | cdp | bridge | arp
@@ -115,6 +191,8 @@ type SNMPSummary struct {
 	Interfaces  []SNMPInterface `json:"interfaces,omitempty"`
 	Neighbors   []Neighbor      `json:"neighbors,omitempty"`
 	Version     string          `json:"version,omitempty"`
+	Community   string          `json:"community,omitempty"` // enmascarada, nunca en claro
+	Deep        SNMPDeep        `json:"-"`
 }
 
 // Site is a logical location (office, branch, datacenter) that groups

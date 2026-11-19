@@ -237,6 +237,18 @@ Límite importante: es una pista basada en el histórico, no una confirmación d
 
 Verificación: `gofmt`, `go vet`, `go test ./...` y `go build ./...`. Pruebas unitarias de construcción/parseo DHCP, detector, store, API, config y de alerta sin host con sede asignada. Prueba real en esta red: `192.168.0.105:68` enlazó con `SO_REUSEADDR`, pero ni el gateway ni el broadcast respondieron en 3 s; el código degradó sin romper el escaneo. Con una observación sintética (`192.168.0.51`, `de:ad:be:ef:00:51`) y una regla `dhcp_rogue` crítica, el escaneo 3 generó la alerta «Servidor DHCP no autorizado» con `site_id=1` y `critical:1` en las estadísticas. Chromium mostró la tabla «Servidores DHCP» y la anomalía. No hay evidencia real de un OFFER rogue en este entorno.
 
+### F46 — SNMP profundo y correlación L2 (19/11/2026)
+
+- `snmp.Config.Deep` y `diagnostics.snmp_deep` (activo por defecto) habilitan walks adicionales solo cuando el dispositivo responde SNMP. `Collect` conserva la comunidad que respondió en forma enmascarada (`public` → `pu***ic`); la credencial en claro no se guarda.
+- Walks nuevos: `ipAddrTable` `.1.3.6.1.2.1.4.20`, ARP `ipNetToMediaTable` `.4.22` e `ipNetToPhysicalTable` `.4.35`, Q-BRIDGE `.1.3.6.1.2.1.17.7.*` (VLAN y FDB) y BRIDGE-MIB `.1.3.6.1.2.1.17.4.*`. Límites: 512 direcciones, 2000 filas ARP, 5000 FDB y 256 VLAN. Los decodificadores son funciones puras con tests.
+- Migración SQLite v1.5.9: `snmp_ip_addresses`, `snmp_arp_rows`, `snmp_vlans` y `snmp_fdb_rows`, con índices por sede, IP/MAC y fecha. Retención `diagnostics.snmp_history_days` (30 días).
+- `DetectSNMP` emite `snmp_gateway_arp_conflict` (90, crítico), `snmp_arp_conflict` (85), `snmp_fdb_mac_moved` (88), `snmp_fdb_port_conflict` (82), `snmp_fdb_vlan_conflict` (85), `snmp_lldp_fdb_disagree` (88) y `snmp_vlan_unknown` (60), todos con `category: "snmp"` para alimentar la regla `snmp_anomaly`.
+- Hook en `runScan`, endpoint `GET /api/v1/diagnostics/snmp`, OpenAPI, etiquetas i18n y sección «SNMP profundo» en `#/diagnostics` con comunidades, direcciones, ARP del switch, VLAN y FDB. La tarjeta SNMP del host muestra la comunidad enmascarada.
+
+Verificación: `gofmt`, `go vet`, `go test ./...` y `go build ./...`. Pruebas unitarias de parseo de OID, enmascaramiento, detector (ARP del switch, FDB, LLDP), store (guardado/lectura/purga), config y endpoint. Sin dispositivo SNMP real en esta red: la validación funcional se hace con filas sintéticas inyectadas en la base de prueba; el comportamiento frente a un switch real queda pendiente.
+
+**Smoke con binario real (`127.0.0.1:18780`).** Migración v1.5.9 aplicada (`user_version=15`, cuatro tablas `snmp_*`). Tras inyectar dos lotes sintéticos en sede 1, `GET /api/v1/diagnostics/snmp?site_id=1` devolvió 2 direcciones IP, 2 filas ARP, 2 VLAN, 3 FDB, comunidad `pu***ic` y cuatro hallazgos: `snmp_gateway_arp_conflict` (crítico, 90), `snmp_fdb_mac_moved` (88), `snmp_fdb_vlan_conflict` (85) y `snmp_fdb_port_conflict` (82). Con la regla `snmp_anomaly` (id 9) creada, un escaneo real generó cuatro alertas críticas con `site_id=1`; un segundo escaneo no añadió duplicados. Chromium headless confirmó en el DOM «SNMP profundo», «Comunidades usadas», «Direcciones IP (IP-MIB)», «ARP del switch (IP-MIB)», «VLAN (Q-BRIDGE)», «FDB (Q-BRIDGE / BRIDGE)» y la tarjeta de host con «Comunidad» y `pu***ic`. La credencial en claro no aparece ni en SQLite ni en las respuestas de la API.
+
 ### Señales públicas reales a 18/11/2026
 
 - HN: <https://news.ycombinator.com/item?id=50545732>. 1 punto. Comentario inicial `50545733` marcado `[flagged]`; no cuenta como respuesta pública.

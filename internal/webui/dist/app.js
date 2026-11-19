@@ -1121,6 +1121,7 @@ function hostSummaryTab(h, detail) {
           <dt>Ubicación</dt><dd>${esc(snmp.sys_location || '—')}</dd>
           <dt>Contacto</dt><dd>${esc(snmp.sys_contact || '—')}</dd>
           <dt>Uptime</dt><dd>${snmp.uptime_secs ? Math.floor(snmp.uptime_secs / 86400) + ' d ' + Math.floor((snmp.uptime_secs % 86400) / 3600) + ' h' : '—'}</dd>
+          <dt>Comunidad</dt><dd class="mono">${esc(snmp.community || '—')}</dd>
         </dl>
         ${(snmp.interfaces || []).length ? `<div class="table-wrap mt"><table><thead><tr><th>Interfaz</th><th>Estado</th><th>MAC</th><th>Velocidad</th></tr></thead><tbody>
           ${snmp.interfaces.slice(0, 12).map((i) => `<tr><td>${esc(i.name || i.descr || i.index)}</td><td>${esc(i.status || '—')}</td><td class="mono tiny">${esc(i.mac || '—')}</td><td>${i.speed_mbps ? fmtNum(i.speed_mbps) + ' Mb' : '—'}</td></tr>`).join('')}

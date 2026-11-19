@@ -22,6 +22,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F43 | Implementado y verificado: histórico IP→MAC, anomalías ARP y regla `anomaly` |
 | F45 | Implementado: reglas de alerta de seguridad dedicadas con precedencia |
 | F44 | Implementado: sonda DHCP UDP/68, histórico y detectores de servidor rogue |
+| F46 | Implementado: SNMP profundo IP-MIB/Q-BRIDGE, comunidad enmascarada y correlación L2 |
 | Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -279,7 +280,7 @@ Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantilla
 
 Primera fase de seguridad del activo, sin captura de paquetes ni raw sockets. Cada escaneo guarda su par IP→MAC en `arp_observations` (v1.5.6, retención 30 días) y el detector compara lotes para emitir `arp_gateway_mac_changed`, `arp_ip_mac_changed`, `arp_mac_multi_ip` y `arp_ip_multi_mac`. La regla de alerta `anomaly` dispara avisos con `min_confidence` y `category`, con dedupe y host del inventario resuelto. Endpoint `GET /diagnostics/arp` y tabla `Histórico IP→MAC` en `#/diagnostics`.
 
-Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación sintética antigua del gateway con otra MAC, anomalía crítica confianza 95 y alerta `Posible MITM` visible con `site_id=1`. Detalle en `docs/validacion.md`. Siguieron F45 (alertas dedicadas) y F44 (DHCP rogue); quedan SNMP profundo y captura pasiva.
+Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación sintética antigua del gateway con otra MAC, anomalía crítica confianza 95 y alerta `Posible MITM` visible con `site_id=1`. Detalle en `docs/validacion.md`. Siguieron F45 (alertas dedicadas), F44 (DHCP rogue) y F46 (SNMP profundo); queda F47 (captura pasiva).
 
 **Criterio de cierre:** dos escaneos con MAC distinta para una misma IP generan un hallazgo con evidencia, y la alerta aparece filtrando por sede. Sin captura L2 no se confirma spoofing activo: es una pista para investigar.
 
@@ -296,6 +297,14 @@ Sonda DHCPINFORM/DHCPDISCOVER sin raw sockets, tabla `dhcp_observations` (v1.5.7
 En esta red `192.168.0.105:68` enlazó con `SO_REUSEADDR`, pero el gateway y el broadcast no respondieron: no hay evidencia real de rogue. El escaneo degradó limpiamente. Con una respuesta sintética se validó el recorrido completo: anomalía `dhcp_unauthorized_server` → regla `dhcp_rogue` → alerta crítica visible en `site_id=1`. Queda pendiente validar contra un laboratorio con un servidor DHCP controlado.
 
 **Criterio de cierre:** un OFFER de un servidor distinto al gateway o al autorizado genera una alerta `dhcp_rogue` con evidencia, y un cambio de MAC del servidor entre escaneos genera `dhcp_server_mac_changed`. Ambos se comprueban con tests; el primero además con un escaneo real y datos sintéticos.
+
+### F46 — SNMP profundo — **implementado**
+
+Amplía el recolector con `ipAddrTable` (`.1.3.6.1.2.1.4.20`), las tablas ARP `.4.22`/`.4.35`, Q-BRIDGE `.1.3.6.1.2.1.17.7.*` (VLAN y FDB) y BRIDGE-MIB `.1.3.6.1.2.1.17.4.*`. Guarda la comunidad usada **enmascarada** y las filas crudas en cuatro tablas SQLite (v1.5.9) con retención de 30 días. `DetectSNMP` correlaciona ARP del switch, FDB y LLDP/CDP y emite hallazgos `snmp_*` con `category: "snmp"`, listos para la regla `snmp_anomaly`. Endpoint `GET /diagnostics/snmp` y sección «SNMP profundo» en `#/diagnostics`.
+
+No hay switch SNMP real en este entorno, así que la verificación funcional usa filas sintéticas. Los walks tienen límites y degradan limpiamente si el dispositivo no expone las tablas.
+
+**Criterio de cierre:** un cambio de MAC del gateway en la tabla ARP del switch y una MAC en dos puertos o VLAN generan hallazgos con evidencia; FDB y LLDP en puertos distintos generan `snmp_lldp_fdb_disagree`. Se comprueba con tests y con el endpoint sobre datos sintéticos.
 
 ## Dependencias y orden recomendado
 
@@ -315,6 +324,7 @@ En esta red `192.168.0.105:68` enlazó con `SO_REUSEADDR`, pero el gateway y el 
 | F43 | Ninguna | Media: valor de seguridad sin permisos ni captura |
 | F45 | F43 | Alta: evita alertas duplicadas al añadir detectores |
 | F44 | F43, F45 | Alta: aprovecha el histórico ARP y la regla dedicada |
+| F46 | F43, F45 | Alta: completa seguridad con SNMP y reutiliza `snmp_anomaly` |
 
 ## Cierre de salida al mercado
 

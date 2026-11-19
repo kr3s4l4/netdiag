@@ -126,6 +126,79 @@ func TestDHCPDiagnosticsEndpoint(t *testing.T) {
 	}
 }
 
+func TestSNMPDiagnosticsEndpoint(t *testing.T) {
+	s := newMetricsServer(t)
+	now := time.Now()
+	if _, _, _, _, err := s.st.UpsertHost(&model.Host{
+		IP: "10.0.0.2", MAC: "aa:bb:cc:dd:ee:02", SiteID: 1,
+		SNMP: &model.SNMPSummary{Community: "pu***ic"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	deep := model.SNMPDeep{
+		IPAddresses: []model.SNMPIPAddress{{IP: "10.0.0.2", IfIndex: 2, Mask: "255.255.255.0"}},
+		ARP: []model.SNMPARPRow{
+			{ScanID: 6, HostIP: "10.0.0.2", IP: "192.168.0.1", MAC: "aa:bb:cc:dd:ee:01", Type: "dynamic", Table: "net_to_media", ObservedAt: now.Add(-time.Hour)},
+			{ScanID: 7, HostIP: "10.0.0.2", IP: "192.168.0.1", MAC: "de:ad:be:ef:00:01", Type: "dynamic", Table: "net_to_media", ObservedAt: now},
+		},
+		VLANs: []model.SNMPVLAN{{VLAN: 10, Name: "Red"}},
+		FDB: []model.SNMPFDBRow{{
+			ScanID: 7, HostIP: "10.0.0.2", MAC: "de:ad:be:ef:00:01", Port: 5, IfIndex: 7,
+			VLAN: 10, Status: "learned", Table: "q_bridge", ObservedAt: now,
+		}},
+	}
+	if err := s.st.SaveSNMPDeep(1, 6, "10.0.0.2", "pu***ic", now.Add(-time.Hour), model.SNMPDeep{
+		ARP: deep.ARP[:1],
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.st.SaveSNMPDeep(1, 7, "10.0.0.2", "pu***ic", now, model.SNMPDeep{
+		IPAddresses: deep.IPAddresses, ARP: deep.ARP[1:], VLANs: deep.VLANs, FDB: deep.FDB,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.st.SaveARPObservations([]model.ARPObservation{
+		{SiteID: 1, ScanID: 6, IP: "192.168.0.1", MAC: "aa:bb:cc:dd:ee:01", IsGateway: true, ObservedAt: now.Add(-time.Hour)},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	s.handleSNMPDiagnostics(rec, httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/snmp?site_id=1", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("código %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Anomalies   []model.DiagnosticAnomaly `json:"anomalies"`
+		IPAddresses []model.SNMPIPAddress     `json:"ip_addresses"`
+		ARP         []model.SNMPARPRow        `json:"arp"`
+		VLANs       []model.SNMPVLAN          `json:"vlans"`
+		FDB         []model.SNMPFDBRow        `json:"fdb"`
+		Communities map[string]string         `json:"communities"`
+		Limitations []string                  `json:"limitations"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.IPAddresses) != 1 || len(body.ARP) != 2 || len(body.VLANs) != 1 || len(body.FDB) != 1 {
+		t.Fatalf("tablas inesperadas: %s", rec.Body.String())
+	}
+	if body.Communities["10.0.0.2"] != "pu***ic" {
+		t.Fatalf("comunidad ausente o en claro: %s", rec.Body.String())
+	}
+	found := false
+	for _, a := range body.Anomalies {
+		if a.Type == "snmp_gateway_arp_conflict" && a.Category == "snmp" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("esperaba snmp_gateway_arp_conflict: %s", rec.Body.String())
+	}
+	if len(body.Limitations) == 0 {
+		t.Fatal("faltan limitaciones del análisis SNMP")
+	}
+}
+
 func TestSTPDiagnosticsEndpointShape(t *testing.T) {
 	s := newMetricsServer(t)
 	rec := httptest.NewRecorder()

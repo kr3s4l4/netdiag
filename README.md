@@ -111,13 +111,22 @@ La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan 
 | AP no autorizados | Puntos de acceso fuera de `diagnostics.authorized_aps` o sin identidad SNMP suficiente |
 | SLA | Disponibilidad y latencia media por host frente a los umbrales configurados |
 | ARP / MITM | Cambio de MAC del gateway o de cualquier IP entre escaneos, una MAC con muchas IPs y una IP con varias MAC |
+| DHCP rogue | Varios servidores DHCP que responden, servidor no autorizado, suplantación del gateway y cambio de MAC del servidor |
+| SNMP profundo | ARP del switch frente al histórico, MAC en varios puertos/VLAN o movida entre escaneos, y desacuerdo entre FDB y LLDP/CDP |
 
-**Limitaciones:** NetDiag no captura BPDUs ni tramas 802.1Q, no lee OID de VLAN/dúplex ni contadores broadcast o de fragmentación, y no captura tramas ARP en vivo. Los hallazgos ARP se infieren del histórico IP→MAC de escaneos: son pistas para investigar, no confirmación de spoofing activo. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados. El histórico y sus anomalías también están en `GET /api/v1/diagnostics/arp`.
+**Limitaciones:** NetDiag no captura tramas ni BPDUs, no lee OID de dúplex ni contadores broadcast o de fragmentación, y no ve el tráfico ARP o DHCP de otros clientes. Los sondeos son activos (ICMP/ARP, UDP/68 y SNMP) y sus hallazgos se infieren de tablas e históricos: son pistas para investigar, no confirmación protocolaria de un ataque. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados.
+
+**DHCP rogue.** Con `diagnostics.dhcp_probe: true` (por defecto) se envían DHCPINFORM y DHCPDISCOVER por UDP/68 sin raw sockets; las respuestas se guardan en `dhcp_observations` durante `diagnostics.dhcp_history_days` (30 días). `NETDIAG_DHCP_PROBE`, `NETDIAG_DHCP_PROBE_TIMEOUT` y `NETDIAG_DHCP_AUTHORIZED` permiten ajustar el sondeo y la lista de servidores de confianza. Histórico y anomalías en `GET /api/v1/diagnostics/dhcp`.
+
+**SNMP profundo.** Con `diagnostics.snmp_deep: true` (por defecto) el recolector consulta `ipAddrTable` (`.1.3.6.1.2.1.4.20`), las tablas ARP `.4.22`/`.4.35`, Q-BRIDGE `.1.3.6.1.2.1.17.7.*` y BRIDGE-MIB `.1.3.6.1.2.1.17.4.*`, con límites de 512 direcciones, 2000 ARP, 5000 FDB y 256 VLAN. Las filas se guardan por sede durante `diagnostics.snmp_history_days` (30 días). La comunidad que respondió se guarda **enmascarada** (`public` → `pu***ic`); la credencial en claro nunca se persiste ni se expone. Variables: `NETDIAG_SNMP_DEEP` y `NETDIAG_SNMP_HISTORY_DAYS`. Hallazgos y tablas en `GET /api/v1/diagnostics/snmp`. Los tipos `snmp_*` usan la regla de alerta `snmp_anomaly`.
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/stp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/vlan?site_id=1'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/arp?site_id=1'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/dhcp?site_id=1'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/snmp?site_id=1'
 ```
 
 ## Integraciones externas

@@ -204,6 +204,8 @@ type Diagnostics struct {
 	DHCPProbeTimeout      Duration `yaml:"dhcp_probe_timeout" json:"dhcp_probe_timeout"`
 	DHCPHistoryDays       int      `yaml:"dhcp_history_days" json:"dhcp_history_days"`
 	AuthorizedDHCPServers []string `yaml:"authorized_dhcp_servers" json:"authorized_dhcp_servers"`
+	SNMPDeep              bool     `yaml:"snmp_deep" json:"snmp_deep"`
+	SNMPHistoryDays       int      `yaml:"snmp_history_days" json:"snmp_history_days"`
 }
 
 // VPN controls the periodic heuristic detection of VPN tunnels. Detection is
@@ -348,6 +350,8 @@ func Defaults() *Config {
 			DHCPProbeTimeout:      Duration(700 * time.Millisecond),
 			DHCPHistoryDays:       30,
 			AuthorizedDHCPServers: []string{},
+			SNMPDeep:              true,
+			SNMPHistoryDays:       30,
 		},
 		Log: Log{Level: "info", Format: "text"},
 	}
@@ -487,6 +491,9 @@ func (c *Config) Normalize() error {
 		}
 	}
 	c.Diagnostics.AuthorizedDHCPServers = dhcpServers
+	if c.Diagnostics.SNMPHistoryDays < 1 {
+		c.Diagnostics.SNMPHistoryDays = 30
+	}
 	if c.Integrations.Timeout.Duration() <= 0 {
 		c.Integrations.Timeout = Duration(10 * time.Second)
 	}
@@ -602,6 +609,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Diagnostics.DHCPHistoryDays < 1 || c.Diagnostics.DHCPHistoryDays > 3650 {
 		errs = append(errs, "diagnostics.dhcp_history_days debe estar entre 1 y 3650")
+	}
+	if c.Diagnostics.SNMPHistoryDays < 1 || c.Diagnostics.SNMPHistoryDays > 3650 {
+		errs = append(errs, "diagnostics.snmp_history_days debe estar entre 1 y 3650")
 	}
 	for _, value := range c.Diagnostics.AuthorizedDHCPServers {
 		if net.ParseIP(value) == nil {
@@ -820,6 +830,14 @@ func applyEnv(c *Config) {
 	set("NETDIAG_DHCP_PROBE_TIMEOUT", func(v string) {
 		if d, err := time.ParseDuration(v); err == nil {
 			c.Diagnostics.DHCPProbeTimeout = Duration(d)
+		}
+	})
+	set("NETDIAG_SNMP_DEEP", func(v string) {
+		c.Diagnostics.SNMPDeep = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+	})
+	set("NETDIAG_SNMP_HISTORY_DAYS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Diagnostics.SNMPHistoryDays = n
 		}
 	})
 	set("NETDIAG_DHCP_AUTHORIZED", func(v string) {

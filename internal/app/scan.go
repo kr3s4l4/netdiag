@@ -198,6 +198,7 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 		Version:     cfg.Scan.SNMPVersion,
 		Timeout:     cfg.Scan.SNMPTimeout.Duration(),
 		Retries:     1,
+		Deep:        cfg.Diagnostics.SNMPDeep,
 		V3User:      cfg.Scan.SNMPv3User,
 		V3AuthPass:  cfg.Scan.SNMPv3Auth,
 		V3PrivPass:  cfg.Scan.SNMPv3Priv,
@@ -256,6 +257,7 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 			continue
 		}
 		h.ID = id
+		result.Hosts[i] = h
 		seen = append(seen, id)
 		_ = a.st.AddMetric(id, h.LatencyMS, true, 0, now)
 		if h.SNMP != nil && len(h.SNMP.Neighbors) > 0 {
@@ -274,6 +276,7 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 	if result.Err == nil && !result.Canceled {
 		a.recordARPObservations(scan.SiteID, scan.ID, result.Hosts, now)
 		a.recordDHCPObservations(scan.SiteID, scan.ID, result, now)
+		a.recordSNMPDeep(scan.SiteID, scan.ID, result.Hosts, now)
 	}
 
 	if fullScan && network.ID > 0 && !result.Canceled {
