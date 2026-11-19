@@ -1,0 +1,7 @@
+FROM debian:bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libpcap0.8 ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY netdiag-pcap /usr/local/bin/netdiag
+RUN chmod 0755 /usr/local/bin/netdiag
+ENTRYPOINT ["/usr/local/bin/netdiag"]

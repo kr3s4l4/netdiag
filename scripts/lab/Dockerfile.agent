@@ -1,0 +1,6 @@
+FROM python:3.12-slim
+COPY snmp/snmp_pass.py /app/snmp_pass.py
+COPY snmp/agent.py /app/agent.py
+WORKDIR /app
+EXPOSE 161/udp
+CMD ["python3", "-u", "/app/agent.py"]

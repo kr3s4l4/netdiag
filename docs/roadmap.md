@@ -21,11 +21,11 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
 | F43 | Implementado y verificado: histórico IP→MAC, anomalías ARP y regla `anomaly` |
 | F45 | Implementado: reglas de alerta de seguridad dedicadas con precedencia |
-| F44 | Implementado: sonda DHCP UDP/68, histórico y detectores de servidor rogue |
-| F46 | Implementado: SNMP profundo IP-MIB/Q-BRIDGE, comunidad enmascarada y correlación L2 |
-| F47 | Implementado: captura pasiva opt-in con `-tags pcap`, metadata-only y cinco detectores |
+| F44 | Implementado y validado con `dnsmasq` rogue real: sonda UDP/68, histórico y detectores de servidor rogue |
+| F46 | Implementado y validado con agente SNMP real: IP-MIB/Q-BRIDGE, comunidad enmascarada y correlación L2 |
+| F47 | Implementado y validado con `CAP_NET_RAW` y tráfico real: captura opt-in con `-tags pcap`, metadata-only y cinco detectores |
 | F48 | Implementado: `README.en.md` y respuesta al primer comentario público de HN |
-| Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
+| Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
 
 ## Mejoras propuestas para 1.5.1
 

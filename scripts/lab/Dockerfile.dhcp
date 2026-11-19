@@ -1,0 +1,7 @@
+FROM debian:bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends dnsmasq \
+ && rm -rf /var/lib/apt/lists/*
+COPY dnsmasq.conf /etc/dnsmasq.conf
+EXPOSE 67/udp
+ENTRYPOINT ["dnsmasq", "-d", "-C", "/etc/dnsmasq.conf"]

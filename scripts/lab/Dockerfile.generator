@@ -1,0 +1,4 @@
+FROM python:3.12-slim
+RUN pip install --no-cache-dir scapy
+COPY generator/inject.py /app/inject.py
+CMD ["python3", "/app/inject.py", "--loop"]
