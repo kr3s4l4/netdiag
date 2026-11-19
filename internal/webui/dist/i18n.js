@@ -1014,6 +1014,24 @@
     'Borrar historial': 'Clear history',
     'dispositivos': 'devices',
 
+    // ---- F28 panel de salud ----
+    'Salud de la red': 'Network health',
+    'Puntuación explicable · ponderación 40/20/20/20 · últimos 24 h y comparativa a 7 días':
+      'Explainable score · 40/20/20/20 weighting · last 24 h and 7-day comparison',
+    'Saludable': 'Healthy',
+    'Aceptable': 'Fair',
+    'Atención requerida': 'Needs attention',
+    'vs hace 7 días': 'vs 7 days ago',
+    'Sin datos de tendencia': 'No trend data',
+    'Cambios no esperados': 'Unexpected changes',
+    'Severidad de hallazgos': 'Finding severity',
+    'Incidencias principales': 'Top incidents',
+    'Sin incidencias': 'No incidents',
+    'Las heurísticas no encontraron señales suficientes.': 'Heuristics did not find enough signals.',
+    'Ver host': 'View host',
+    'Ver evidencia': 'View evidence',
+    'Ver todas': 'View all',
+
     // ---- document title ----
     'NetDiag · Inventario y monitoreo de red': 'NetDiag · Network inventory and monitoring',
   };
@@ -1032,6 +1050,7 @@
     [/^(\d+) nuevos en 24 h$/, '$1 new in 24 h'],
     [/^(\d+) caídos$/, '$1 down'],
     [/^(\d+) críticas$/, '$1 critical'],
+    [/^(\d+) críticas · (\d+) avisos$/, '$1 critical · $2 warnings'],
     [/^(\d+) escaneos en 24 h$/, '$1 scans in 24 h'],
     [/^(\d+) en línea$/, '$1 online'],
     [/^(\d+) redes$/, '$1 networks'],

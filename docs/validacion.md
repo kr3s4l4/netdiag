@@ -363,3 +363,17 @@ Se validó con Chromium headless sobre CDP, contra un binario `1.5.1` construido
 - El panel ofrece «Marcar todo como leído» y «Borrar historial».
 
 Ambas funciones están en `master` y no forman parte de la release `v1.5.1`; requieren `v1.5.2`.
+
+### F28: panel de salud de red (19/11/2026)
+
+Se validó con Chromium headless sobre CDP, contra un binario `1.5.1` construido desde `master` y un servicio real en `127.0.0.1:18083` con la base del laboratorio Docker y la sede `Laboratorio` activa. `go test ./...` y `make build` pasan.
+
+- `/dashboard` muestra la tarjeta «Salud de la red» con puntuación `0–100`, semáforo y etiqueta. En el laboratorio：`63 / 100`, tono ámbar, «Aceptable».
+- El desglose muestra las cuatro contribuciones con su peso：`Disponibilidad 40% → 40,0 / 40` (raw `100,0%`), `Latencia 20% → Sin datos` (sin muestras de RTT), `Cambios no esperados 20% → 10,0 / 20` (5 cambios) y `Severidad de hallazgos 20% → 0,0 / 20` (3 críticas y 129 avisos).
+- El cálculo se reproducó de forma independiente desde los tres endpoints: `computeHealthScore` devolvió `63`, igual que el número pintado. Los componentes sin muestras se excluyeron y el peso restante se renormalizó.
+- Sin muestras en la comparativa a 7 días, la tarjeta muestra «Sin datos de tendencia» en lugar de un número inventado.
+- Las tres incidencias principales aparecen ordenadas por severidad y confianza. El primer enlace `#/diagnostics?finding=dhcp%3Adhcp_server_mac_changed%3A172.20.50.53` abrió exactamente el `<details>` con ese `data-finding` (`openDetails` coincide); el panel de diagnósticos tenía 132 hallazgos.
+- Con `NetDiagI18n.setLang('en')` la tarjeta pasó a `Network health`, `Fair`, `No trend data`, `Availability 40%`, `Latency 20%`, `Unexpected changes 20%`, `Finding severity 20%` y `3 critical · 129 warnings`.
+- No se registraron errores de JavaScript.
+
+F28 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.

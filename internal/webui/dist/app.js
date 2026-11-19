@@ -834,11 +834,13 @@ async function renderDashboard() {
   setPageTitle('dashboard');
   const content = $('#content');
   content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-  const [dash, scans, alerts, ports] = await Promise.all([
+  const [dash, scans, alerts, ports, compare, diagnostics] = await Promise.all([
     api('/dashboard'),
     api('/scans?limit=6'),
     api('/alerts?status=active&limit=6'),
     api('/ports/summary'),
+    api('/history/compare', { method: 'POST', body: { days: 7, window: '24h' } }).catch(() => null),
+    api('/diagnostics/enterprise').catch(() => null),
   ]);
   state.stats = dash.stats;
   const s = dash.stats || {};
@@ -854,6 +856,7 @@ async function renderDashboard() {
       <div class="spread"><div class="row">${icon('radar')}<b>Escaneo${activeScans.length > 1 ? 's' : ''} en curso</b>
       <span class="muted small">${activeScans.map((x) => esc(x.cidr)).join(' · ')}</span></div>
       <a class="btn sm" href="#/scans">Ver detalle</a></div></div>` : ''}
+    ${typeof renderHealthCard === 'function' ? renderHealthCard(s, compare, diagnostics) : ''}
     <div class="grid cols-4 mb">
       ${statCard({ label: 'Dispositivos', value: fmtNum(s.hosts_total), hint: `${fmtNum(s.hosts_new_24h)} nuevos en 24 h`, icon: 'hosts', tone: 'accent' })}
       ${statCard({ label: 'En línea', value: fmtNum(s.hosts_up), hint: `${fmtNum(s.hosts_down)} caídos`, icon: 'wifi', tone: 'green' })}

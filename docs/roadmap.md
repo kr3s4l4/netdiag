@@ -17,6 +17,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F38 | Documentación y plantillas de confianza empresarial listas y publicadas |
 | F39 | Implementado y verificado: demo sintética aislada, marcada en UI e informes |
 | F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
+| F28 | Implementado y verificado con CDP: puntuación 0–100 explicable, desglose 40/20/20/20 y acceso a la evidencia; pendiente de release |
 | F29 | Implementado y verificado con CDP: `Ctrl+K` busca hosts, alertas y redes; pendiente de release |
 | F30 | Implementado y verificado con CDP: campana, historial por sede y eventos persistentes; pendiente de release |
 | F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
@@ -49,7 +50,9 @@ Al crear la cuenta de administrador:
 
 **Esfuerzo:** 2–4 h.
 
-### F28 — Panel de salud de red
+### F28 — Panel de salud de red — implementado en `master`
+
+**Estado:** tarjeta en `/dashboard` con puntuación `0–100` y semáforo. El desglose muestra disponibilidad 40 %, latencia 20 %, cambios no esperados 20 % y severidad de hallazgos 20 %, con el valor original y la contribución de cada componente. Los componentes sin datos se marcan como «Sin datos» y su peso se redistribuye entre los disponibles; nunca se muestra un número sin su desglose. La tendencia compara la ventana actual con la de hace 7 días mediante `/history/compare`; si no hay muestras, se indica «Sin datos de tendencia». Las tres incidencias principales salen de `/diagnostics/enterprise` y enlazan con `#/diagnostics?finding=<id>`, que abre la evidencia concreta. Validado con CDP. Pendiente de publicación en `v1.5.2`.
 
 **Objetivo:** resumir el estado de la red en una sola pantalla con lenguaje ejecutivo.
 
@@ -332,7 +335,8 @@ El primer comentario público real en HN señaló que el repo parecía estar sol
 
 | Fase | Depende de | Prioridad |
 | --- | --- | --- |
-| F27, F28 | Ninguna | Alta, entrega 1.5.2 |
+| F27 | Ninguna | Alta, entrega 1.5.2 |
+| F28 | `/dashboard`, `/history/compare`, `/diagnostics/enterprise` | Alta: implementada en `master`, entrega 1.5.2 |
 | F29 | F40 | Alta: implementada en `master`, entrega 1.5.2 |
 | F30 | Ninguna | Alta: implementada en `master`, entrega 1.5.2 |
 | F31, F32 | F28 para el panel y F21/F22 para datos | Alta, entrega 1.5.2 |

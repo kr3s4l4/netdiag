@@ -636,7 +636,7 @@ async function renderDiagnostics() {
       <td>${(a.host_ips || []).length ? (a.host_ips || []).slice(0, 3).map((ip) => `<span class="mono-ip">${esc(ip)}</span>`).join('<br>') : '<span class="muted">—</span>'}</td>
       <td>${diagConfidenceBar(a.confidence)}</td>
       <td class="tiny muted">${fmtDate(a.detected_at)}</td>
-      <td class="right nowrap"><details class="diag-details"><summary>${esc(tr('Evidencia'))}</summary>
+      <td class="right nowrap"><details class="diag-details" data-finding="${esc(a.id || '')}"><summary>${esc(tr('Evidencia'))}</summary>
         <div class="diag-evidence">${(a.evidence || []).map((e) => `<div>· ${esc(e)}</div>`).join('')}
         ${a.recommendation ? `<div class="mt"><b>${esc(tr('Recomendación'))}:</b> ${esc(a.recommendation)}</div>` : ''}</div>
       </details></td>
@@ -698,6 +698,18 @@ async function renderDiagnostics() {
       <ul class="diag-limits">${(report.limitations || []).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
       <div class="tiny muted mt">${esc(tr('Un hallazgo es una pista para investigar, no una confirmación del protocolo. Confirma siempre en el equipo de red.'))}</div>
     </div>`;
+
+  // F28: el panel enlaza con #/diagnostics?finding=<id> para abrir la
+  // evidencia concreta del hallazgo sin obligar a buscarlo a mano.
+  if (state.routeQuery && state.routeQuery.get('finding')) {
+    const fid = state.routeQuery.get('finding');
+    const target = Array.from(content.querySelectorAll('details[data-finding]'))
+      .find((d) => d.dataset.finding === fid);
+    if (target) {
+      target.open = true;
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
