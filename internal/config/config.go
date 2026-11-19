@@ -83,6 +83,13 @@ type Config struct {
 	VPN          VPN          `yaml:"vpn" json:"vpn"`
 	WiFi         WiFi         `yaml:"wifi" json:"wifi"`
 	Log          Log          `yaml:"log" json:"log"`
+	Terms        Terms        `yaml:"terms" json:"terms"`
+}
+
+// Terms records the local acknowledgement of the Beta disclaimer. It stays in
+// this installation: no network, no telemetry and no CLI gate.
+type Terms struct {
+	Accepted bool `yaml:"accepted" json:"accepted"`
 }
 
 // Server holds HTTP server settings.

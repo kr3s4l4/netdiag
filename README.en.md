@@ -2,6 +2,8 @@
 
 **Self-hosted network scanner and inventory monitor.** A single Go binary with an embedded web UI, active and passive discovery, SNMP, L2/L3 topology, encrypted alerts, backups and reporting. No runtime dependencies, no telemetry, no cloud accounts.
 
+> **Beta and disclaimer.** NetDiag is provided "as is", without warranties. Use it only on networks you own or have explicit authorization to scan. Unauthorized scans may break laws and trigger corporate firewall alerts. You choose which networks are scanned and you are responsible for that. The notice is repeated on first run; nothing is sent to any server.
+
 [🇬🇧 English](README.en.md) · [🇪🇸 Español](README.md) — The web UI switches language in **Settings → Language**.
 
 ```

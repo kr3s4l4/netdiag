@@ -494,3 +494,9 @@ Comprobaciones:
 - `netdiag container verify --key release.pub usage.ndc` devolvió `Firma: válida`, `Contenido: correcto`, `Resultado: VÁLIDO`.
 
 Sin red, sin envío automático y sin sustituir la evidencia escrita de F42. La clave de prueba es local y no se usa para releases oficiales. Sin tag ni release.
+
+### Aviso legal Beta (19/11/2026)
+
+Descargo «tal cual» y responsabilidad de autorización de escaneo en `README.md` y `README.en.md`. La pantalla de acceso muestra el aviso en español o inglés según el idioma de la UI. El asistente de primer arranque exige marcar una casilla antes de lanzar el primer escaneo y guarda esa marca solo en `localStorage` del navegador. `netdiag serve --accept-terms` o `terms.accepted: true` en la configuración registran la confirmación del operador; sin ellos se imprime un aviso en stderr, pero el servidor arranca igual.
+
+No hay petición de red, ni telemetría, ni cambio de licencia. El aviso no traslada la responsabilidad legal: quien escanea sigue necesitando autorización. F42 sigue con 0/3 instalaciones reales, 0/2 casos y 0/1 disposición a pagar.

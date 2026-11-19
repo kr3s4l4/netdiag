@@ -306,6 +306,7 @@ func serveCmd(args []string) int {
 	wifiIface := fs.String("wifi-monitor-iface", "", "interfaz ya configurada en modo monitor para captura 802.11")
 	wifiInterval := fs.Int("wifi-scan-interval-sec", 0, "segundos entre capturas WiFi (0 usa la configuración)")
 	updateInterval := fs.Int("update-check-interval-hours", 24, "horas entre comprobaciones de actualizaciones firmadas")
+	acceptTerms := fs.Bool("accept-terms", false, "confirma el aviso Beta (equivalente a terms.accepted: true)")
 	fs.Usage = func() { fmt.Fprintln(os.Stderr, "Uso: netdiag serve [opciones]") }
 	if err := parseFlags(fs, args); err != nil {
 		return 2
@@ -333,6 +334,14 @@ func serveCmd(args []string) int {
 	}
 	if *wifiInterval > 0 {
 		cfg.WiFi.Interval = config.Duration(time.Duration(*wifiInterval) * time.Second)
+	}
+	if *acceptTerms {
+		cfg.Terms.Accepted = true
+	}
+	if !cfg.Terms.Accepted {
+		fmt.Fprintln(os.Stderr, "Aviso Beta: NetDiag se entrega «tal cual», sin garantías.")
+		fmt.Fprintln(os.Stderr, "Escanea solo redes propias o con autorización explícita del propietario.")
+		fmt.Fprintln(os.Stderr, "Sin telemetría ni envíos automáticos. Confirmar: --accept-terms o terms.accepted: true.")
 	}
 	if err := cfg.Validate(); err != nil {
 		return fail("%v", err)

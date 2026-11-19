@@ -310,6 +310,8 @@ Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantilla
 
 **Criterio de cierre:** existe evidencia escrita de uso real y disposición a pagar antes de contratar seguros, espejo privado, SLA o demo completa.
 
+**Aviso Beta añadido (19/11/2026):** descargo en ambos README, aviso en la pantalla de acceso y confirmación local en el asistente de primer arranque antes del primer escaneo. `serve --accept-terms` o `terms.accepted: true` registran la confirmación del operador. No bloquea el CLI, no hay red y no sustituye la autorización del propietario de la red. No cambia la licencia AGPL ni el modelo de negocio.
+
 **Esfuerzo:** 4–6 h de plantillas y seguimiento; la gestión es continua pero ligera.
 
 ### F43 — Histórico ARP y detección de MITM — **implementado y verificado con binario real**

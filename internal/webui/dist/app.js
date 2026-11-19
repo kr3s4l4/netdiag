@@ -329,6 +329,7 @@ function renderAuthCard(mode, st) {
   $('#root').innerHTML = `<div class="auth-wrap"><div class="auth-card">
     <div class="auth-logo"><div class="mark">N</div><h1>NetDiag</h1></div>
     ${st && st.demo ? '<p class="notice warn">Datos sintéticos · modo demo</p>' : ''}
+    <p class="notice warn">${esc(tr('Beta · software «tal cual», sin garantías. Escanea solo redes con autorización.'))}</p>
     <p class="auth-sub">${esc(sub)}</p>
     <form data-form="${setup ? 'setup' : 'login'}">
       <div class="field">

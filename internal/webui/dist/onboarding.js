@@ -15,6 +15,16 @@
   const T = (s) => (typeof tr === 'function' ? tr(s) : s);
   const E = (v) => (typeof esc === 'function' ? esc(v) : String(v == null ? '' : v));
 
+  const TERMS_KEY = 'netdiag.terms.accepted';
+
+  function readTerms() {
+    try { return localStorage.getItem(TERMS_KEY) === '1'; } catch (_) { return false; }
+  }
+
+  function saveTerms() {
+    try { localStorage.setItem(TERMS_KEY, '1'); } catch (_) {}
+  }
+
   function root() {
     let r = document.getElementById('onboarding-root');
     if (!r) {
@@ -76,6 +86,10 @@
           <select class="input" id="onb-iface"><option value="">${E(T('Detección automática'))}</option>${ifaceOptions}</select>
         </div>` : ''}
         <div class="onboarding-profile"><span class="badge ok">${E(T('Perfil común'))}</span></div>
+        <label class="onboarding-terms">
+          <input type="checkbox" id="onb-terms"${ctx.termsAccepted ? ' checked' : ''}>
+          <span>${E(T('He leído el aviso Beta: solo escanearé redes propias o con autorización explícita.'))}</span>
+        </label>
         ${ctx.error ? `<div class="notice err">${E(ctx.error)}</div>` : ''}
         <div class="onboarding-actions">
           <button class="btn ghost" type="button" data-onb="skip">${E(T('Omitir por ahora'))}</button>
@@ -153,6 +167,8 @@
     if (cidr) cidr.addEventListener('input', (e) => { ctx.cidr = e.target.value; ctx.error = ''; });
     const iface = $('#onb-iface', r);
     if (iface) iface.addEventListener('change', (e) => { ctx.iface = e.target.value; });
+    const terms = $('#onb-terms', r);
+    if (terms) terms.addEventListener('change', (e) => { ctx.termsAccepted = !!e.target.checked; });
     const on = (sel, fn) => {
       const el = $(sel, r);
       if (el) el.addEventListener('click', fn);
@@ -255,6 +271,12 @@
   }
 
   async function startScan() {
+    if (!ctx.termsAccepted) {
+      ctx.error = T('Confirma el aviso Beta antes de escanear.');
+      render();
+      return;
+    }
+    saveTerms();
     const cidr = normCIDR(ctx.cidr);
     if (!validCIDR(cidr)) {
       ctx.error = T('Introduce un CIDR IPv4 válido, por ejemplo 192.168.1.0/24.');
@@ -340,6 +362,7 @@
       progress: 0,
       pollTimer: null,
       finishing: false,
+      termsAccepted: readTerms(),
       error: '',
     };
     if (typeof connectWS === 'function') connectWS();

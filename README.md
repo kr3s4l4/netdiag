@@ -4,6 +4,8 @@
 
 **Escáner de red y monitor de inventario self-hosted.** Un único binario Go con interfaz web bilingüe (español/inglés), descubrimiento activo/pasivo, SNMP, topología L2/L3, alertas cifradas, copias de seguridad y generación de informes. Sin dependencias externas en tiempo de ejecución, sin telemetría y sin servicios en la nube.
 
+> **Beta y descargo de responsabilidad.** NetDiag se entrega «tal cual», sin garantías. Úsalo solo en redes propias o con autorización explícita del propietario. Un escaneo no autorizado puede vulnerar leyes y disparar alertas en firewalls corporativos. Tú eliges qué redes se escanean y respondes por ello. El aviso se repite en el primer arranque; no se envía nada a ningún servidor.
+
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Descubre → identifica → almacena → vigila → alerta → informa │

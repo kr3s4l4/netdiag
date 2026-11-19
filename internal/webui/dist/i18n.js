@@ -1076,7 +1076,12 @@
     'El informe incluye el inventario actual y las alertas de los últimos 7 días. El ejecutivo PDF resume todo en una página sin secretos ni configuración.':
       'The report includes the current inventory and the last 7 days of alerts. The executive PDF fits on one page, with no secrets or configuration.',
 
+    'Beta · software «tal cual», sin garantías. Escanea solo redes con autorización.':
+      'Beta · software "as is", without warranties. Scan only networks you are authorized to scan.',
+
     // ---- F27 asistente de primer arranque ----
+    'He leído el aviso Beta: solo escanearé redes propias o con autorización explícita.': 'I have read the Beta notice: I will scan only my own networks or those with explicit authorization.',
+    'Confirma el aviso Beta antes de escanear.': 'Acknowledge the Beta notice before scanning.',
     'Ya tienes la cuenta. Vamos a dejar la red lista en menos de dos minutos.': 'Your account is ready. Let us get the network ready in under two minutes.',
     'Detectando la red local…': 'Detecting the local network…',
     'Revisa o cambia el CIDR inicial. NetDiag escaneará esa red con el perfil común.': 'Review or change the initial CIDR. NetDiag will scan that network with the common profile.',

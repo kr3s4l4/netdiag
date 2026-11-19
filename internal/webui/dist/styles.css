@@ -692,6 +692,14 @@ html[data-is-admin="0"] [data-action="backup-delete"] { display: none !important
 .onboarding-hint { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 0 0 16px; }
 .onboarding-center { display: grid; place-items: center; gap: 14px; min-height: 190px; color: var(--muted); font-size: 13px; }
 .onboarding-profile { margin: 14px 0 4px; }
+.onboarding-terms {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin-top: 14px; padding: 11px 12px;
+  border: 1px solid var(--border-soft); border-radius: 10px;
+  background: var(--panel-3); color: var(--muted);
+  font-size: 12px; line-height: 1.5; cursor: pointer;
+}
+.onboarding-terms input { margin-top: 2px; accent-color: var(--accent); }
 .onboarding-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
 .onboarding-actions .spacer { flex: 1; }
 .onboarding-foot { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--border-soft); color: var(--muted-2); font-size: 11px; text-align: center; }
