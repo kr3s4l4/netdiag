@@ -83,6 +83,7 @@ function applySharedFilters(view, q) {
       state.siteId = siteId;
       try { localStorage.setItem('netdiag-site', String(siteId)); } catch {}
       updateSiteSelect();
+      if (typeof refreshNotificationBadge === 'function') refreshNotificationBadge();
     }
   }
   const desc = q.get('desc') === '1' || /^true$/i.test(q.get('desc') || '');
@@ -99,6 +100,8 @@ function applySharedFilters(view, q) {
     state.hosts.filters.status = status === 'all' ? '' : status;
     const type = cleanShareValue(q.get('device_type'), 40);
     state.hosts.filters.device_type = (typeof TYPE_LABELS !== 'undefined' && TYPE_LABELS[type]) ? type : '';
+    const net = cleanShareValue(q.get('network_id'), 20);
+    state.hosts.filters.network_id = /^\d+$/.test(net) ? net : '';
     state.hosts.sort = inList(cleanShareValue(q.get('sort'), 40), SAVED_VIEW_SORTS.hosts, 'ip');
     state.hosts.asc = !desc;
     state.hosts.page = 1;
@@ -421,20 +424,113 @@ function paletteEntries() {
   return entries;
 }
 
-function paletteListHTML() {
-  const needle = paletteState.query.trim().toLocaleLowerCase();
-  paletteResults = paletteEntries().filter((it) => !needle
-    || it.title.toLocaleLowerCase().includes(needle)
-    || it.sub.toLocaleLowerCase().includes(needle)).slice(0, 12);
-  paletteIndex = 0;
+function paletteTag(entry) {
+  if (entry.type === 'view') return viewText('Vista');
+  if (entry.type === 'nav') return viewText('Ir');
+  if (entry.type === 'host') return viewText('Dispositivo');
+  if (entry.type === 'alert') return viewText('Alerta');
+  if (entry.type === 'network') return viewText('Red');
+  return viewText('Acción');
+}
+
+function paletteMatches(entry, needle) {
+  if (!needle) return true;
+  return [entry.title, entry.sub, entry.haystack]
+    .some((v) => String(v || '').toLocaleLowerCase().includes(needle));
+}
+
+function renderPaletteList() {
   if (!paletteResults.length) {
     return `<div class="palette-empty">${esc(viewText('Sin resultados'))}</div>`;
   }
   return paletteResults.map((it, idx) => `<button class="palette-item ${idx === 0 ? 'active' : ''}" data-action="palette-run" data-index="${idx}">
     ${icon(it.icon || (it.type === 'view' ? 'star' : 'book'))}
     <span><b>${esc(it.title)}</b><small>${esc(it.sub)}</small></span>
-    <span class="tag">${esc(it.type === 'view' ? viewText('Vista') : it.type === 'nav' ? viewText('Ir') : viewText('Acción'))}</span>
+    <span class="tag">${esc(paletteTag(it))}</span>
   </button>`).join('');
+}
+
+function paintPaletteList() {
+  const list = document.getElementById('palette-list');
+  if (list) list.innerHTML = renderPaletteList();
+}
+
+function setPaletteResults(needle, extra) {
+  const all = paletteEntries().concat(Array.isArray(extra) ? extra : []);
+  paletteResults = all.filter((it) => paletteMatches(it, needle)).slice(0, 12);
+  paletteIndex = 0;
+  paintPaletteList();
+}
+
+function alertPaletteEntry(a) {
+  return {
+    type: 'alert', id: a.id, icon: 'alerts', q: a.title || String(a.id),
+    title: a.title || ('#' + a.id),
+    sub: [a.host_ip, a.message, SEV_LABELS[a.severity]].filter(Boolean).join(' · '),
+    haystack: [a.id, a.title, a.message, a.host_ip, a.host_name, a.rule_name].join(' '),
+  };
+}
+
+// F29: búsqueda global de entidades. Nunca lanza código externo y acota
+// los resultados para no recorrer el inventario completo en cada pulsación.
+async function entityPaletteEntries(needle) {
+  if (needle.length < 2) return [];
+  const q = paletteState.query.trim();
+  const entries = [];
+  const [hostsRes, alertsRes] = await Promise.allSettled([
+    api('/hosts?search=' + encodeURIComponent(q) + '&page=1&limit=8'),
+    api('/alerts?search=' + encodeURIComponent(q) + '&status=all&page=1&limit=8'),
+  ]);
+  if (hostsRes.status === 'fulfilled') {
+    (hostsRes.value.items || []).forEach((h) => entries.push({
+      type: 'host', id: h.id, icon: 'hosts',
+      title: h.hostname || h.ip || ('#' + h.id),
+      sub: [h.ip, h.mac, h.vendor].filter(Boolean).join(' · '),
+      haystack: [h.id, h.ip, h.mac, h.hostname, h.vendor, h.model].join(' '),
+    }));
+  }
+  if (alertsRes.status === 'fulfilled') {
+    (alertsRes.value.items || []).forEach((a) => entries.push(alertPaletteEntry(a)));
+  }
+  // El buscador del servidor no indexa el ID de alerta; se complementa
+  // con una lista acotada cuando la consulta es numérica.
+  if (/^\d+$/.test(q)) {
+    try {
+      const res = await api('/alerts?status=all&page=1&limit=100');
+      (res.items || []).filter((a) => String(a.id) === q || String(a.id).startsWith(q))
+        .slice(0, 4).forEach((a) => {
+          if (!entries.some((e) => e.type === 'alert' && e.id === a.id)) entries.push(alertPaletteEntry(a));
+        });
+    } catch {}
+  }
+  try {
+    let networks = state.networks;
+    if (!networks || !networks.length) networks = (await api('/networks')).items || [];
+    networks.filter((n) => [n.id, n.name, n.cidr]
+      .some((v) => String(v || '').toLocaleLowerCase().includes(needle)))
+      .slice(0, 4).forEach((n) => entries.push({
+        type: 'network', id: n.id, icon: 'network',
+        title: n.name || n.cidr || ('#' + n.id),
+        sub: n.cidr || viewText('Red'),
+        haystack: [n.id, n.name, n.cidr].join(' '),
+      }));
+  } catch {}
+  return entries;
+}
+
+let paletteSearchTimer = null;
+let paletteSearchVersion = 0;
+
+async function refreshPaletteResults() {
+  const needle = paletteState.query.trim().toLocaleLowerCase();
+  const version = ++paletteSearchVersion;
+  setPaletteResults(needle, []);
+  if (needle.length < 2) return;
+  try {
+    const extra = await entityPaletteEntries(needle);
+    if (version !== paletteSearchVersion || !paletteState.open) return;
+    setPaletteResults(needle, extra);
+  } catch {}
 }
 
 function renderCommandPalette() {
@@ -443,10 +539,10 @@ function renderCommandPalette() {
     <div class="palette" role="dialog" aria-modal="true" aria-label="${esc(viewText('Buscar y ejecutar'))}">
       <div class="palette-search">${icon('search')}
         <input id="palette-input" class="input" autocomplete="off" maxlength="80"
-          placeholder="${esc(viewText('Buscar páginas, vistas o acciones…'))}" value="${esc(paletteState.query)}">
+          placeholder="${esc(viewText('Buscar hosts, alertas, redes o acciones…'))}" value="${esc(paletteState.query)}">
         <button class="btn ghost icon sm" data-action="palette-close" aria-label="${esc(viewText('Cerrar'))}">${icon('x')}</button>
       </div>
-      <div class="palette-list" id="palette-list">${paletteListHTML()}</div>
+      <div class="palette-list" id="palette-list">${renderPaletteList()}</div>
       <div class="palette-foot"><span>↑ ↓ ${esc(viewText('navegar'))}</span><span>↵ ${esc(viewText('abrir'))}</span><span>Esc ${esc(viewText('cerrar'))}</span></div>
     </div>
   </div>`;
@@ -458,6 +554,8 @@ function renderCommandPalette() {
 
 function closeCommandPalette() {
   paletteState.open = false;
+  paletteSearchVersion++;
+  if (paletteSearchTimer) { clearTimeout(paletteSearchTimer); paletteSearchTimer = null; }
   const root = document.getElementById('command-palette-root');
   if (root) root.innerHTML = '';
 }
@@ -465,6 +563,7 @@ function closeCommandPalette() {
 function openCommandPalette() {
   paletteState.open = true;
   renderCommandPalette();
+  refreshPaletteResults();
 }
 
 function movePalette(delta) {
@@ -481,6 +580,9 @@ async function runPalette(index) {
   closeCommandPalette();
   if (item.type === 'nav') { navTo('#/' + item.view); return; }
   if (item.type === 'view') { await applySavedView(item.id); return; }
+  if (item.type === 'host') { navTo('#/hosts/' + item.id); return; }
+  if (item.type === 'alert') { navTo('#/alerts?q=' + encodeURIComponent(item.q || item.title || '') + '&status=all'); return; }
+  if (item.type === 'network') { navTo('#/hosts?network_id=' + encodeURIComponent(item.id)); return; }
   switch (item.key) {
     case 'scan': openScanModal(); break;
     case 'new-view': openViewModal(null, state.view === 'alerts' ? 'alerts' : 'hosts'); break;
@@ -538,8 +640,12 @@ document.addEventListener('change', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target && e.target.id === 'palette-input') {
     paletteState.query = e.target.value;
-    const list = document.getElementById('palette-list');
-    if (list) list.innerHTML = paletteListHTML();
+    paletteSearchVersion++;
+    if (paletteSearchTimer) clearTimeout(paletteSearchTimer);
+    setPaletteResults(paletteState.query.trim().toLocaleLowerCase(), []);
+    if (paletteState.query.trim().length >= 2) {
+      paletteSearchTimer = setTimeout(() => { refreshPaletteResults(); }, 180);
+    }
     return;
   }
   if (e.target && e.target.matches && e.target.matches('[data-view-search]')) {

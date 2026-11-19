@@ -387,6 +387,7 @@ async function enterApp() {
   try { state.siteId = Number(localStorage.getItem('netdiag-site') || 0) || 0; } catch {}
   renderShell();
   await loadSites(true);
+  if (typeof refreshNotificationBadge === 'function') refreshNotificationBadge();
   if (typeof loadSavedViews === 'function') await loadSavedViews();
   connectWS();
   const current = (location.hash || '').replace(/^#\/?/, '');
@@ -472,6 +473,7 @@ function renderShell() {
           <select class="select sm" id="site-select" aria-label="${esc(tr('Sede activa'))}"></select>
         </label>
         <span class="clock" id="clock">—</span>
+        <button class="btn ghost icon notif-bell" id="notif-bell" data-action="notif-toggle" title="${esc(tr('Notificaciones'))}" aria-label="${esc(tr('Notificaciones'))}" aria-expanded="false">${icon('alerts')}<span class="count hidden" id="notif-count">0</span></button>
         <button class="btn ghost icon" data-action="view-palette" title="${esc(tr('Buscar y ejecutar (Ctrl+K)'))}" aria-label="${esc(tr('Buscar y ejecutar (Ctrl+K)'))}">${icon('search')}</button>
         <button class="btn sm ghost lang-btn" data-action="lang" title="Cambiar idioma">${i18n ? i18n.label : 'EN'}</button>
         <button class="btn ghost icon" data-action="theme" title="${esc(tr('Cambiar tema'))}" id="theme-btn">${icon(themeIcon(document.documentElement.dataset.theme || 'dark'))}</button>
@@ -483,6 +485,7 @@ function renderShell() {
   updateNav();
   refreshAlertBadge();
   refreshUpdateStatus();
+  if (typeof refreshNotificationBadge === 'function') refreshNotificationBadge();
   const burger = $('#burger');
   if (window.innerWidth <= 820 && burger) burger.style.display = '';
 }
@@ -645,6 +648,7 @@ function scheduleRefresh() {
 function handleEvent(ev) {
   const type = ev.type;
   const data = ev.data || {};
+  if (typeof recordNotification === 'function') recordNotification(ev);
   switch (type) {
     case 'hello':
       setLive(true);

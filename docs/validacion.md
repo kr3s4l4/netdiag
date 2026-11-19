@@ -340,3 +340,26 @@ Verificación real:
 - `docs/public_keys.md` añade la huella concreta y el comando de verificación de esta versión.
 
 GitHub no expone API para fijar Discussions: la Discussion #1 sigue necesitando el paso manual ⋯ → *Pin discussion*.
+
+### F29 y F30: buscador global y centro de notificaciones (19/11/2026)
+
+Se validó con Chromium headless sobre CDP, contra un binario `1.5.1` construido desde `master` y un servicio real en `127.0.0.1:18082` con la base del laboratorio Docker. `go test ./...` y `make build` pasan.
+
+**F29 — buscador global**
+
+- `Ctrl+K` abre la paleta y deja el foco en el campo de búsqueda.
+- `172.20` devuelve dispositivos con IP y MAC; por ejemplo `kali · 172.20.50.1 · 76:7b:19:45:ba:64`.
+- Con la sede `Laboratorio`, el texto de una alerta real devuelve `Servidor DHCP no autorizado capturado` como resultado de tipo `Alerta`.
+- La consulta numérica `27` encuentra la alerta con ID 27, aunque el buscador del servidor no indexa IDs.
+- `172.20.50` devuelve la red `LabLAN · 172.20.50.0/24`. Al abrir ese resultado, la URL pasa a `#/hosts?network_id=1` y el filtro queda aplicado (`network_id=1`).
+- No se registraron errores de JavaScript durante las pruebas.
+
+**F30 — centro de notificaciones**
+
+- La campana aparece sin contador cuando no hay eventos sin leer.
+- `alert.new` incrementa el contador a `1` y abre un panel con el evento y su fecha relativa.
+- Tras recargar la página, el contador sigue en `1`: el historial persiste en `localStorage`, por sede.
+- Al abrir un evento se navega al objeto relacionado (`#/hosts/2`), se marca como leído y el contador vuelve a 0.
+- El panel ofrece «Marcar todo como leído» y «Borrar historial».
+
+Ambas funciones están en `master` y no forman parte de la release `v1.5.1`; requieren `v1.5.2`.

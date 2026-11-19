@@ -17,6 +17,8 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F38 | Documentación y plantillas de confianza empresarial listas y publicadas |
 | F39 | Implementado y verificado: demo sintética aislada, marcada en UI e informes |
 | F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
+| F29 | Implementado y verificado con CDP: `Ctrl+K` busca hosts, alertas y redes; pendiente de release |
+| F30 | Implementado y verificado con CDP: campana, historial por sede y eventos persistentes; pendiente de release |
 | F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
 | F43 | Implementado y verificado: histórico IP→MAC, anomalías ARP y regla `anomaly` |
@@ -64,7 +66,9 @@ La puntuación debe ser explicable: disponibilidad 40 %, latencia 20 %, cambios 
 
 **Esfuerzo:** 2–3 h.
 
-### F29 — Buscador global
+### F29 — Buscador global — implementado en `master`
+
+**Estado:** amplía la paleta de F40. Busca por IP, MAC, hostname, fabricante, ID de alerta, título de alerta y red. Navega al detalle del host, a la vista de alertas filtrada o al inventario filtrado por red. Validado con CDP. Pendiente de publicación en `v1.5.2`.
 
 **Objetivo:** localizar cualquier objeto sin recorrer menús.
 
@@ -76,7 +80,9 @@ La puntuación debe ser explicable: disponibilidad 40 %, latencia 20 %, cambios 
 
 **Esfuerzo:** 2–3 h.
 
-### F30 — Centro de notificaciones
+### F30 — Centro de notificaciones — implementado en `master`
+
+**Estado:** campana con contador en la cabecera e historial de `scan.finished`, `alert.new`, `update.available`, `update.applied` y `update.rolled_back`. Se guarda en `localStorage`, por sede y con un máximo de 100 eventos. Permite marcar como leído, borrar el historial y abrir el objeto relacionado. Validado con CDP, incluida la persistencia tras recargar. Pendiente de publicación en `v1.5.2`.
 
 **Objetivo:** conservar los eventos que hoy se muestran solo como toasts.
 
@@ -326,8 +332,10 @@ El primer comentario público real en HN señaló que el repo parecía estar sol
 
 | Fase | Depende de | Prioridad |
 | --- | --- | --- |
-| F27, F28, F29 | Ninguna | Alta, entrega 1.5.1 |
-| F30, F31, F32 | F28 para el panel y F21/F22 para datos | Alta, entrega 1.5.1 |
+| F27, F28 | Ninguna | Alta, entrega 1.5.2 |
+| F29 | F40 | Alta: implementada en `master`, entrega 1.5.2 |
+| F30 | Ninguna | Alta: implementada en `master`, entrega 1.5.2 |
+| F31, F32 | F28 para el panel y F21/F22 para datos | Alta, entrega 1.5.2 |
 | F33, F34 | Ninguna | Cerradas en 1.5.0 |
 | F35 | F33, F34 | Alta: habilita prueba y venta |
 | F36 | F23 | Media: reutiliza minisign y canonicalización |

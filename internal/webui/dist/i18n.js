@@ -1005,6 +1005,15 @@
     'Críticas de LAN': 'Critical LAN',
     'Todas': 'All',
 
+    // ---- F29 búsqueda global / F30 notificaciones ----
+    'Buscar hosts, alertas, redes o acciones…': 'Search hosts, alerts, networks or actions…',
+    'Notificaciones': 'Notifications',
+    'sin leer': 'unread',
+    'Sin notificaciones': 'No notifications',
+    'Marcar todo como leído': 'Mark all as read',
+    'Borrar historial': 'Clear history',
+    'dispositivos': 'devices',
+
     // ---- document title ----
     'NetDiag · Inventario y monitoreo de red': 'NetDiag · Network inventory and monitoring',
   };
