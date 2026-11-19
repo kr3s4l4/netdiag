@@ -325,3 +325,18 @@ Validación real sobre el laboratorio Docker, binario `-tags pcap` recién recon
 - Tras fijar `topoView={x:-137,y:64,k:1.42}` y llamar a `route(true)`: posiciones idénticas, firma idéntica, zoom conservado y 0 cruces.
 - Tras mover un nodo a `(9999,9999)` y pulsar «Reordenar»: el nodo vuelve a `(594.0,424.7)` y sigue con 0 cruces.
 - `go test ./...` y `make build` pasan. Se prefiere esta comprobación porque `node --check` no está instalado en el equipo.
+
+### Publicación de v1.5.1 (19/11/2026)
+
+Se publicó `master` en `1514af8` y el tag anotado `v1.5.1`. La release <https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.1> contiene 14 artefactos: binarios linux/amd64 y linux/arm64, `SHA256SUMS` y su firma, manifiesto F23, notas, SBOM, procedencia, `.ndc` y clave pública.
+
+La clave privada `netdiag-release.key` sigue fuera del repositorio. Se descifró solo una copia local temporal, se generó material de firma con permisos `0600` y ambos archivos se borraron con `shred` después de publicar.
+
+Verificación real:
+
+- `scripts/release.sh`: 10/10 pasos, firma de `SHA256SUMS` con comentario `version:1.5.1 sha256:e9c634a49cf21244396fbbd3abf8c7a9a0edaa91062ca4bf1a33aecedf9a6ee3`.
+- `scripts/verify-release.sh --version 1.5.1`: `VÁLIDO`, sin red y sin ejecutar el binario.
+- Descarga remota de `SHA256SUMS` y `SHA256SUMS.minisig` desde la release: `minisign -V` devolvió `Signature and comment signature verified`; `sha256sum SHA256SUMS` coincide con el comentario firmado.
+- `docs/public_keys.md` añade la huella concreta y el comando de verificación de esta versión.
+
+GitHub no expone API para fijar Discussions: la Discussion #1 sigue needing el paso manual ⋯ → *Pin discussion*.

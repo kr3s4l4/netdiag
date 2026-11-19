@@ -54,6 +54,30 @@ sha256sum -c SHA256SUMS
 
 La firma debe devolver `Signature and comment signature verified` con el comentario de confianza `NetDiag v1.5.0 SHA256SUMS`. Después, `sha256sum -c` comprueba que los binarios descargados coinciden con el resumen firmado.
 
+## Verificación de v1.5.1
+
+La Release `v1.5.1` publica 14 artefactos, incluidos `SHA256SUMS`, `manifest.json`, SBOM, procedencia, notas firmadas y el contenedor `.ndc`. La comprobación remota devolvió:
+
+```text
+Trusted comment: version:1.5.1 sha256:e9c634a49cf21244396fbbd3abf8c7a9a0edaa91062ca4bf1a33aecedf9a6ee3
+```
+
+Para verificarla:
+
+```bash
+BASE=https://github.com/kr3s4l4/netdiag/releases/download/v1.5.1
+curl -fsSLO "$BASE/SHA256SUMS"
+curl -fsSLO "$BASE/SHA256SUMS.minisig"
+
+minisign -V \
+  -P 'RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY' \
+  -m SHA256SUMS -x SHA256SUMS.minisig
+
+sha256sum -c SHA256SUMS
+```
+
+El hash de `SHA256SUMS` debe ser `e9c634a49cf21244396fbbd3abf8c7a9a0edaa91062ca4bf1a33aecedf9a6ee3`. La verificación completa sin red está en `scripts/verify-release.sh`.
+
 ## Cómo verificar la huella por un canal independiente
 
 1. Descargar este archivo desde el repositorio oficial.

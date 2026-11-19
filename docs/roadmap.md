@@ -11,10 +11,10 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F23 | Cerrado: notificación + descarga verificada + instalación con rollback + reinicio |
 | F24 | Backup automático programado |
 | F33, F34 | Decisiones cerradas; documentación legal y comercial añadida en `1.5.0` |
-| F35 | Implementado: licencia Ed25519 offline, CLI, API, UI y backup |
-| F36 | Implementado: contenedor `.ndc` ZIP firmado, inspect/verify/build |
-| F37 | Implementado y verificado: release reproducible, SBOM, procedencia, `.ndc` y verificación offline |
-| F38 | Documentación y plantillas de confianza empresarial listas |
+| F35 | Implementado y publicado en `v1.5.1`: licencia Ed25519 offline, CLI, API, UI y backup |
+| F36 | Implementado y publicado en `v1.5.1`: contenedor `.ndc` ZIP firmado, inspect/verify/build |
+| F37 | Implementado, verificado y publicado en `v1.5.1`: release reproducible, SBOM, procedencia, `.ndc` y verificación offline |
+| F38 | Documentación y plantillas de confianza empresarial listas y publicadas |
 | F39 | Implementado y verificado: demo sintética aislada, marcada en UI e informes |
 | F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
 | F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
@@ -27,9 +27,9 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F48 | Implementado: `README.en.md` y respuesta al primer comentario público de HN |
 | Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
 
-## Mejoras propuestas para 1.5.1
+## Mejoras pendientes para 1.5.2
 
-Prioridad alta, bajo riesgo: son cambios principalmente de interfaz, no alteran SQLite ni la seguridad.
+Estaban previstas para 1.5.1, pero esa versión se publicó con el código de `master` disponible en ese momento. Siguen siendo cambios principalmente de interfaz, con bajo riesgo: no alteran SQLite ni la seguridad.
 
 ### F27 — Asistente de primer arranque
 
