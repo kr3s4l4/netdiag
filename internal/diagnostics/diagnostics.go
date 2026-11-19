@@ -25,6 +25,7 @@ type Input struct {
 	Metrics    []model.Metric
 	Interfaces []model.SystemInterface
 	ARP        []model.ARPObservation
+	DHCP       []model.DHCPObservation
 	Config     config.Diagnostics
 }
 
@@ -74,6 +75,7 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 			"Sin OID de dúplex ni contadores de error: la discrepancia se compara entre velocidades IF-MIB de ambos extremos.",
 			"Sin sondeo de fragmentación activo: los problemas de MTU se correlacionan con interfaces locales de MTU bajo y pérdida observada.",
 			"Sin captura ARP en vivo: los cambios IP→MAC se infieren del histórico de escaneos y son pistas, no confirmación de spoofing activo.",
+			"El sondeo DHCP usa UDP/68 sin raw sockets: solo ve respuestas a DHCPINFORM/DHCPDISCOVER, no el tráfico de otros clientes.",
 		},
 	}
 
@@ -103,6 +105,9 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 	detectSLABreaches(in, report)
 	if cfg.EnterpriseMode {
 		for _, a := range DetectARP(in.ARP, cfg) {
+			add(report, a)
+		}
+		for _, a := range DetectDHCP(in.DHCP, in.ARP, cfg) {
 			add(report, a)
 		}
 	}

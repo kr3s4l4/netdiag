@@ -188,17 +188,22 @@ type Security struct {
 
 // Log holds logging settings.
 // Diagnostics tunes the enterprise heuristics. They never sniff raw frames:
-// all findings are derived from adjacency, IF-MIB, inventory and metrics.
+// findings come from adjacency, IF-MIB, inventory, metrics, ARP history and a
+// short DHCP UDP probe on the local segment.
 type Diagnostics struct {
-	EnterpriseMode  bool     `yaml:"enterprise_mode" json:"enterprise_mode"`
-	MinConfidence   int      `yaml:"min_confidence" json:"min_confidence"`
-	MinAvailability float64  `yaml:"min_availability" json:"min_availability"`
-	MaxRTTMS        float64  `yaml:"max_rtt_ms" json:"max_rtt_ms"`
-	MaxAnomalies    int      `yaml:"max_anomalies" json:"max_anomalies"`
-	StormHosts      int      `yaml:"storm_hosts" json:"storm_hosts"`
-	AuthorizedAPs   []string `yaml:"authorized_aps" json:"authorized_aps"`
-	ARPHistoryDays  int      `yaml:"arp_history_days" json:"arp_history_days"`
-	MACIPLimit      int      `yaml:"mac_ip_limit" json:"mac_ip_limit"`
+	EnterpriseMode        bool     `yaml:"enterprise_mode" json:"enterprise_mode"`
+	MinConfidence         int      `yaml:"min_confidence" json:"min_confidence"`
+	MinAvailability       float64  `yaml:"min_availability" json:"min_availability"`
+	MaxRTTMS              float64  `yaml:"max_rtt_ms" json:"max_rtt_ms"`
+	MaxAnomalies          int      `yaml:"max_anomalies" json:"max_anomalies"`
+	StormHosts            int      `yaml:"storm_hosts" json:"storm_hosts"`
+	AuthorizedAPs         []string `yaml:"authorized_aps" json:"authorized_aps"`
+	ARPHistoryDays        int      `yaml:"arp_history_days" json:"arp_history_days"`
+	MACIPLimit            int      `yaml:"mac_ip_limit" json:"mac_ip_limit"`
+	DHCPProbe             bool     `yaml:"dhcp_probe" json:"dhcp_probe"`
+	DHCPProbeTimeout      Duration `yaml:"dhcp_probe_timeout" json:"dhcp_probe_timeout"`
+	DHCPHistoryDays       int      `yaml:"dhcp_history_days" json:"dhcp_history_days"`
+	AuthorizedDHCPServers []string `yaml:"authorized_dhcp_servers" json:"authorized_dhcp_servers"`
 }
 
 // VPN controls the periodic heuristic detection of VPN tunnels. Detection is
@@ -331,14 +336,18 @@ func Defaults() *Config {
 			APIRate:      600,
 		},
 		Diagnostics: Diagnostics{
-			EnterpriseMode:  true,
-			MinConfidence:   60,
-			MinAvailability: 99,
-			MaxRTTMS:        200,
-			MaxAnomalies:    200,
-			StormHosts:      3,
-			ARPHistoryDays:  30,
-			MACIPLimit:      5,
+			EnterpriseMode:        true,
+			MinConfidence:         60,
+			MinAvailability:       99,
+			MaxRTTMS:              200,
+			MaxAnomalies:          200,
+			StormHosts:            3,
+			ARPHistoryDays:        30,
+			MACIPLimit:            5,
+			DHCPProbe:             true,
+			DHCPProbeTimeout:      Duration(700 * time.Millisecond),
+			DHCPHistoryDays:       30,
+			AuthorizedDHCPServers: []string{},
 		},
 		Log: Log{Level: "info", Format: "text"},
 	}
@@ -462,6 +471,22 @@ func (c *Config) Normalize() error {
 		}
 	}
 	c.Diagnostics.AuthorizedAPs = aps
+	if c.Diagnostics.DHCPProbeTimeout.Duration() <= 0 {
+		c.Diagnostics.DHCPProbeTimeout = Duration(700 * time.Millisecond)
+	}
+	if c.Diagnostics.DHCPHistoryDays < 1 {
+		c.Diagnostics.DHCPHistoryDays = 30
+	}
+	dhcpServers := make([]string, 0, len(c.Diagnostics.AuthorizedDHCPServers))
+	seenDHCP := map[string]bool{}
+	for _, value := range c.Diagnostics.AuthorizedDHCPServers {
+		value = strings.ToLower(strings.TrimSpace(value))
+		if value != "" && !seenDHCP[value] {
+			seenDHCP[value] = true
+			dhcpServers = append(dhcpServers, value)
+		}
+	}
+	c.Diagnostics.AuthorizedDHCPServers = dhcpServers
 	if c.Integrations.Timeout.Duration() <= 0 {
 		c.Integrations.Timeout = Duration(10 * time.Second)
 	}
@@ -571,6 +596,19 @@ func (c *Config) Validate() error {
 	}
 	if c.Diagnostics.StormHosts < 2 || c.Diagnostics.StormHosts > 100 {
 		errs = append(errs, "diagnostics.storm_hosts debe estar entre 2 y 100")
+	}
+	if d := c.Diagnostics.DHCPProbeTimeout.Duration(); d < 100*time.Millisecond || d > 5*time.Second {
+		errs = append(errs, "diagnostics.dhcp_probe_timeout debe estar entre 100ms y 5s")
+	}
+	if c.Diagnostics.DHCPHistoryDays < 1 || c.Diagnostics.DHCPHistoryDays > 3650 {
+		errs = append(errs, "diagnostics.dhcp_history_days debe estar entre 1 y 3650")
+	}
+	for _, value := range c.Diagnostics.AuthorizedDHCPServers {
+		if net.ParseIP(value) == nil {
+			if _, err := net.ParseMAC(value); err != nil {
+				errs = append(errs, "diagnostics.authorized_dhcp_servers contiene un valor inválido: "+value)
+			}
+		}
 	}
 	if c.Integrations.Timeout.Duration() < time.Second || c.Integrations.Timeout.Duration() > time.Minute {
 		errs = append(errs, "integrations.timeout debe estar entre 1s y 1m")
@@ -775,6 +813,23 @@ func applyEnv(c *Config) {
 		if len(out) > 0 {
 			c.Scan.SNMPCommunities = out
 		}
+	})
+	set("NETDIAG_DHCP_PROBE", func(v string) {
+		c.Diagnostics.DHCPProbe = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+	})
+	set("NETDIAG_DHCP_PROBE_TIMEOUT", func(v string) {
+		if d, err := time.ParseDuration(v); err == nil {
+			c.Diagnostics.DHCPProbeTimeout = Duration(d)
+		}
+	})
+	set("NETDIAG_DHCP_AUTHORIZED", func(v string) {
+		var out []string
+		for _, s := range strings.Split(v, ",") {
+			if s = strings.TrimSpace(s); s != "" {
+				out = append(out, s)
+			}
+		}
+		c.Diagnostics.AuthorizedDHCPServers = out
 	})
 	set("NETDIAG_ALLOW_PUBLIC", func(v string) {
 		c.Scan.AllowPublic = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")

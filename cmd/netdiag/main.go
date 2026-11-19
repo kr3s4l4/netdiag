@@ -916,6 +916,7 @@ func doctorCmd(args []string) int {
 	check("base de datos", checkDB(cfg), cfg.Storage.DB)
 	check("ICMP", checkICMP(), "ping sin privilegios o con capabilities")
 	check("ARP activo (pcap)", discover.ARPAvailable(), arpDetail())
+	check("DHCP activo (UDP/68)", discover.DHCPAvailable(), "sin raw sockets; SO_REUSEADDR en la IP local")
 	check("privilegios", os.Geteuid() == 0, privilegeDetail())
 	check("monitor", cfg.Monitor.Enabled, "intervalo "+cfg.Monitor.Interval.Duration().String())
 	check("alertas", cfg.Alerts.Enabled, fmt.Sprintf("máximo %d/min", cfg.Alerts.MaxPerMinute))

@@ -429,6 +429,10 @@ diagnostics:
   authorized_aps: []        # MAC/BSSID de puntos de acceso autorizados
   arp_history_days: 30      # retención del histórico IP→MAC entre escaneos
   mac_ip_limit: 5           # IPs a partir de las cuales una MAC se marca sospechosa
+  dhcp_probe: true          # sondeo UDP/68 solo en segmentos locales
+  dhcp_probe_timeout: 700ms # ventana de respuesta; sin respuesta no rompe el escaneo
+  dhcp_history_days: 30     # retención del histórico de respuestas DHCP
+  authorized_dhcp_servers: []  # IPs o MACs de servidores DHCP propios
 integrations:
   enabled: true             # exportación de eventos
   timeout: 10s              # por entrega (1s–1m)

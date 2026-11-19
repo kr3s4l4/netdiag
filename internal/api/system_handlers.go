@@ -57,6 +57,7 @@ func (s *Server) handleSystemInfo(w http.ResponseWriter, r *http.Request) {
 		Interfaces: ifaces,
 		Capabilities: map[string]bool{
 			"active_arp":   discover.ARPAvailable(),
+			"dhcp_probe":   discover.DHCPAvailable(),
 			"passive_arp":  true,
 			"icmp":         true,
 			"snmp":         true,

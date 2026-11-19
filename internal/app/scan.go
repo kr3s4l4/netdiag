@@ -220,6 +220,8 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 		BannerGrab:      opts.BannerGrab,
 		SNMP:            opts.SNMP,
 		SNMPConfig:      snmpCfg,
+		DHCPProbe:       cfg.Diagnostics.DHCPProbe,
+		DHCPTimeout:     cfg.Diagnostics.DHCPProbeTimeout.Duration(),
 		AllowPublic:     opts.AllowPublic,
 		Trigger:         scan.Trigger,
 	}
@@ -271,6 +273,7 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 
 	if result.Err == nil && !result.Canceled {
 		a.recordARPObservations(scan.SiteID, scan.ID, result.Hosts, now)
+		a.recordDHCPObservations(scan.SiteID, scan.ID, result, now)
 	}
 
 	if fullScan && network.ID > 0 && !result.Canceled {

@@ -323,6 +323,26 @@ type ARPObservation struct {
 	ObservedAt time.Time `json:"observed_at"`
 }
 
+// DHCPObservation is one DHCP server reply seen by the active UDP probe. It
+// uses only unprivileged datagram sockets: no raw frames and no promiscuous
+// mode. ServerID is option 54 (or the source when the option is absent).
+type DHCPObservation struct {
+	ID           int64     `json:"id"`
+	SiteID       int64     `json:"site_id"`
+	IP           string    `json:"ip"`
+	ServerID     string    `json:"server_id,omitempty"`
+	MAC          string    `json:"mac,omitempty"`
+	MessageType  string    `json:"message_type"`
+	Gateway      string    `json:"gateway,omitempty"`
+	Interface    string    `json:"interface,omitempty"`
+	LeaseSeconds int64     `json:"lease_seconds,omitempty"`
+	Subnet       string    `json:"subnet,omitempty"`
+	Routers      []string  `json:"routers,omitempty"`
+	DNS          []string  `json:"dns,omitempty"`
+	ScanID       int64     `json:"scan_id,omitempty"`
+	ObservedAt   time.Time `json:"observed_at"`
+}
+
 // DiagnosticsReport is the result of an enterprise diagnostics run.
 type DiagnosticsReport struct {
 	SiteID          int64               `json:"site_id"`
@@ -411,6 +431,7 @@ type Alert struct {
 	ID         int64          `json:"id"`
 	RuleID     int64          `json:"rule_id"`
 	RuleName   string         `json:"rule_name"`
+	SiteID     int64          `json:"site_id,omitempty"`
 	HostID     int64          `json:"host_id,omitempty"`
 	HostIP     string         `json:"host_ip,omitempty"`
 	HostName   string         `json:"host_name,omitempty"`

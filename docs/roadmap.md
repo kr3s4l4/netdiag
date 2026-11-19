@@ -20,6 +20,8 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
 | F43 | Implementado y verificado: histórico IP→MAC, anomalías ARP y regla `anomaly` |
+| F45 | Implementado: reglas de alerta de seguridad dedicadas con precedencia |
+| F44 | Implementado: sonda DHCP UDP/68, histórico y detectores de servidor rogue |
 | Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -277,11 +279,23 @@ Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantilla
 
 Primera fase de seguridad del activo, sin captura de paquetes ni raw sockets. Cada escaneo guarda su par IP→MAC en `arp_observations` (v1.5.6, retención 30 días) y el detector compara lotes para emitir `arp_gateway_mac_changed`, `arp_ip_mac_changed`, `arp_mac_multi_ip` y `arp_ip_multi_mac`. La regla de alerta `anomaly` dispara avisos con `min_confidence` y `category`, con dedupe y host del inventario resuelto. Endpoint `GET /diagnostics/arp` y tabla `Histórico IP→MAC` en `#/diagnostics`.
 
-Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación sintética antigua del gateway con otra MAC, anomalía crítica confianza 95 y alerta `Posible MITM` visible con `site_id=1`. Detalle en `docs/validacion.md`. El tipo `dhcp_rogue` queda admitido pero sin detector; siguen pendientes DHCP rogue, alertas de seguridad dedicadas y SNMP profundo.
+Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación sintética antigua del gateway con otra MAC, anomalía crítica confianza 95 y alerta `Posible MITM` visible con `site_id=1`. Detalle en `docs/validacion.md`. Siguieron F45 (alertas dedicadas) y F44 (DHCP rogue); quedan SNMP profundo y captura pasiva.
 
 **Criterio de cierre:** dos escaneos con MAC distinta para una misma IP generan un hallazgo con evidencia, y la alerta aparece filtrando por sede. Sin captura L2 no se confirma spoofing activo: es una pista para investigar.
 
 **Esfuerzo:** 6–10 h de implementación y verificación.
+
+### F45 — Alertas de seguridad dedicadas — **implementado**
+
+`EvaluateAnomalies` enruta los hallazgos a reglas `arp_spoofing`, `dhcp_rogue`, `snmp_anomaly` y `passive_anomaly`, con precedencia sobre `anomaly` para no duplicar avisos. La UI permite crearlas con `min_confidence` y `category`. Cubre las cuatro familias que faltaban antes de tener detectores para todas ellas.
+
+### F44 — DHCP rogue con UDP/68 — **implementado y verificado solo por tests**
+
+Sonda DHCPINFORM/DHCPDISCOVER sin raw sockets, tabla `dhcp_observations` (v1.5.7) y detectores `dhcp_multiple_servers`, `dhcp_unauthorized_server`, `dhcp_gateway_spoof` y `dhcp_server_mac_changed`. La confianza depende de la lista `diagnostics.authorized_dhcp_servers` y de la correlación con el MAC del gateway en el histórico ARP. Endpoint `GET /diagnostics/dhcp` y tabla en `#/diagnostics`.
+
+En esta red `192.168.0.105:68` enlazó con `SO_REUSEADDR`, pero el gateway y el broadcast no respondieron: no hay evidencia real de rogue. El escaneo degradó limpiamente. Con una respuesta sintética se validó el recorrido completo: anomalía `dhcp_unauthorized_server` → regla `dhcp_rogue` → alerta crítica visible en `site_id=1`. Queda pendiente validar contra un laboratorio con un servidor DHCP controlado.
+
+**Criterio de cierre:** un OFFER de un servidor distinto al gateway o al autorizado genera una alerta `dhcp_rogue` con evidencia, y un cambio de MAC del servidor entre escaneos genera `dhcp_server_mac_changed`. Ambos se comprueban con tests; el primero además con un escaneo real y datos sintéticos.
 
 ## Dependencias y orden recomendado
 
@@ -299,6 +313,8 @@ Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación 
 | F41 | F33, F37, F38 | Alta: obligación legal y contractual |
 | F42 | Ninguna | Alta: se ejecuta antes de F35/F37/F38 |
 | F43 | Ninguna | Media: valor de seguridad sin permisos ni captura |
+| F45 | F43 | Alta: evita alertas duplicadas al añadir detectores |
+| F44 | F43, F45 | Alta: aprovecha el histórico ARP y la regla dedicada |
 
 ## Cierre de salida al mercado
 

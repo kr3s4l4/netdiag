@@ -321,7 +321,7 @@ var securityRuleCategories = map[string]string{
 // It handles both the generic "anomaly" rule and the dedicated security rules.
 // It returns the number of matching rule/finding pairs; dedupe and cooldown are
 // handled by raise, so repeated scans do not flood the operator.
-func (m *Manager) EvaluateAnomalies(findings []model.DiagnosticAnomaly) int {
+func (m *Manager) EvaluateAnomalies(findings []model.DiagnosticAnomaly, defaultSiteID ...int64) int {
 	if !m.enabled() || len(findings) == 0 {
 		return 0
 	}
@@ -373,6 +373,11 @@ func (m *Manager) EvaluateAnomalies(findings []model.DiagnosticAnomaly) int {
 					host.Hostname = found.Hostname
 				}
 			}
+			// A rogue DHCP server often has no inventory host. Keep the alert
+			// in its site so site-scoped lists and counters still show it.
+			if host.ID == 0 && len(defaultSiteID) > 0 && defaultSiteID[0] > 0 {
+				host.SiteID = defaultSiteID[0]
+			}
 			m.raise(rule, host, firstNonEmpty(rule.Severity, a.Severity), a.Title, a.Detail, "anomaly:"+a.ID)
 			raised++
 		}
@@ -403,6 +408,7 @@ func (m *Manager) raise(rule model.AlertRule, host model.Host, severity, title, 
 	a := &model.Alert{
 		RuleID:    rule.ID,
 		RuleName:  rule.Name,
+		SiteID:    host.SiteID,
 		HostID:    host.ID,
 		HostIP:    host.IP,
 		HostName:  host.Hostname,

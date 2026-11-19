@@ -120,3 +120,42 @@ func TestEvaluateAnomalies(t *testing.T) {
 		t.Fatalf("esperaba 1 alerta tras repetir, hay %d", len(all.Items))
 	}
 }
+
+func TestSecurityAlertWithoutHostKeepsSite(t *testing.T) {
+	dir := t.TempDir()
+	box, err := cryptoutil.LoadOrCreate(filepath.Join(dir, "secret.key"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := store.Open(filepath.Join(dir, "test.db"), box)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if _, err := st.CreateRule(&model.AlertRule{
+		Name: "DHCP rogue", Type: "dhcp_rogue", Enabled: true, Severity: model.SeverityCritical,
+		Config: map[string]any{"min_confidence": 70},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	m := New(st, config.Alerts{Enabled: true, MaxPerMinute: 30}, nil)
+	findings := []model.DiagnosticAnomaly{{
+		ID: "dhcp:dhcp_unauthorized_server:192.168.0.50", Type: "dhcp_unauthorized_server",
+		Category: "dhcp", Severity: model.SeverityWarning, Title: "Servidor DHCP no autorizado",
+		Detail: "Fuera de la lista", Confidence: 80, HostIPs: []string{"192.168.0.50"},
+	}}
+	if got := m.EvaluateAnomalies(findings, 3); got != 1 {
+		t.Fatalf("esperaba 1 alerta, obtuve %d", got)
+	}
+	scoped, err := st.ListAlerts(model.AlertFilter{SiteID: 3})
+	if err != nil || len(scoped.Items) != 1 {
+		t.Fatalf("la alerta debe aparecer en la sede 3: %d, %v", len(scoped.Items), err)
+	}
+	if scoped.Items[0].SiteID != 3 || scoped.Items[0].HostID != 0 {
+		t.Fatalf("site u host incorrectos: %+v", scoped.Items[0])
+	}
+	stats, err := st.AlertStatsForSite(3)
+	if err != nil || stats.Active != 1 {
+		t.Fatalf("las estadísticas de la sede deben incluirla: %+v, %v", stats, err)
+	}
+}

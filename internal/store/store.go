@@ -464,6 +464,37 @@ var migrations = [][]string{
 		`CREATE INDEX idx_arp_observations_ip ON arp_observations(site_id, ip, observed_at DESC)`,
 		`CREATE INDEX idx_arp_observations_mac ON arp_observations(site_id, mac, observed_at DESC)`,
 	},
+	{
+		// v1.5.7: F44 DHCP replies collected with an unprivileged UDP probe.
+		// The table is raw evidence; the detector decides what is rogue based
+		// on the gateway, the authorized list and the observation history.
+		`CREATE TABLE dhcp_observations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			ip TEXT NOT NULL,
+			server_id TEXT NOT NULL DEFAULT '',
+			mac TEXT NOT NULL DEFAULT '',
+			message_type TEXT NOT NULL DEFAULT '',
+			gateway TEXT NOT NULL DEFAULT '',
+			interface TEXT NOT NULL DEFAULT '',
+			lease_seconds INTEGER NOT NULL DEFAULT 0,
+			subnet TEXT NOT NULL DEFAULT '',
+			routers TEXT NOT NULL DEFAULT '',
+			dns TEXT NOT NULL DEFAULT '',
+			scan_id INTEGER NOT NULL DEFAULT 0,
+			observed_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_dhcp_observations_server ON dhcp_observations(site_id, server_id, observed_at DESC)`,
+		`CREATE INDEX idx_dhcp_observations_ip ON dhcp_observations(site_id, ip, observed_at DESC)`,
+		`CREATE INDEX idx_dhcp_observations_time ON dhcp_observations(site_id, observed_at DESC)`,
+	},
+	{
+		// v1.5.8: security findings can point at devices that never answered a
+		// ping (a rogue DHCP server, for example). Persist the site directly on
+		// the alert so it is not orphaned when there is no inventory host.
+		`ALTER TABLE alerts ADD COLUMN site_id INTEGER NOT NULL DEFAULT 0`,
+		`CREATE INDEX idx_alerts_site ON alerts(site_id, created_at DESC)`,
+	},
 }
 
 func (s *Store) migrate() error {

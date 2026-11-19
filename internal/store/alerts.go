@@ -232,7 +232,7 @@ func (s *Store) MarkChannelTest(id int64, errMsg string) error {
 
 // --- alerts ---
 
-const alertColumns = `id, rule_id, rule_name, host_id, host_ip, host_name, severity, status, title,
+const alertColumns = `id, rule_id, rule_name, site_id, host_id, host_ip, host_name, severity, status, title,
 	message, data, created_at, acked_at, resolved_at, dedupe_key`
 
 func scanAlert(r rowScanner) (*model.Alert, error) {
@@ -243,7 +243,7 @@ func scanAlert(r rowScanner) (*model.Alert, error) {
 		acked    sql.NullInt64
 		resolved sql.NullInt64
 	)
-	if err := r.Scan(&a.ID, &a.RuleID, &a.RuleName, &a.HostID, &a.HostIP, &a.HostName, &a.Severity,
+	if err := r.Scan(&a.ID, &a.RuleID, &a.RuleName, &a.SiteID, &a.HostID, &a.HostIP, &a.HostName, &a.Severity,
 		&a.Status, &a.Title, &a.Message, &data, &created, &acked, &resolved, &a.DedupeKey); err != nil {
 		return nil, err
 	}
@@ -271,9 +271,9 @@ func (s *Store) CreateAlert(a *model.Alert, dedupe string) (*model.Alert, bool, 
 	if a.Severity == "" {
 		a.Severity = model.SeverityWarning
 	}
-	res, err := s.db.Exec(`INSERT INTO alerts(rule_id, rule_name, host_id, host_ip, host_name, severity, status,
-		title, message, data, created_at, dedupe_key) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-		a.RuleID, a.RuleName, a.HostID, a.HostIP, a.HostName, a.Severity, model.AlertActive,
+	res, err := s.db.Exec(`INSERT INTO alerts(rule_id, rule_name, site_id, host_id, host_ip, host_name, severity, status,
+		title, message, data, created_at, dedupe_key) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		a.RuleID, a.RuleName, a.SiteID, a.HostID, a.HostIP, a.HostName, a.Severity, model.AlertActive,
 		a.Title, a.Message, jsonMarshal(a.Data), nowMS(), dedupe)
 	if err != nil {
 		return nil, false, err
@@ -313,8 +313,8 @@ func (s *Store) ListAlerts(f model.AlertFilter) (*model.ListResult[model.Alert],
 	where := []string{"1=1"}
 	var args []any
 	if f.SiteID > 0 {
-		where = append(where, "EXISTS (SELECT 1 FROM hosts h WHERE h.id = alerts.host_id AND h.site_id = ?)")
-		args = append(args, f.SiteID)
+		where = append(where, `(alerts.site_id = ? OR EXISTS (SELECT 1 FROM hosts h WHERE h.id = alerts.host_id AND h.site_id = ?))`)
+		args = append(args, f.SiteID, f.SiteID)
 	}
 	if f.Status != "" && f.Status != "all" {
 		where = append(where, "status = ?")
@@ -408,8 +408,8 @@ func (s *Store) AlertStatsForSite(siteID int64) (model.AlertStats, error) {
 	hostFilter := ""
 	args := []any{}
 	if siteID > 0 {
-		hostFilter = ` AND EXISTS (SELECT 1 FROM hosts h WHERE h.id = alerts.host_id AND h.site_id = ?)`
-		args = append(args, siteID)
+		hostFilter = ` AND (alerts.site_id = ? OR EXISTS (SELECT 1 FROM hosts h WHERE h.id = alerts.host_id AND h.site_id = ?))`
+		args = append(args, siteID, siteID)
 	}
 	rows, err := s.db.Query(`SELECT status, COUNT(*) FROM alerts WHERE 1=1`+hostFilter+` GROUP BY status`, args...)
 	if err != nil {
@@ -434,7 +434,7 @@ func (s *Store) AlertStatsForSite(siteID int64) (model.AlertStats, error) {
 	rows.Close()
 	sevArgs := []any{model.AlertActive, model.AlertAcked}
 	if siteID > 0 {
-		sevArgs = append(sevArgs, siteID)
+		sevArgs = append(sevArgs, siteID, siteID)
 	}
 	rows, err = s.db.Query(`SELECT severity, COUNT(*) FROM alerts WHERE status IN (?,?)`+hostFilter+` GROUP BY severity`, sevArgs...)
 	if err != nil {

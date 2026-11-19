@@ -59,6 +59,14 @@ func (s *Server) diagnosticsInput(r *http.Request) (diagnostics.Input, time.Time
 	if err != nil {
 		in.ARP = nil
 	}
+	dhcpDays := cfg.DHCPHistoryDays
+	if dhcpDays < 1 {
+		dhcpDays = 30
+	}
+	in.DHCP, err = s.st.ListDHCPObservations(siteID, to.AddDate(0, 0, -dhcpDays), 50000)
+	if err != nil {
+		in.DHCP = nil
+	}
 	return in, from, to
 }
 
@@ -108,6 +116,25 @@ func (s *Server) handleARPDiagnostics(w http.ResponseWriter, r *http.Request) {
 		"site_id": in.SiteID, "generated_at": report.GeneratedAt,
 		"from": from, "to": to,
 		"anomalies": findings, "observations": in.ARP,
+		"limitations": report.Limitations,
+	})
+}
+
+// handleDHCPDiagnostics returns rogue-server findings with the raw replies
+// collected by the active UDP probe.
+func (s *Server) handleDHCPDiagnostics(w http.ResponseWriter, r *http.Request) {
+	in, from, to := s.diagnosticsInput(r)
+	report := diagnostics.Analyzer{}.Analyze(in)
+	findings := make([]model.DiagnosticAnomaly, 0)
+	for _, a := range report.Anomalies {
+		if strings.HasPrefix(a.Type, "dhcp_") {
+			findings = append(findings, a)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"site_id": in.SiteID, "generated_at": report.GeneratedAt,
+		"from": from, "to": to,
+		"anomalies": findings, "observations": in.DHCP,
 		"limitations": report.Limitations,
 	})
 }

@@ -85,6 +85,47 @@ func TestARPDiagnosticsEndpoint(t *testing.T) {
 	}
 }
 
+func TestDHCPDiagnosticsEndpoint(t *testing.T) {
+	s := newMetricsServer(t)
+	now := time.Now()
+	if err := s.st.SaveDHCPObservations([]model.DHCPObservation{
+		{SiteID: 1, ScanID: 1, IP: "192.168.0.1", ServerID: "192.168.0.1", MAC: "de:ad:be:ef:00:01",
+			MessageType: "ack", ObservedAt: now},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.st.SaveARPObservations([]model.ARPObservation{
+		{SiteID: 1, ScanID: 1, IP: "192.168.0.1", MAC: "11:22:33:44:55:01", IsGateway: true, ObservedAt: now},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	s.handleDHCPDiagnostics(rec, httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/dhcp?site_id=1", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("código %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Observations []model.DHCPObservation   `json:"observations"`
+		Anomalies    []model.DiagnosticAnomaly `json:"anomalies"`
+		Limitations  []string                  `json:"limitations"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Observations) != 1 || body.Observations[0].ServerID != "192.168.0.1" {
+		t.Fatalf("observaciones inesperadas: %+v", body.Observations)
+	}
+	found := false
+	for _, a := range body.Anomalies {
+		if a.Type == "dhcp_gateway_spoof" && a.Severity == model.SeverityCritical {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("esperaba dhcp_gateway_spoof crítico: %+v", body.Anomalies)
+	}
+}
+
 func TestSTPDiagnosticsEndpointShape(t *testing.T) {
 	s := newMetricsServer(t)
 	rec := httptest.NewRecorder()

@@ -400,6 +400,10 @@ const DIAG_TYPE_LABELS = {
   arp_ip_mac_changed: 'Cambio de MAC de un dispositivo',
   arp_mac_multi_ip: 'Una MAC reclama muchas IPs',
   arp_ip_multi_mac: 'Una IP tiene varias MAC',
+  dhcp_multiple_servers: 'Varios servidores DHCP responden',
+  dhcp_unauthorized_server: 'Servidor DHCP no autorizado',
+  dhcp_gateway_spoof: 'Suplantación del servidor DHCP',
+  dhcp_server_mac_changed: 'Cambió la MAC del servidor DHCP',
 };
 
 function diagConfidenceBar(value) {
@@ -413,9 +417,10 @@ async function renderDiagnostics() {
   setPageTitle('diagnostics');
   const content = document.getElementById('content');
   content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-  const [report, arp] = await Promise.all([
+  const [report, arp, dhcp] = await Promise.all([
     api('/diagnostics/enterprise'),
     api('/diagnostics/arp').catch(() => ({ observations: [] })),
+    api('/diagnostics/dhcp').catch(() => ({ observations: [] })),
   ]);
   const anomalies = report.anomalies || [];
   const counts = report.counts || {};
@@ -435,7 +440,7 @@ async function renderDiagnostics() {
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
       <div class="tiny">${esc(tr('Las heurísticas no encontraron señales suficientes en la ventana analizada.'))}</div></div></div></td></tr>`;
 
-  const categoryCounts = ['arp', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
+  const categoryCounts = ['arp', 'dhcp', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
     .map((k) => [k, counts[k] || 0]).filter(([, v]) => v > 0);
   const hasEnterprise = report.enterprise_mode !== false;
 
@@ -469,6 +474,17 @@ async function renderDiagnostics() {
           <td class="mono-ip">${esc(o.ip)}</td><td class="mono">${esc(o.mac)}</td>
           <td>${esc(o.hostname || '—')}</td><td>${o.is_gateway ? esc(tr('Sí')) : '—'}</td>
           <td class="mono">${esc(String(o.scan_id || '—'))}</td><td class="tiny muted">${fmtDate(o.observed_at)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>` : ''}
+    ${(dhcp.observations || []).length ? `<div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Servidores DHCP'))}</h3><span class="tiny muted">${esc(tr('respuestas al sondeo UDP'))}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>${esc(tr('Servidor'))}</th><th>MAC</th><th>${esc(tr('Mensaje'))}</th><th>${esc(tr('IP de origen'))}</th><th>${esc(tr('Gateway'))}</th><th>${esc(tr('Visto'))}</th></tr></thead>
+        <tbody>${dhcp.observations.slice(-12).reverse().map((o) => `<tr>
+          <td class="mono-ip">${esc(o.server_id || o.ip)}</td><td class="mono">${esc(o.mac || '—')}</td>
+          <td><span class="badge ${o.message_type === 'nak' ? 'critical' : 'info'}">${esc(o.message_type)}</span></td>
+          <td class="mono-ip">${esc(o.ip)}</td><td class="mono-ip">${esc(o.gateway || '—')}</td><td class="tiny muted">${fmtDate(o.observed_at)}</td>
         </tr>`).join('')}</tbody>
       </table></div>
     </div>` : ''}

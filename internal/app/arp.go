@@ -50,7 +50,7 @@ func (a *App) recordARPObservations(siteID, scanID int64, hosts []model.Host, at
 	}
 	findings := diagnostics.DetectARP(history, cfg)
 	if len(findings) > 0 {
-		a.alerts.EvaluateAnomalies(findings)
+		a.alerts.EvaluateAnomalies(findings, siteID)
 	}
 }
 

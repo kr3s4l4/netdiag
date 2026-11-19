@@ -34,6 +34,8 @@ type Options struct {
 	BannerGrab      bool
 	SNMP            bool
 	SNMPConfig      snmp.Config
+	DHCPProbe       bool
+	DHCPTimeout     time.Duration
 	AllowPublic     bool
 	SkipPortScan    bool
 	Trigger         string
@@ -95,16 +97,19 @@ type Progress struct {
 // Result is the outcome of a run. When Canceled is true, Hosts still contains
 // every host confirmed before cancellation.
 type Result struct {
-	Hosts        []model.Host
-	Total        int
-	Scanned      int
-	Found        int
-	ARPEntries   int
-	LocalSegment bool
-	Canceled     bool
-	Duration     time.Duration
-	Progress     Progress
-	Err          error
+	Hosts              []model.Host
+	Total              int
+	Scanned            int
+	Found              int
+	ARPEntries         int
+	DHCPObservations   []model.DHCPObservation
+	DHCPProbeAvailable bool
+	DHCPProbeError     string
+	LocalSegment       bool
+	Canceled           bool
+	Duration           time.Duration
+	Progress           Progress
+	Err                error
 }
 
 // Engine runs discovery. It is stateless and safe to reuse.
@@ -200,6 +205,17 @@ func (e *Engine) Run(ctx context.Context, opts Options, onProgress func(Progress
 	res.ARPEntries = len(arp)
 	if ctx.Err() != nil {
 		res.Canceled = true
+	}
+	// The DHCP probe runs before liveness: a rogue server can be the only
+	// device answering on a segment where ICMP and TCP are filtered.
+	if local && opts.DHCPProbe && ctx.Err() == nil {
+		probe := ProbeDHCP(ctx, ifaceName, gateway, opts.DHCPTimeout)
+		res.DHCPObservations = probe.Observations
+		res.DHCPProbeAvailable = probe.Available
+		res.DHCPProbeError = probe.Error
+		if probe.Error != "" {
+			res.Progress.Stage = "descubriendo"
+		}
 	}
 
 	// ---- Phase 2: liveness ----

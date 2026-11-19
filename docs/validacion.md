@@ -187,15 +187,15 @@ Inventario de solo lectura del repo histórico. No se borró código: el activo 
 | --- | --- |
 | Captura pasiva y `AnomalyDetector` (ICMP redirect, GARP, IP→MAC, MAC→muchas IPs, TTL anómalo) | Parcial (F43: IP→MAC y MAC→muchas IPs desde escaneos; sin GARP, ICMP redirect ni TTL) |
 | Detección de MITM por cambio de MAC del gateway y duplicados IP/MAC | Sí (F43: histórico entre escaneos; sin captura ARP en vivo) |
-| DHCP rogue (OFFERs, sonda DISCOVER, regla `!IsGateway && >1 servidor`) | No |
+| DHCP rogue (OFFERs, sonda DISCOVER, regla `!IsGateway && >1 servidor`) | Parcial (F44: sonda UDP/68 y detectores; sin captura de OFFERs de terceros ni respuesta real en esta red) |
 | Escaneos entrantes, DNS tunneling y protocolos en claro | No |
-| Contexto DHCP y reducción de falsos positivos | No |
-| Reglas de alerta `anomaly` y `dhcp_rogue` | Parcial (F43: `anomaly` implementada; `dhcp_rogue` reservada) |
+| Contexto DHCP y reducción de falsos positivos | Parcial (F44: lista de autorizados y correlación con ARP) |
+| Reglas de alerta `anomaly` y `dhcp_rogue` | Sí (F45: dedicadas con precedencia; F44 ya emite hallazgos `dhcp_*`) |
 | SNMP profundo: sweep de communities, IP-MIB, Q-BRIDGE, correlación ARP↔FDB↔LLDP | Parcial |
 | Escaneo de puertos y banners | Sí (parcial: no distingue `closed`/`filtered`) |
 | WiFi y VPN | Sí (en el original solo eran roadmap) |
 
-Nota: el «DNS spoofing» histórico era un contador de consultas UDP/53, no validación de respuestas. Prioridad propuesta: ~~anomalías ARP/MITM~~ (hecho en F43) → DHCP rogue → alertas de seguridad dedicadas → SNMP profundo.
+Nota: el «DNS spoofing» histórico era un contador de consultas UDP/53, no validación de respuestas. Prioridad: ~~anomalías ARP/MITM~~ (F43) → ~~alertas de seguridad dedicadas~~ (F45) → ~~DHCP rogue~~ (F44) → SNMP profundo → captura pasiva.
 
 ### F43 — Histórico IP→MAC y detección de MITM (18/11/2026)
 
@@ -216,6 +216,26 @@ Verificación real en `127.0.0.1:18780` con datos de la red `192.168.0.0/24`:
 - Chromium headless confirmó en el DOM `Histórico IP→MAC`, la anomalía y las filas de observaciones.
 
 Límite importante: es una pista basada en el histórico, no una confirmación de spoofing activo. Sin captura L2 no se distinguen GARP, ICMP redirect ni respuestas ARP duplicadas en vivo.
+
+### F45 — Reglas de alerta de seguridad dedicadas (19/11/2026)
+
+- `EvaluateAnomalies` acepta `anomaly`, `arp_spoofing`, `dhcp_rogue`, `snmp_anomaly` y `passive_anomaly`.
+- Las reglas dedicadas fijan categoría y tienen precedencia sobre `anomaly`; un hallazgo no genera dos alertas.
+- UI de reglas con los nuevos tipos y campos `min_confidence`/`category`, e i18n correspondiente.
+- `TestDedicatedSecurityRuleTakesPrecedence` verifica que ARP use la regla dedicada y VLAN siga usando la genérica.
+
+### F44 — DHCP rogue sin raw sockets (19/11/2026)
+
+- Sonda activa `ProbeDHCP`: DHCPINFORM unicast al gateway y por broadcast, más DHCPDISCOVER por broadcast. Enlaza la IP local en UDP/68 con `SO_REUSEADDR` y `SO_BROADCAST`; si no puede enlazar, el escaneo continúa y se registra la limitación.
+- Decodificación propia de BOOTP/DHCP: tipo de mensaje, server ID (54), máscara, router, DNS y lease. No se añadió ninguna dependencia.
+- Migración SQLite v1.5.7: tabla `dhcp_observations` con índices por servidor, IP y fecha, y retención `diagnostics.dhcp_history_days` (30 días).
+- Detector `DetectDHCP`: `dhcp_multiple_servers` (90), `dhcp_unauthorized_server` (80/85, 90 si NAK), `dhcp_gateway_spoof` (95) y `dhcp_server_mac_changed` (90/92). Un servidor es legítimo si está en `diagnostics.authorized_dhcp_servers` o si IP y MAC coinciden con el gateway del histórico ARP.
+- Hook en `runScan`, endpoint `GET /api/v1/diagnostics/dhcp`, OpenAPI, documentación y tabla `Servidores DHCP` en `#/diagnostics`.
+- Config: `diagnostics.dhcp_probe` (activo por defecto solo en segmentos locales), `dhcp_probe_timeout` (700 ms), `dhcp_history_days` y `authorized_dhcp_servers`.
+- `DHCPAvailable()` publica la capacidad `dhcp_probe` en `/api/v1/system/info` y el check `DHCP activo (UDP/68)` en `netdiag doctor`.
+- Migración SQLite v1.5.8: `alerts.site_id`. Los hallazgos de seguridad sobre IPs sin inventario (un servidor rogue no suele responder al ping) conservan la sede y aparecen en listados y contadores por sede.
+
+Verificación: `gofmt`, `go vet`, `go test ./...` y `go build ./...`. Pruebas unitarias de construcción/parseo DHCP, detector, store, API, config y de alerta sin host con sede asignada. Prueba real en esta red: `192.168.0.105:68` enlazó con `SO_REUSEADDR`, pero ni el gateway ni el broadcast respondieron en 3 s; el código degradó sin romper el escaneo. Con una observación sintética (`192.168.0.51`, `de:ad:be:ef:00:51`) y una regla `dhcp_rogue` crítica, el escaneo 3 generó la alerta «Servidor DHCP no autorizado» con `site_id=1` y `critical:1` en las estadísticas. Chromium mostró la tabla «Servidores DHCP» y la anomalía. No hay evidencia real de un OFFER rogue en este entorno.
 
 ### Señales públicas reales a 18/11/2026
 
