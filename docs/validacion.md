@@ -581,3 +581,7 @@ La copia de seguridad ZIP contiene `manifest.json`, `netdiag.db`, `config.yaml` 
 Se generó una clave de firma de evidencia F58 de prueba con `netdiag-release keygen` en `/tmp`, distinta de la clave de release. `evidence usage` sobre los datos del laboratorio produjo un `.ndc` de 1107 bytes con `scans: 2`, `sites: 2` y bandas agregadas; `installed_days: 0` porque el primer usuario se creó hoy. `container verify` devolvió `Firma: válida`, `Contenido: correcto`, `Resultado: VÁLIDO`. El payload no contiene IPs, MACs ni nombres. El primer intento falló por permisos del `.ndc` creado con `sudo`; se corrigió con `chmod 0644` en el script local, sin cambios en el repositorio.
 
 Nada de esto cuenta para F42: sigue en 0/3, 0/2 y 0/1. No hay telemetría, envío automático, nube ni cambio de licencia o release.
+
+### Cierre del laboratorio (19/11/2026)
+
+El propietario pidió cerrar todo. Se detuvo la instancia visual de `127.0.0.1:18780` buscando el PID con `ss -ltnp` y enviando `kill`; nunca con `pkill -f`. El propietario ejecutó con `sudo` la eliminación de `lab-scapy`, `lab-snmp`, `lab-dhcp` y `lab-netdiag`, además de la red `netdiag-lab`, por nombre. `ss` confirma que no queda escucha en `18080`, `18081` ni `18780`. Los informes, el ZIP de copia y la evidencia firmada permanecen en `/tmp/opencode/lab-reports` y `/tmp/opencode/usage-keys`; la semilla de firma sigue con permisos `0600`. El repositorio queda limpio, sin tag ni release, y `v1.5.2` intacta.
