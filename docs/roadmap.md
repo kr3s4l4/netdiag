@@ -43,6 +43,10 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F49 | Implementado: `netdiag probe` y `probe import`, JSON local con firma minisign opcional |
 | F59 | Implementado: triaje local por hallazgo con RBAC, caducidad de 30 días, badge y auditoría |
 | F68 | Implementado: dossier `.ndc` programado y manual, con retención y semilla fuera de la configuración |
+| F61 | Implementado: versión única en `internal/buildinfo` y smoke test de binario, API y UI |
+| F62 | Pendiente — Lote 4: evidencia de uso voluntaria y firmada para F42 |
+| F63 | Pendiente — Lote 4: ensayo local del runbook CRA sin envíos |
+| F64 | Pendiente — Lote 4: expediente de decisión comercial, sin publicar precios |
 | Pruebas | `gofmt`, `go build`, `go test ./...`, `git diff --check`, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
 
 ## Mejoras de 1.5.2 y trabajo posterior
@@ -410,6 +414,32 @@ Cada hallazgo puede revisarse desde **Diagnósticos** con estado `pending`, `con
 
 Las bandas `solo-5`, `solo-10` y `pro-50` siguen siendo propuestas. No se activan sin decisión escrita o cierre de F42. La facturación, cuando se active, seguirá siendo por banda de hosts gestionados, nunca por informe, alerta, escaneo, usuario, host detectado, sonda o sede.
 
+### F61 — Fuente única de versión y prueba de descarga — **implementado**
+
+`internal/buildinfo` concentra `Version`, `Commit` y `BuildDate`. `Makefile` y `scripts/release.sh` los inyectan con `-ldflags`; `cmd/netdiag` solo los usa como alias. Ya no hay literales de versión duplicados en el CLI ni en el Makefile, aparte de `VERSION`.
+
+Tests: `internal/buildinfo` compara el valor por defecto con `VERSION` del Makefile, `cmd/netdiag` verifica los alias y `internal/webui` comprueba que el footer del login lee `st.version`. `scripts/check-version-stamp.sh` construye un binario temporal, arranca un servidor con datos temporales y valida que `--version`, `/api/v1/auth/status` y el footer coinciden. El script detiene el servidor por PID y no deja rastros.
+
+**Criterio de cierre (cumplido):** una sola versión para build local, release firmada y pantalla de login. No modifica `v1.5.2`, sus hashes ni su clave.
+
+### F62 — Evidencia de uso voluntaria y firmada — **pendiente, Lote 4**
+
+`netdiag evidence usage` exportaría un JSON firmado con la clave dedicada de F58. Solo contendría días instalado, número de escaneos, sedes y conteo agregado por banda. Sin IPs, MACs, nombres de host ni secretos. Sin red y sin envío automático: el usuario decide compartirlo.
+
+**Criterio de cierre:** contenedor verificable con `container verify`, ausencia de identificadores de red comprobada por tests y documento que deje claro que no sustituye la evidencia escrita de F42.
+
+### F63 — Ensayo local del runbook CRA — **pendiente, Lote 4**
+
+`netdiag security runbook --dry-run` generaría los borradores de notificación 24/72 h a partir del SBOM y la procedencia ya firmados. No enviaría correo, no contactaría la SRP y no crearía obligaciones legales.
+
+**Criterio de cierre:** borradores deterministas, sin red y con la advertencia explícita de que F41 real sigue bloqueado hasta credenciales SRP y release correctiva.
+
+### F64 — Expediente de decisión comercial — **pendiente, Lote 4**
+
+`docs/decision-comercial.md` recogería las bandas propuestas, la regla `s<siteID>:<identity>` sobre los últimos 30 días excluyendo `guest`/`excluded`, el criterio de piloto de 30 días y campos vacíos para las decisiones F55/F65/F66.
+
+**Criterio de cierre:** borrador listo para firma, sin precios activos, sin cobro y sin abrir F42.
+
 ## Dependencias y orden recomendado
 
 | Fase | Depende de | Prioridad |
@@ -446,6 +476,12 @@ Las bandas `solo-5`, `solo-10` y `pro-50` siguen siendo propuestas. No se activa
 | F49 | F51, F36 | Media: punto de observación portable y firma local |
 | F59 | F43–F47 | Media: triaje humano sin cerrar alertas automáticamente |
 | F68 | F32, F36, F57 | Media: dossier firmado con informe, diff y auditoría |
+| F61 | Ninguna | Alta: cierra el issue de la versión del login |
+| F62 | F58, F68 | Media: apoya F42 sin telemetría |
+| F63 | F37, F38 | Media: ensayo local de F41 sin envíos |
+| F64 | F42, F55 | Media: solo borrador, sin publicar precios |
+
+Orden cerrado: Lote 1 F51–F54; Lote 2 F50, F56, F57, F58, F60; Lote 3 F59, F49, F68; Lote 4 F61–F64.
 
 ## Cierre de salida al mercado
 

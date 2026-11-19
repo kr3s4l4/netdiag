@@ -469,3 +469,16 @@ Validación en `master` sobre un directorio de datos temporal, sin tocar la rele
 - **Límites comprobados:** la sonda no envía datos; WiFi queda `available:false` en el binario portable; la firma da integridad y procedencia, no confidencialidad; el triaje no cierra alertas y expira a los 30 días; el dossier conserva solo los últimos `keep`.
 
 Estos cambios siguen en `master` y **no son parte de la release `v1.5.2`**. No se han creado tag ni release para este lote.
+
+### Lote 4: F61 — versión única (19/11/2026)
+
+`internal/buildinfo` es la única fuente de `Version`, `Commit` y `BuildDate`. `Makefile` y `scripts/release.sh` inyectan esos valores sobre el paquete `internal/buildinfo`; `cmd/netdiag` solo mantiene alias para no tocar el resto del CLI. Se eliminaron los literales `1.5.1` y `1.5.0` que causaban la versión desfasada en el login.
+
+Comprobaciones:
+
+- `go test ./internal/buildinfo ./cmd/netdiag ./internal/webui` pasa. Los tests comparan el valor por defecto con `VERSION` del Makefile, los alias del CLI y el uso de `st.version` en el footer.
+- `make build && ./bin/netdiag --version` devuelve `netdiag 1.5.2-dev (commit ..., built ...)`.
+- `bash scripts/check-version-stamp.sh` construye un binario temporal, arranca un servidor con datos temporales y valida `--version`, `/api/v1/auth/status` y el footer del login. El servidor se detiene por PID y el directorio temporal se borra.
+- También se reprodujo el flujo de descarga con el artefacto firmado `v1.5.2`: `sha256sum -c SHA256SUMS` y `scripts/verify-release.sh` devuelven `VÁLIDO`, y el login del binario descargado muestra `NetDiag 1.5.2 · kr3s4l4 · servidor local`.
+
+Sin cambios en `v1.5.2`, sus hashes ni su clave. Sin tag ni release.

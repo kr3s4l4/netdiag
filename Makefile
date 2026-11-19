@@ -3,7 +3,8 @@
 VERSION   ?= 1.5.2-dev
 COMMIT    := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 BUILD_DATE:= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
-LDFLAGS   := -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildDate=$(BUILD_DATE)
+BUILDPKG  := github.com/kr3s4l4/netdiag/internal/buildinfo
+LDFLAGS   := -s -w -X $(BUILDPKG).Version=$(VERSION) -X $(BUILDPKG).Commit=$(COMMIT) -X $(BUILDPKG).BuildDate=$(BUILD_DATE)
 GO        ?= go
 PREFIX    ?= /usr/local
 DESTDIR   ?=

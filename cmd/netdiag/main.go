@@ -34,6 +34,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/app"
 	"github.com/kr3s4l4/netdiag/internal/auth"
 	"github.com/kr3s4l4/netdiag/internal/backup"
+	"github.com/kr3s4l4/netdiag/internal/buildinfo"
 	"github.com/kr3s4l4/netdiag/internal/capture"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/container"
@@ -51,11 +52,12 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Injected with -ldflags at build time.
+// Stamped from internal/buildinfo. The linker overrides buildinfo values at
+// build time; these aliases keep the rest of the CLI unchanged.
 var (
-	version   = "1.5.2-dev"
-	commit    = "dev"
-	buildDate = ""
+	version   = buildinfo.Version
+	commit    = buildinfo.Commit
+	buildDate = buildinfo.BuildDate
 )
 
 func main() {

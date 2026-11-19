@@ -101,7 +101,8 @@ OUT="$(realpath -m "${OUT:-dist/release/$VERSION}")"
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-LDFLAGS="-s -w -buildid= -X main.version=$VERSION -X main.commit=$SHORT -X main.buildDate=$BUILD_DATE"
+BUILDPKG="github.com/kr3s4l4/netdiag/internal/buildinfo"
+LDFLAGS="-s -w -buildid= -X $BUILDPKG.Version=$VERSION -X $BUILDPKG.Commit=$SHORT -X $BUILDPKG.BuildDate=$BUILD_DATE"
 TOOLS="$(mktemp -d)"
 trap 'rm -rf "$TOOLS"' EXIT
 go build -o "$TOOLS/netdiag-release" ./cmd/netdiag-release
