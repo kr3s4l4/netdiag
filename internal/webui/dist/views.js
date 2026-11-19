@@ -2790,6 +2790,20 @@ async function settingsSystemBody() {
       <td class="tiny">${esc(a.target || '')}</td>
       <td class="tiny muted">${esc(a.ip || '')}</td>
     </tr>`).join('');
+  const licenseBanner = (() => {
+    if (!license || !license.expires_at) return '';
+    const exp = new Date(license.expires_at);
+    if (Number.isNaN(exp.getTime())) return '';
+    const days = Math.ceil((exp.getTime() - Date.now()) / 86400000);
+    if (days > 30) return '';
+    const expired = days < 0;
+    const label = expired ? tr('Licencia caducada') : tr('Licencia por caducar');
+    const countLabel = expired ? tr('Días desde la caducidad') : tr('Días restantes');
+    return `<div class="notice warn" style="margin-top:10px">${icon('shield')}<div>
+      <b>${label}</b>
+      <div class="tiny">${countLabel}: <b>${Math.abs(days)}</b>. ${tr('Al caducar no se borra nada: la lectura y los datos siguen disponibles.')}</div>
+    </div></div>`;
+  })();
   return `
     ${info.demo ? `<div class="notice warn mb">${icon('shield')}<div>
       <b>Modo demo · datos sintéticos</b>
@@ -2836,6 +2850,7 @@ async function settingsSystemBody() {
         </div>
       </div>
     </div>
+    ${licenseBanner}
     ${license ? `<div class="card mb">
       <div class="card-head"><h3>Licencia</h3>
         <span class="badge ${license.status === 'active' ? 'up' : (license.status === 'community' ? 'unknown' : 'down')}">${esc(license.status)}</span></div>
@@ -2847,7 +2862,7 @@ async function settingsSystemBody() {
           </div>
           <div class="tiny muted">${license.expires_at ? `Caducidad ${esc(fmtDate(license.expires_at))}` : 'Sin caducidad'}</div>
         </div>
-        <div class="tiny muted" style="margin-top:8px">${esc(license.license_id || 'Sin licencia (Community)')} · ${esc(license.managed_hosts || 0)} hosts gestionados · ${esc(license.sites || 0)} sedes</div>
+        <div class="tiny muted" style="margin-top:8px" title="${esc(tr('Cuenta las identidades s<siteID>:<identity> vistas en los últimos 30 días. Excluye hosts con tag guest o excluded. No se factura por host detectado.'))}">${esc(license.license_id || 'Sin licencia (Community)')} · ${esc(license.managed_hosts || 0)} hosts gestionados · ${esc(license.sites || 0)} sedes</div>
         ${(license.warnings || []).map((w) => `<div class="notice warn" style="margin-top:10px">${icon('shield')}<div><div class="tiny">${esc(w)}</div></div></div>`).join('')}
       </div>
     </div>` : ''}

@@ -52,6 +52,25 @@ La comunidad en claro no se guarda en SQLite ni se expone en la API. Las
 observaciones pasivas guardan solo metadatos: protocolo, IP/MAC, interfaz y un
 detalle acotado. No se persiste payload ni credencial alguna.
 
+## Estado real de las validaciones
+
+| Mecanismo | Evidencia actual | Alcance | Lo que falta |
+| --- | --- | --- | --- |
+| DHCP rogue | F44 real con `dnsmasq` en `172.20.50.53` | Servicio real en bridge aislado | DHCP controlado en una red de producción |
+| SNMP v2c | F46 real con agente propio en `172.20.50.161` | 52 OIDs, ARP/VLAN/FDB reales | Un switch físico con SNMP |
+| Captura pasiva | F47 real con Scapy y `-tags pcap` | Cinco tipos de observación con `CAP_NET_RAW` | SPAN/tap en switch físico |
+
+El laboratorio usa servicios reales, pero no sustituye al equipo físico.
+No se afirma detección donde no hay captura, ni L2 más allá del dominio de broadcast.
+
+Tras `./run.sh`, comprobar los hallazgos en el puerto `18080`:
+
+```bash
+curl -s -b cookies.txt 'http://127.0.0.1:18080/api/v1/diagnostics/dhcp?site_id=2' | jq '.anomalies[].type'
+curl -s -b cookies.txt 'http://127.0.0.1:18080/api/v1/diagnostics/snmp?site_id=2' | jq '.anomalies[].type'
+curl -s -b cookies.txt 'http://127.0.0.1:18080/api/v1/diagnostics/passive?site_id=2' | jq '.anomalies[].type'
+```
+
 ## Limpieza
 
 ```bash

@@ -274,7 +274,30 @@ Cierre de la parte pendiente de F44, F46 y F47: hasta ahora había degradación 
 - **F47 real.** `netdiag doctor` dentro del contenedor confirmó «Captura pasiva (pcap) compilado; requiere CAP_NET_RAW» y «privilegios root». El tráfico generado produjo los cinco tipos de observación (`garp`, `icmp_redirect`, `dhcp_server`, `inbound_scan`, `dns_tunnel`) y los cinco hallazgos `passive_*`: `passive_gratuitous_arp` (75), `passive_icmp_redirect` (85), `passive_dhcp_server` (88), `passive_inbound_scan` (80) y `passive_dns_tunnel` (82). En el escaneo final se registraron 1.103 observaciones y los cinco hallazgos. No se persiste payload: el detalle DNS guardado es solo el nombre de dominio, con longitud acotada.
 - **Reglas y dedupe.** Con las cuatro reglas dedicadas creadas antes del escaneo, un barrido limpio generó 7 alertas críticas: `passive_anomaly` 1, `snmp_anomaly` 3, `dhcp_rogue` 2 y `arp_spoofing` 1. Un cuarto escaneo sin cambios no añadió ninguna alerta. Las reglas dedicadas tienen precedencia sobre `anomaly`; si la regla genérica creó la alerta antes, la dedupe por hallazgo impide que la dedicada la vuelva a emitir.
 
-Conclusión: F44, F46 y F47 pasan de «validado con datos sintéticos» a «validado con servicios y tráfico reales». Quedan pendientes el ensayo humano del runbook CRA (F41) y la evidencia de uso externo (F42).
+Conclusión: F44, F46 y F47 pasan de «validado con datos sintéticos» a «validado con servicios y tráfico reales». Quedan pendientes el ensayo humano del runbook CRA (F41), la evidencia de uso externo (F42), la repetición con SPAN/tap en un switch físico, el DHCP controlado fuera del laboratorio y SNMP contra un switch real. El bridge Docker cubre los tres mecanismos con servicios reales, pero no sustituye al equipo físico. El detalle está en `scripts/lab/README.md`.
+
+### Release `v1.5.2` publicada (19/11/2026)
+
+`v1.5.2` está publicada y verificada. Tag `v1.5.2` = `1038c6d`; commit de build `4fb0968`. El push a `master` llevó `996affc..1038c6d`. La GitHub Release tiene 14 assets, sin borrador ni prerelease.
+
+Verificación local:
+
+```bash
+scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2   # VÁLIDO
+minisign -Vm SHA256SUMS                                             # firma válida
+minisign -Vm manifest.json                                          # firma válida
+```
+
+```text
+SHA256SUMS  4c8c1513a10abab794143be627048359115dcea6986945fb28e0e7cc31b90a39
+amd64       516ccd5310b3d0b9c73347bbc8ed9846a2e28872130925584399e20ee21d1626
+arm64       1e8a25ac24ba06bc0cd28e9edc582ec749f0b649cc9f00a5157544cd0cab1214
+manifest    bdb27c7c92ae8aeef962ba053268aa546a80191bc5f1321028c7138d53a7d417
+```
+
+Clave pública release: `RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY`; `key_id=c98b13d8c8f73259`.
+
+Las notas firmadas de `v1.5.2` no se modifican. Su texto «pendiente de publicación» es el snapshot congelado al construir los artefactos.
 
 ### Correcciones de UI validadas en DOM real (19/11/2026)
 

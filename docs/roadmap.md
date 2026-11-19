@@ -41,7 +41,7 @@ Estaban previstas para 1.5.1, pero esa versión se publicó con el código de `m
 
 **Objetivo:** que un usuario nuevo llegue a ver datos útiles en menos de dos minutos.
 
-**Estado:** implementado y validado con CDP en `master`. Tras el alta del administrador se encadena `/networks/suggest`, creación o reutilización de la red, escaneo con perfil `common` y snapshot de auditoría. El tour se lanza al final sobre datos reales y puede omitirse. Pendiente de publicación en `v1.5.2`.
+**Estado:** implementado y validado con CDP en `master`. Tras el alta del administrador se encadena `/networks/suggest`, creación o reutilización de la red, escaneo con perfil `common` y snapshot de auditoría. El tour se lanza al final sobre datos reales y puede omitirse. Publicado en `v1.5.2`.
 
 Al crear la cuenta de administrador:
 
@@ -57,7 +57,7 @@ Al crear la cuenta de administrador:
 
 ### F28 — Panel de salud de red — implementado en `master`
 
-**Estado:** tarjeta en `/dashboard` con puntuación `0–100` y semáforo. El desglose muestra disponibilidad 40 %, latencia 20 %, cambios no esperados 20 % y severidad de hallazgos 20 %, con el valor original y la contribución de cada componente. Los componentes sin datos se marcan como «Sin datos» y su peso se redistribuye entre los disponibles; nunca se muestra un número sin su desglose. La tendencia compara la ventana actual con la de hace 7 días mediante `/history/compare`; si no hay muestras, se indica «Sin datos de tendencia». Las tres incidencias principales salen de `/diagnostics/enterprise` y enlazan con `#/diagnostics?finding=<id>`, que abre la evidencia concreta. Validado con CDP. Pendiente de publicación en `v1.5.2`.
+**Estado:** tarjeta en `/dashboard` con puntuación `0–100` y semáforo. El desglose muestra disponibilidad 40 %, latencia 20 %, cambios no esperados 20 % y severidad de hallazgos 20 %, con el valor original y la contribución de cada componente. Los componentes sin datos se marcan como «Sin datos» y su peso se redistribuye entre los disponibles; nunca se muestra un número sin su desglose. La tendencia compara la ventana actual con la de hace 7 días mediante `/history/compare`; si no hay muestras, se indica «Sin datos de tendencia». Las tres incidencias principales salen de `/diagnostics/enterprise` y enlazan con `#/diagnostics?finding=<id>`, que abre la evidencia concreta. Validado con CDP. Publicado en `v1.5.2`.
 
 **Objetivo:** resumir el estado de la red en una sola pantalla con lenguaje ejecutivo.
 
@@ -76,7 +76,7 @@ La puntuación debe ser explicable: disponibilidad 40 %, latencia 20 %, cambios 
 
 ### F29 — Buscador global — implementado en `master`
 
-**Estado:** amplía la paleta de F40. Busca por IP, MAC, hostname, fabricante, ID de alerta, título de alerta y red. Navega al detalle del host, a la vista de alertas filtrada o al inventario filtrado por red. Validado con CDP. Pendiente de publicación en `v1.5.2`.
+**Estado:** amplía la paleta de F40. Busca por IP, MAC, hostname, fabricante, ID de alerta, título de alerta y red. Navega al detalle del host, a la vista de alertas filtrada o al inventario filtrado por red. Validado con CDP. Publicado en `v1.5.2`.
 
 **Objetivo:** localizar cualquier objeto sin recorrer menús.
 
@@ -90,7 +90,7 @@ La puntuación debe ser explicable: disponibilidad 40 %, latencia 20 %, cambios 
 
 ### F30 — Centro de notificaciones — implementado en `master`
 
-**Estado:** campana con contador en la cabecera e historial de `scan.finished`, `alert.new`, `update.available`, `update.applied` y `update.rolled_back`. Se guarda en `localStorage`, por sede y con un máximo de 100 eventos. Permite marcar como leído, borrar el historial y abrir el objeto relacionado. Validado con CDP, incluida la persistencia tras recargar. Pendiente de publicación en `v1.5.2`.
+**Estado:** campana con contador en la cabecera e historial de `scan.finished`, `alert.new`, `update.available`, `update.applied` y `update.rolled_back`. Se guarda en `localStorage`, por sede y con un máximo de 100 eventos. Permite marcar como leído, borrar el historial y abrir el objeto relacionado. Validado con CDP, incluida la persistencia tras recargar. Publicado en `v1.5.2`.
 
 **Objetivo:** conservar los eventos que hoy se muestran solo como toasts.
 
@@ -104,7 +104,7 @@ La puntuación debe ser explicable: disponibilidad 40 %, latencia 20 %, cambios 
 
 ### F31 — Diagnósticos accionables — implementado en `master`
 
-**Estado:** cada hallazgo de `/diagnostics` muestra «Ver host» (resuelve el ID por `host_ids` o buscando la IP en el inventario), «Copiar comando» con `netdiag scan <ip>/32` para refrescar la evidencia y «Crear regla de alerta». El botón de regla abre el modal ya rellenado sin salir de la vista: tipo derivado de la categoría (`arp_spoofing`, `dhcp_rogue`, `snmp_anomaly`, `passive_anomaly` o `anomaly`), severidad y confianza del hallazgo. Al guardar, la URL pasa a `#/alerts`. Evidencia y confianza se mantienen. Validado con CDP. Pendiente de publicación en `v1.5.2`.
+**Estado:** cada hallazgo de `/diagnostics` muestra «Ver host» (resuelve el ID por `host_ids` o buscando la IP en el inventario), «Copiar comando» con `netdiag scan <ip>/32` para refrescar la evidencia y «Crear regla de alerta». El botón de regla abre el modal ya rellenado sin salir de la vista: tipo derivado de la categoría (`arp_spoofing`, `dhcp_rogue`, `snmp_anomaly`, `passive_anomaly` o `anomaly`), severidad y confianza del hallazgo. Al guardar, la URL pasa a `#/alerts`. Evidencia y confianza se mantienen. Validado con CDP. Publicado en `v1.5.2`.
 
 **Objetivo:** convertir cada hallazgo en una gestión concreta.
 
@@ -121,7 +121,7 @@ Para cada hallazgo de `/diagnostics`:
 
 ### F32 — Informe ejecutivo de una página — implementado en `master`
 
-**Estado:** el botón «Informe ejecutivo (1 página)» de `/reports` genera un PDF A4 de una sola página. Incluye resumen del inventario, disponibilidad y latencia de 7 días con su número de muestras, hasta cinco cambios de `/history/compare`, hasta cuatro hallazgos de mayor severidad y un pie con versión, edición, retención activa y fecha. Los textos se redactan antes de escribirse: comunidades SNMP, tokens y credenciales `clave/valor` se sustituyen por `[redactada]` o `[redactado]`; el pie del llamador nunca se copia al PDF. El cálculo de 7 días reutiliza `FleetSummaryForSite`, y los cambios y hallazgos salen de las mismas funciones que las rutas `/history/compare` y `/diagnostics/enterprise`. Los tests verifican una página, la redacción y las marcas del pie; la validación real descargó el PDF desde la UI. Pendiente de publicación en `v1.5.2`.
+**Estado:** el botón «Informe ejecutivo (1 página)» de `/reports` genera un PDF A4 de una sola página. Incluye resumen del inventario, disponibilidad y latencia de 7 días con su número de muestras, hasta cinco cambios de `/history/compare`, hasta cuatro hallazgos de mayor severidad y un pie con versión, edición, retención activa y fecha. Los textos se redactan antes de escribirse: comunidades SNMP, tokens y credenciales `clave/valor` se sustituyen por `[redactada]` o `[redactado]`; el pie del llamador nunca se copia al PDF. El cálculo de 7 días reutiliza `FleetSummaryForSite`, y los cambios y hallazgos salen de las mismas funciones que las rutas `/history/compare` y `/diagnostics/enterprise`. Los tests verifican una página, la redacción y las marcas del pie; la validación real descargó el PDF desde la UI. Publicado en `v1.5.2`.
 
 **Objetivo:** entregar un artefacto listo para clientes o dirección.
 

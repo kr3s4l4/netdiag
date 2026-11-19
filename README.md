@@ -364,6 +364,9 @@ netdiag user [list|add|passwd|role|delete]
 netdiag backup [--out RUTA] [--keep N]
 ```
 
+Escaneo distribuido en sedes remotas, sin agente ni telemetría:
+[docs/escaneo-remoto.md](docs/escaneo-remoto.md).
+
 Ejemplos de gestión:
 
 ```bash
