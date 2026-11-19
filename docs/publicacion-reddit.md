@@ -123,6 +123,37 @@ If you give it a spin, I'd love to know where you deployed it, what you tried fi
 | Can I scan any network? | `Only networks you own or are authorised to assess. The Beta notice now says so at first run.` |
 | Where is the feedback form? | `There's a pinned discussion in the repo. That's enough for now; I'm reading every reply.` |
 
+## Resultado del intento en r/selfhosted (19/11/2026)
+
+Un mod eliminó el post con este mensaje:
+
+> Gracias por publicar en r/selfhosted. Tu publicación se eliminó. En su lugar, comparte tu proyecto en el Megathread de New Project actual o mira la regla 6 para más información.
+
+No responder con quejas ni republicar el mismo post. La ruta correcta es el Megathread de New Project.
+
+**Respuesta al mod, para copiar:**
+
+```text
+Entendido, gracias por el aviso. Lo llevo al Megathread de New Project. Perdón por no haber revisado la regla 6 antes.
+```
+
+**Entrada corta para el Megathread:**
+
+```text
+NetDiag v1.5.2 — inventario y diagnósticos de red autocontendidos.
+
+Un único binario Go, SQLite local, interfaz web en español/inglés. Sin agentes, sin nube, sin telemetría y sin npm. Descubrimiento ARP/ICMP, topología L2/L3, diagnósticos heurísticos con evidencia, alertas, informes y multisede.
+
+Release firmada con minisign; clave pública y verificación en el repo. Beta: úsalo solo en redes propias o con autorización.
+
+Busco que gente real lo pruebe y me diga dónde lo desplegó y qué le faltó.
+
+Repo: https://github.com/kr3s4l4/netdiag
+Releases: https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.2
+```
+
+En el Megathread se publica una entrada breve: no pegues el cuerpo completo ni abras otro post. Después responde a quien comente con las respuestas listas, en castellano o en inglés. Esto cuenta como señal pública, no como evidencia F42.
+
 ## Error «Your repost includes a link that isn't working»
 
 Aparece al usar **Crosspost / Repost** desde un post de tipo **Text** que contiene URLs en el cuerpo. Reddit intenta validar ese enlace como destino del repost y lo rechaza. No significa que el enlace esté roto: ambas URLs del borrador responden correctamente.
