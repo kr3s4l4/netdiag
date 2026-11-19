@@ -15,6 +15,7 @@ autorizado expresamente su publicación en esta plantilla.
 - Organización y país, opcionales.
 - Dónde se desplegó NetDiag y si sigue instalado tras 7 días.
 - Interés en una suscripción por banda de hosts gestionados, con banda estimada opcional.
+- Para qué usa NetDiag, texto libre opcional de hasta 1000 caracteres. Es el campo que alimenta los 2 casos concretos de F42.
 - Qué faltó o confundió, texto libre opcional de hasta 1000 caracteres.
 - Consentimiento explícito y autorización opcional para citar la respuesta de forma anónima.
 
@@ -38,7 +39,7 @@ real envía el manifiesto y se registra en
 
 1. Fecha y hora UTC de recepción.
 2. Respuesta a «sigue instalado tras 7 días».
-3. Caso de uso concreto, si lo incluyó.
+3. Caso de uso concreto, del campo `caso_de_uso` del manifiesto si lo rellenó.
 4. Intención de pago, con banda estimada si la dio.
 
 El umbral sigue siendo 3 instalaciones reales con 7 días, 2 casos concretos y

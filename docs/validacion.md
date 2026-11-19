@@ -551,3 +551,7 @@ Con OK explícito del propietario se activó GitHub Pages con la API: fuente `ma
 Se añadió el enlace en `README.md`, `README.en.md` y en un comentario del Discussion #1 (`DC_kwDOVy_LgM4BLXyS`, 20:17 UTC). No se publicó `docs/respuesta-hn.md` ni se habló en nombre del usuario en foros. No hay tag ni release; `v1.5.2` sigue intacta. F42 continúa en 0/3, 0/2 y 0/1: el despliegue solo habilita la captura, no cuenta como evidencia.
 
 **Corrección de ruta (20:18 UTC):** el primer enlace apuntaba a la raíz del sitio y devolvió 404. El HTML está en `docs/plantillas/`, así que la URL real es `https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html`. Se corrigió en ambos README, las plantillas, este registro y el comentario del Discussion. `curl` sobre la URL correcta devuelve el HTML de 6.658 bytes con el correo y `netdiag.intent/v1`, sin `fetch` ni `XMLHttpRequest`.
+
+### Captura de caso de uso en el manifiesto (19/11/2026)
+
+El formulario no preguntaba para qué se usa NetDiag, justo una de las tres piezas que faltan para F42. Se añadió el campo opcional `caso_de_uso` al JSON `netdiag.intent/v1`, con un placeholder en castellano, y se documentó que alimenta los 2 casos concretos del registro. Sigue sin recoger IPs, MACs ni datos de red, y sin envío automático. Tras el push, GitHub Pages reconstruye el sitio; se verifica con `curl` que la versión publicada contiene el nuevo campo. F42 permanece en 0/3, 0/2 y 0/1 hasta que llegue un manifiesto real.

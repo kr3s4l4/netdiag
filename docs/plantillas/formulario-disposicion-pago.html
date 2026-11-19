@@ -84,6 +84,9 @@
       <option>201+</option>
     </select>
 
+    <label for="uso">¿Para qué usas NetDiag? (opcional, muy útil)</label>
+    <textarea id="uso" name="uso" maxlength="1000" placeholder="Ej.: inventario de la oficina, detectar equipos nuevos, documentar cambios antes de un corte"></textarea>
+
     <label for="faltó">¿Qué te faltó o te confundió? (opcional)</label>
     <textarea id="faltó" name="faltó" maxlength="1000"></textarea>
 
@@ -137,6 +140,7 @@
           sigue_tras_7_dias: valor('dias'),
           intencion: valor('intencion'),
           banda_estimada: valor('banda'),
+          caso_de_uso: valor('uso'),
           que_falto: valor('faltó'),
           cita_anonima: document.getElementById('anonimo').checked
         };
