@@ -55,6 +55,17 @@ function topoEdgeClearance(n, deg) {
     : topoNodeRadius(n, deg) + (n.is_self ? 6 : 2);
 }
 
+function topoSignature(graph) {
+  if (!graph || !Array.isArray(graph.nodes)) return '';
+  const nodes = graph.nodes
+    .map((n) => `${n.id}|${n.network_id || 0}|${n.kind || ''}|${n.is_gateway ? 1 : 0}|${n.is_dhcp_server ? 1 : 0}`)
+    .sort();
+  const edges = (graph.edges || [])
+    .map((e) => `${e.source}|${e.target}|${e.kind || ''}`)
+    .sort();
+  return nodes.join(';') + '##' + edges.join(';');
+}
+
 function resetTopology() {
   state.topoView = { x: 0, y: 0, k: 1 };
   applyTopoTransform();
@@ -81,33 +92,103 @@ function applyTopoTransform() {
 
 function layoutTopology(graph) {
   if (!graph || !graph.nodes || !graph.nodes.length) return;
+  const degree = new Map();
+  (graph.edges || []).forEach((e) => {
+    degree.set(e.source, (degree.get(e.source) || 0) + 1);
+    degree.set(e.target, (degree.get(e.target) || 0) + 1);
+  });
   const clusters = new Map();
   graph.nodes.forEach((n) => {
     const key = String(n.network_id || 0);
     if (!clusters.has(key)) clusters.set(key, []);
     clusters.get(key).push(n);
   });
-  const keys = Array.from(clusters.keys());
+  const keys = Array.from(clusters.keys()).sort();
   const netCount = keys.length;
   const ringRadius = netCount <= 1 ? 0 : Math.max(260, 90 * netCount);
+  const centers = new Map();
   keys.forEach((key, idx) => {
-    const nodes = clusters.get(key);
     const angle = (idx / Math.max(1, netCount)) * Math.PI * 2 - Math.PI / 2;
-    const cx = netCount <= 1 ? 0 : Math.cos(angle) * ringRadius;
-    const cy = netCount <= 1 ? 0 : Math.sin(angle) * ringRadius * 0.62;
-    const anchor = nodes.find((n) => n.kind === 'network') || nodes.find((n) => n.is_gateway);
+    centers.set(key, {
+      x: netCount <= 1 ? 0 : Math.cos(angle) * ringRadius,
+      y: netCount <= 1 ? 0 : Math.sin(angle) * ringRadius * 0.62,
+    });
+  });
+  const clusterOf = new Map();
+  graph.nodes.forEach((n) => clusterOf.set(n.id, String(n.network_id || 0)));
+  const external = new Map();
+  (graph.edges || []).forEach((e) => {
+    const ak = clusterOf.get(e.source), bk = clusterOf.get(e.target);
+    if (!ak || !bk || ak === bk) return;
+    const a = centers.get(ak), b = centers.get(bk);
+    if (!a || !b) return;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    const add = (id, x, y) => {
+      if (!external.has(id)) external.set(id, { x: 0, y: 0 });
+      const v = external.get(id);
+      v.x += x; v.y += y;
+    };
+    add(e.source, dx / len, dy / len);
+    add(e.target, -dx / len, -dy / len);
+  });
+  const normAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+  const angleGap = (a, b) => {
+    const d = Math.abs(normAngle(a) - normAngle(b));
+    return Math.min(d, Math.PI * 2 - d);
+  };
+  keys.forEach((key) => {
+    const { x: cx, y: cy } = centers.get(key);
+    const nodes = clusters.get(key).slice()
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    const anchor = nodes.find((n) => n.is_dhcp_server)
+      || nodes.find((n) => n.is_gateway)
+      || nodes.find((n) => n.kind === 'gateway')
+      || nodes.find((n) => n.kind === 'network')
+      || nodes.find((n) => n.kind === 'router')
+      || nodes.reduce((best, n) => !best || (degree.get(n.id) || 0) > (degree.get(best.id) || 0) ? n : best, null);
     const rest = nodes.filter((n) => n !== anchor);
     if (anchor) {
       anchor.x = cx;
       anchor.y = cy;
     }
     const count = rest.length;
-    const radius = count <= 0 ? 0 : Math.min(390, 74 + Math.sqrt(count) * 36);
-    rest.forEach((n, i) => {
-      const a = (i / Math.max(1, count)) * Math.PI * 2 + (Number(key) % 9) * 0.31;
-      const rr = count === 1 ? 0 : radius * (0.62 + 0.38 * (((i * 37) % 100) / 100));
-      n.x = cx + Math.cos(a) * rr;
-      n.y = cy + Math.sin(a) * rr;
+    if (!count) return;
+    const radius = Math.min(390, 74 + Math.sqrt(count) * 36);
+    const phase = (Number(key) % 9) * 0.31 - Math.PI / 2;
+    const slots = [];
+    for (let i = 0; i < count; i++) {
+      slots.push({ i, a: normAngle(phase + (i / count) * Math.PI * 2) });
+    }
+    const chosen = new Map();
+    const usedSlots = new Set();
+    const direction = (n) => {
+      const v = external.get(n.id);
+      return v ? normAngle(Math.atan2(v.y, v.x)) : null;
+    };
+    const linked = rest.filter((n) => external.has(n.id))
+      .sort((a, b) => direction(a) - direction(b));
+    linked.forEach((n) => {
+      const target = direction(n);
+      let best = -1, bestGap = Infinity;
+      slots.forEach((s, i) => {
+        if (usedSlots.has(i)) return;
+        const gap = angleGap(s.a, target);
+        if (gap < bestGap) { bestGap = gap; best = i; }
+      });
+      if (best >= 0) { usedSlots.add(best); chosen.set(n.id, slots[best]); }
+    });
+    const plain = rest.filter((n) => !chosen.has(n.id))
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    const free = slots.filter((_, i) => !usedSlots.has(i));
+    plain.forEach((n, i) => { if (free[i]) chosen.set(n.id, free[i]); });
+    rest.forEach((n) => {
+      const s = chosen.get(n.id);
+      if (!s) return;
+      const rr = count === 1 ? radius * 0.8 : radius;
+      n.x = cx + Math.cos(s.a) * rr;
+      n.y = cy + Math.sin(s.a) * rr;
     });
   });
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -177,8 +258,8 @@ function drawTopology() {
     const deg = degree.get(n.id) || 0;
     const isNet = n.kind === 'network';
     const r = topoNodeRadius(n, deg);
-    const important = isNet || n.is_self || n.is_gateway || ['router', 'switch', 'firewall'].includes(n.device_type);
-    const title = esc(topoNodeLabel(n) + (n.ip ? ' · ' + n.ip : '') + (n.vendor ? ' · ' + n.vendor : ''));
+    const important = isNet || n.is_self || n.is_gateway || n.is_dhcp_server || ['router', 'switch', 'firewall'].includes(n.device_type);
+    const title = esc(topoNodeLabel(n) + (n.ip ? ' · ' + n.ip : '') + (n.vendor ? ' · ' + n.vendor : '') + (n.is_dhcp_server ? ' · DHCP' : ''));
     const label = n.kind === 'network' ? topoNodeLabel(n) : (n.label || n.ip || '');
     const truncated = label.length > 26 ? label.slice(0, 25) + '…' : label;
     const showLabel = important || (labelEvery && idx % 2 === 0);
@@ -186,6 +267,7 @@ function drawTopology() {
       ? `<rect x="${(n.x - r).toFixed(1)}" y="${(n.y - r).toFixed(1)}" width="${r * 2}" height="${r * 2}" rx="4" fill="${color}" fill-opacity=".18" stroke="${color}" stroke-width="2"/>`
       : `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${r}" fill="${color}" fill-opacity=".16" stroke="${color}" stroke-width="2"/>
          ${n.is_self ? `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${(r + 4).toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="2 3"/>` : ''}
+         ${n.is_dhcp_server ? `<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${(r + 8).toFixed(1)}" fill="none" stroke="${color}" stroke-width="1.5" stroke-dasharray="6 3"/>` : ''}
          <circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${Math.max(1.8, r * 0.28)}" fill="${color}"/>`;
     return `<g class="topo-node" data-host-id="${n.host_id || ''}" data-node-id="${esc(n.id)}" style="cursor:${n.host_id ? 'pointer' : 'default'}">
       ${shape}
@@ -254,9 +336,13 @@ async function renderTopology() {
   const content = document.getElementById('content');
   content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
   const previous = state.topoView;
+  const oldPos = new Map((state.topo && state.topo.nodes ? state.topo.nodes : [])
+    .filter((n) => Number.isFinite(n.x) && Number.isFinite(n.y))
+    .map((n) => [n.id, { x: n.x, y: n.y }]));
   const graph = await api('/topology');
   state.topo = graph;
   if (!graph.nodes || !graph.nodes.length) {
+    state.topoSig = '';
     content.innerHTML = `<div class="card"><div class="empty">
       ${icon('topology')}
       <div><b>Sin topología todavía</b></div>
@@ -265,7 +351,16 @@ async function renderTopology() {
     </div></div>`;
     return;
   }
-  layoutTopology(graph);
+  const sig = topoSignature(graph);
+  if (sig !== state.topoSig) {
+    layoutTopology(graph);
+    state.topoSig = sig;
+  } else {
+    graph.nodes.forEach((n) => {
+      const p = oldPos.get(n.id);
+      if (p) { n.x = p.x; n.y = p.y; }
+    });
+  }
   state.topoView = previous || { x: 0, y: 0, k: 1 };
   const byType = graph.stats && graph.stats.by_type ? graph.stats.by_type : {};
   const typeSummary = Object.entries(byType)
@@ -280,8 +375,9 @@ async function renderTopology() {
         <div><b>${fmtNum(graph.stats.isolated)}</b><span>aislados</span></div>
       </div>
       <div class="row">
-        <button class="btn sm" data-action="reload">${icon('refresh')} Actualizar</button>
-        <button class="btn sm" data-action="topo-reset">Centrar</button>
+        <button class="btn sm" data-action="reload">${icon('refresh')} ${esc(tr('Actualizar'))}</button>
+        <button class="btn sm" data-action="topo-relayout">${icon('refresh')} ${esc(tr('Reordenar'))}</button>
+        <button class="btn sm" data-action="topo-reset">${esc(tr('Centrar'))}</button>
       </div>
     </div>
     <div class="topo-wrap">

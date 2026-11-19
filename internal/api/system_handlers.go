@@ -198,8 +198,45 @@ func (s *Server) handleTopology(w http.ResponseWriter, r *http.Request) {
 	}
 	graph := topology.Build(hosts, neighbors, networks)
 	s.mergeEnvironmentTopology(r.Context(), &graph, hosts)
+	s.markDHCPServers(siteID, &graph)
 	s.ensureSelfInventory()
 	writeJSON(w, http.StatusOK, graph)
+}
+
+// markDHCPServers adds an advisory flag to topology nodes that answered the
+// active DHCP probe in the retained window. It is factual evidence, not a
+// trust decision: an unauthorised server is still marked so the operator can
+// see it. The layout may choose gateways first when the flag is absent.
+func (s *Server) markDHCPServers(siteID int64, graph *model.Graph) {
+	if graph == nil || len(graph.Nodes) == 0 || s.st == nil {
+		return
+	}
+	days := 30
+	if s.cfg != nil && s.cfg.Diagnostics.DHCPHistoryDays > 0 {
+		days = s.cfg.Diagnostics.DHCPHistoryDays
+	}
+	obs, err := s.st.ListDHCPObservations(siteID, time.Now().AddDate(0, 0, -days), 50000)
+	if err != nil || len(obs) == 0 {
+		return
+	}
+	ips := map[string]bool{}
+	macs := map[string]bool{}
+	for _, o := range obs {
+		for _, ip := range []string{o.IP, o.ServerID} {
+			if ip != "" {
+				ips[ip] = true
+			}
+		}
+		if o.MAC != "" {
+			macs[strings.ToLower(o.MAC)] = true
+		}
+	}
+	for i := range graph.Nodes {
+		n := &graph.Nodes[i]
+		if ips[n.IP] || macs[strings.ToLower(n.MAC)] {
+			n.IsDHCPServer = true
+		}
+	}
 }
 
 // ensureSelfInventory registers the local machine in the inventory with the

@@ -35,6 +35,7 @@ const state = {
   scanActive: {},
   topo: null,
   topoView: { x: 0, y: 0, k: 1 },
+  topoSig: '',
   settingsTab: 'general',
   views: { items: [], catalog: null, loaded: false, kind: '', search: '', activeColumns: { hosts: null, alerts: null }, activeWindow: '' },
   routeQuery: null,
@@ -1425,6 +1426,9 @@ document.addEventListener('click', async (e) => {
       case 'user-new': openUserModal(); break;
       case 'user-save': await saveUserFromModal(); break;
       case 'topo-zoom': zoomTopology(Number(target.dataset.delta)); break;
+      case 'topo-relayout':
+        if (state.topo) { layoutTopology(state.topo); drawTopology(); }
+        break;
       case 'topo-reset': resetTopology(); break;
       case 'trace-host': {
         const input = document.getElementById('trace-target');

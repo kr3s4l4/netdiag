@@ -306,3 +306,22 @@ Antes de contratar seguro, espejo privado, SLA o demo completa:
 Sin esos tres puntos no se activa estructura comercial. Si faltan, se sigue observando y se revisa el mensaje y el primer escaneo.
 
 **Criterio F42:** existe evidencia escrita de uso real y de disposición a pagar antes de asumir esos costes. Plantillas en [docs/plantillas/README.md](plantillas/README.md).
+
+### Topología estable y anclada en DHCP real (19/11/2026)
+
+El encuadre se movía porque `renderTopology()` llamaba sin condición a `layoutTopology()` sobre un grafo nuevo sin coordenadas: la normalización final re-escalaba y re-centraba todos los nodos aunque `state.topoView` se conservara. `host.updated` no redibuja; sí lo hacen `scan.finished`, `host.new` y `host.deleted` a través de `scheduleRefresh()` → `route(true)`.
+
+Cambios aplicados:
+
+- `topoSignature(graph)` resume nodos, `network_id`, rol, gateway, DHCP y aristas. Si la firma no cambia, se reutilizan las coordenadas del render anterior; si cambia o se pulsa **Reordenar**, se recalcula el layout. El botón «Centrar» sigue controlando solo pan/zoom.
+- `GraphNode.is_dhcp_server` es un campo aditivo rellenado en `handleTopology` desde `dhcp_observations` de los últimos 30 días (o `diagnostics.dhcp_history_days`). Marca evidencia, no confianza: un DHCP rogue también aparece marcado. El ancla de cada red prioriza DHCP → gateway → red → router → mayor grado.
+- El nodo DHCP lleva un anillo punteado y `DHCP` en el `<title>`; el layout coloca los nodos con enlaces hacia otras redes en el hueco más cercano a esa dirección, en lugar de asignarlos por orden de ID.
+- Orden determinista de clústers y nodos, y `i18n.js` añade *Rearrange*, *Center*, *Zoom in* y *Zoom out*.
+
+Validación real sobre el laboratorio Docker, binario `-tags pcap` recién reconstruido y Chromium CDP tras recarga forzada:
+
+- `GET /api/v1/topology?site_id=2` devuelve `is_dhcp_server: true` en `172.20.50.53` (`lab-dhcp.netdiag-lab`).
+- SVG: 12 nodos, 11 `<path>`, 0 `<line>`, 1 anillo DHCP, 0 cruces entre aristas que no comparten extremo.
+- Tras fijar `topoView={x:-137,y:64,k:1.42}` y llamar a `route(true)`: posiciones idénticas, firma idéntica, zoom conservado y 0 cruces.
+- Tras mover un nodo a `(9999,9999)` y pulsar «Reordenar»: el nodo vuelve a `(594.0,424.7)` y sigue con 0 cruces.
+- `go test ./...` y `make build` pasan. Se prefiere esta comprobación porque `node --check` no está instalado en el equipo.

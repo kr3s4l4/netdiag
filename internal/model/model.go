@@ -597,20 +597,21 @@ type Report struct {
 
 // GraphNode is a topology vertex.
 type GraphNode struct {
-	ID         string     `json:"id"`
-	Kind       string     `json:"kind"` // host | gateway | switch | router | internet | network
-	HostID     int64      `json:"host_id,omitempty"`
-	Label      string     `json:"label"`
-	IP         string     `json:"ip,omitempty"`
-	MAC        string     `json:"mac,omitempty"`
-	Vendor     string     `json:"vendor,omitempty"`
-	DeviceType DeviceType `json:"device_type,omitempty"`
-	Status     HostStatus `json:"status,omitempty"`
-	IsGateway  bool       `json:"is_gateway,omitempty"`
-	IsSelf     bool       `json:"is_self,omitempty"`
-	NetworkID  int64      `json:"network_id,omitempty"`
-	Network    string     `json:"network,omitempty"`
-	Confidence int        `json:"confidence,omitempty"`
+	ID           string     `json:"id"`
+	Kind         string     `json:"kind"` // host | gateway | switch | router | internet | network
+	HostID       int64      `json:"host_id,omitempty"`
+	Label        string     `json:"label"`
+	IP           string     `json:"ip,omitempty"`
+	MAC          string     `json:"mac,omitempty"`
+	Vendor       string     `json:"vendor,omitempty"`
+	DeviceType   DeviceType `json:"device_type,omitempty"`
+	Status       HostStatus `json:"status,omitempty"`
+	IsGateway    bool       `json:"is_gateway,omitempty"`
+	IsDHCPServer bool       `json:"is_dhcp_server,omitempty"`
+	IsSelf       bool       `json:"is_self,omitempty"`
+	NetworkID    int64      `json:"network_id,omitempty"`
+	Network      string     `json:"network,omitempty"`
+	Confidence   int        `json:"confidence,omitempty"`
 }
 
 // GraphEdge is a topology edge.
