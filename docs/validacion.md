@@ -261,13 +261,17 @@ Verificación: `gofmt`, `go vet`, `go test ./...`, `go build ./...`, `go build -
 
 **Smoke con binario real (`127.0.0.1:18780`).** Migración v1.5.10 aplicada (`user_version=16`, tabla `passive_observations`). Con `diagnostics.passive_capture: true` en un binario portable, `GET /api/v1/diagnostics/passive?site_id=1` devolvió `available:false`, `enabled:true`, 0 observaciones, 0 hallazgos y 8 limitaciones. Tras inyectar 35 observaciones sintéticas en sede 1, el endpoint devolvió 35 observaciones y 6 hallazgos `capture`: los cinco tipos `passive_*` (`passive_dhcp_server` 88, `passive_icmp_redirect` 85, `passive_dns_tunnel` 82 y 80, `passive_inbound_scan` 80 y `passive_gratuitous_arp` 75). El DHCP OFFER del gateway no generó aviso. Con la regla `passive_anomaly` (id 10) creada, un escaneo real generó seis alertas críticas con `site_id=1`; un segundo escaneo no añadió duplicados. Chromium headless confirmó en el DOM «Captura pasiva», «No compilada (usa -tags pcap)», «Solo metadatos», la MAC `de:ad:be:ef:00:51`, `SYN:20` y los cinco títulos de hallazgo. No se persistió payload ni credencial alguna.
 
-### Señales públicas reales a 18/11/2026
+### F48 — Documentación en inglés (19/11/2026)
 
-- HN: <https://news.ycombinator.com/item?id=50545732>. 1 punto. Comentario inicial `50545733` marcado `[flagged]`; no cuenta como respuesta pública.
-- GitHub: 0 visitas, 0 clones, 0 stars, 0 forks, 0 issues y 0 watchers.
+Nace del primer comentario público real en HN: el repo estaba en español y no había una forma evidente de leerlo en inglés. La interfaz web ya era bilingüe, pero la documentación no. Se añade `README.en.md` con visión general, inicio rápido, multi-sede, diagnósticos de seguridad, integraciones y licencias; `README.md` enlaza la versión inglesa en la primera línea. `docs/respuesta-hn.md` guarda el texto listo para publicar en el hilo. Sin telemetría ni cambio de binario.
+
+### Señales públicas reales a 19/11/2026
+
+- HN: <https://news.ycombinator.com/item?id=50545732>. Ahora **2 puntos** y **1 comentario real** de `bradknowles`: «This repo appears to be in Spanish. I didn't see any obvious way to switch the language to English. I don't trust online translators...». Es una queja concreta y accionable, no un caso de uso. El comentario inicial `50545733` sigue marcado `[flagged]` y no cuenta.
+- GitHub: Discussion #1 abierto el 18/11, 0 respuestas, 1 reacción 👍 y **sigue sin fijar** (hay que hacerlo a mano: ⋯ → *Pin discussion*). 0 visitas, 0 clones, 0 stars, 0 forks, 0 issues y 0 watchers.
 - Descargas: 2 por binario en la release `v1.5.0`. No sabemos si se ejecutaron.
-- Reddit: la publicación no ha podido verificarse desde esta máquina (HTTP 403). Falta el enlace exacto y el subreddit.
-- Conclusión: **no hay aún evidencia de uso real**. Seguir con F39/F40 y preparar canales alternativos sin instrumentar el binario.
+- Reddit: la publicación no ha podido localizarse. Falta el enlace exacto y el subreddit; desde esta máquina da HTTP 403.
+- Conclusión: **primera respuesta pública real, todavía sin evidencia de uso**. Se registra como señal de interés y motiva F48. No abre la puerta de gasto F42.
 
 ## Evidencia escrita y puerta de gasto F42
 

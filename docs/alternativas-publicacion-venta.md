@@ -258,8 +258,8 @@ kr3s4l4
 Canales ya probados o preparados:
 
 - GitHub Release y Discussion fijado. Queda fijarlo a mano: ⋯ → *Pin discussion*.
-- Hacker News: <https://news.ycombinator.com/item?id=50545732>. 1 punto y comentario marcado `[flagged]`; no darlo por válido.
-- Reddit: falta el enlace exacto y el subreddit; desde esta máquina da HTTP 403.
+- Hacker News: <https://news.ycombinator.com/item?id=50545732>. 2 puntos y 1 comentario real de `bradknowles` pidiendo documentación en inglés; motivó F48. El comentario inicial sigue `[flagged]`; no darlo por válido. Texto de respuesta en `docs/respuesta-hn.md`.
+- Reddit: falta el enlace exacto y el subreddit; desde esta máquina da HTTP 403 y la publicación no aparece en búsquedas.
 - Newsletters y listas de self-hosting / sysadmin: texto corto, sin superlativos.
 - Plantillas listas en `docs/divulgacion.md` y `docs/validacion.md`.
 

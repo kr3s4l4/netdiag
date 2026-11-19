@@ -24,6 +24,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F44 | Implementado: sonda DHCP UDP/68, histórico y detectores de servidor rogue |
 | F46 | Implementado: SNMP profundo IP-MIB/Q-BRIDGE, comunidad enmascarada y correlación L2 |
 | F47 | Implementado: captura pasiva opt-in con `-tags pcap`, metadata-only y cinco detectores |
+| F48 | Implementado: `README.en.md` y respuesta al primer comentario público de HN |
 | Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -314,6 +315,12 @@ Añade `internal/capture` con build-tags `pcap`/`!pcap`. El binario portable sig
 No hay `CAP_NET_RAW` en este entorno, así que no se puede capturar tráfico real. Se verifica compilación en ambos modos, degradación limpia, parsers con paquetes construidos en memoria y el recorrido detector→alerta con observaciones sintéticas. La captura frente a un switch con SPAN o un tap queda pendiente.
 
 **Criterio de cierre:** una ventana con GARP, ICMP redirect, DHCP OFFER de un servidor no autorizado, escaneo SYN y dominio de alta entropía genera los cinco hallazgos con evidencia; un servidor autorizado o el gateway del histórico no genera `passive_dhcp_server`. Se comprueba con tests y con el endpoint sobre datos sintéticos.
+
+### F48 — Documentación en inglés — **implementada**
+
+El primer comentario público real en HN señaló que el repo parecía estar solo en español. La UI ya era bilingüe; faltaba la documentación. Se añade `README.en.md` enlazado desde la primera línea de `README.md`, con inicio rápido, multi-sede, diagnósticos F43–F47, integraciones y licencias. `docs/respuesta-hn.md` contiene la respuesta lista para publicar. Es señal de interés, no evidencia F42.
+
+**Criterio de cierre:** un lector sin español puede arrancar NetDiag y entender el modelo de licencias desde el README inglés, y el hilo de HN tiene una respuesta clara y precisa. La publicación de esa respuesta queda sujeta a autorización.
 
 ## Dependencias y orden recomendado
 

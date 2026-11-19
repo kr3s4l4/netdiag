@@ -16,6 +16,12 @@ Solo fuentes públicas y respuestas voluntarias. Nunca datos sacados del binario
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `[nombre]` | `[AAAA-MM-DD]` | `[Issue / Discussion / encuesta / piloto]` | `[SÍ / NO]` | `[SÍ / NO]` | `[frase concreta]` | `"[...]"` | `[URL]` | `[nombre]` |
 
+## Señales de interés (no cuentan para el umbral)
+
+| Fecha | Fuente | Cita textual | Acción derivada | Enlace |
+| --- | --- | --- | --- | --- |
+| 2026-11-19 | HN, comentario de `bradknowles` | «I didn't see any obvious way to switch the language to English» | F48: `README.en.md` y texto de respuesta | <https://news.ycombinator.com/item?id=50545732> |
+
 ## Disposición a pagar
 
 | Organización | Fecha | Señal | Importe o SKU | Documento | Enlace | Validado por |
