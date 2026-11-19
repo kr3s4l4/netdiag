@@ -328,29 +328,29 @@ Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación 
 
 `EvaluateAnomalies` enruta los hallazgos a reglas `arp_spoofing`, `dhcp_rogue`, `snmp_anomaly` y `passive_anomaly`, con precedencia sobre `anomaly` para no duplicar avisos. La UI permite crearlas con `min_confidence` y `category`. Cubre las cinco familias que faltaban antes de tener detectores para todas ellas.
 
-### F44 — DHCP rogue con UDP/68 — **implementado y verificado solo por tests**
+### F44 — DHCP rogue con UDP/68 — **validado con dnsmasq real en laboratorio Docker**
 
 Sonda DHCPINFORM/DHCPDISCOVER sin raw sockets, tabla `dhcp_observations` (v1.5.7) y detectores `dhcp_multiple_servers`, `dhcp_unauthorized_server`, `dhcp_gateway_spoof` y `dhcp_server_mac_changed`. La confianza depende de la lista `diagnostics.authorized_dhcp_servers` y de la correlación con el MAC del gateway en el histórico ARP. Endpoint `GET /diagnostics/dhcp` y tabla en `#/diagnostics`.
 
-En esta red `192.168.0.105:68` enlazó con `SO_REUSEADDR`, pero el gateway y el broadcast no respondieron: no hay evidencia real de rogue. El escaneo degradó limpiamente. Con una respuesta sintética se validó el recorrido completo: anomalía `dhcp_unauthorized_server` → regla `dhcp_rogue` → alerta crítica visible en `site_id=1`. Queda pendiente validar contra un laboratorio con un servidor DHCP controlado.
+En la red `192.168.0.105/24` el puerto 68 enlazó con `SO_REUSEADDR`, pero el gateway y el broadcast no respondieron: no hubo evidencia real de rogue y el escaneo degradó limpiamente. El 19/11/2026 se validó contra `dnsmasq` real en el bridge aislado `172.20.50.0/24` del laboratorio Docker: hallazgo `dhcp_unauthorized_server` (confianza 85) y alerta `dhcp_rogue`. Tras cambiar la MAC del servidor entre escaneos apareció `dhcp_server_mac_changed` (confianza 90) y una segunda alerta. Falta un DHCP controlado en una red de producción.
 
-**Criterio de cierre:** un OFFER de un servidor distinto al gateway o al autorizado genera una alerta `dhcp_rogue` con evidencia, y un cambio de MAC del servidor entre escaneos genera `dhcp_server_mac_changed`. Ambos se comprueban con tests; el primero además con un escaneo real y datos sintéticos.
+**Criterio de cierre:** un OFFER de un servidor distinto al gateway o al autorizado genera una alerta `dhcp_rogue` con evidencia, y un cambio de MAC del servidor entre escaneos genera `dhcp_server_mac_changed`. Ambos están comprobados con tests y con tráfico real en el laboratorio Docker.
 
-### F46 — SNMP profundo — **implementado**
+### F46 — SNMP profundo — **validado con agente real en laboratorio Docker**
 
 Amplía el recolector con `ipAddrTable` (`.1.3.6.1.2.1.4.20`), las tablas ARP `.4.22`/`.4.35`, Q-BRIDGE `.1.3.6.1.2.1.17.7.*` (VLAN y FDB) y BRIDGE-MIB `.1.3.6.1.2.1.17.4.*`. Guarda la comunidad usada **enmascarada** y las filas crudas en cuatro tablas SQLite (v1.5.9) con retención de 30 días. `DetectSNMP` correlaciona ARP del switch, FDB y LLDP/CDP y emite hallazgos `snmp_*` con `category: "snmp"`, listos para la regla `snmp_anomaly`. Endpoint `GET /diagnostics/snmp` y sección «SNMP profundo» en `#/diagnostics`.
 
-No hay switch SNMP real en este entorno, así que la verificación funcional usa filas sintéticas. Los walks tienen límites y degradan limpiamente si el dispositivo no expone las tablas.
+El 19/11/2026 se sustituyeron las filas sintéticas por el agente SNMP real de `scripts/lab/` en `172.20.50.161`, con ARP, VLAN y FDB reales. El primer escaneo produjo `snmp_fdb_vlan_conflict` y `snmp_fdb_port_conflict`; al tocar `/state/moved` y repetir el escaneo apareció `snmp_fdb_mac_moved` (confianza 88), con su alerta `snmp_anomaly`. Falta un switch físico con SNMP.
 
-**Criterio de cierre:** un cambio de MAC del gateway en la tabla ARP del switch y una MAC en dos puertos o VLAN generan hallazgos con evidencia; FDB y LLDP en puertos distintos generan `snmp_lldp_fdb_disagree`. Se comprueba con tests y con el endpoint sobre datos sintéticos.
+**Criterio de cierre:** un cambio de MAC en la tabla FDB y una MAC en dos puertos o VLAN generan hallazgos con evidencia. Comprobado con tests y con el agente real del laboratorio; el switch físico sigue pendiente.
 
-### F47 — Captura pasiva — **implementada**
+### F47 — Captura pasiva — **validada con tráfico real en laboratorio Docker**
 
 Añade `internal/capture` con build-tags `pcap`/`!pcap`. El binario portable sigue funcionando sin raw sockets y `doctor` indica que la captura no está compilada. Con `-tags pcap`, `CAP_NET_RAW` y `diagnostics.passive_capture: true`, cada escaneo abre una ventana corta con BPF estrecho y guarda solo metadatos en `passive_observations` (v1.5.10), sin payload, credenciales ni respuestas DNS. `DetectPassive` emite cinco tipos `passive_*` con `category: "capture"` para la regla `passive_anomaly`: GARP repetido, ICMP redirect, DHCP no autorizado, SYN entrantes y túnel DNS. Endpoint `GET /diagnostics/passive` y sección «Captura pasiva» en `#/diagnostics`.
 
-No hay `CAP_NET_RAW` en este entorno, así que no se puede capturar tráfico real. Se verifica compilación en ambos modos, degradación limpia, parsers con paquetes construidos en memoria y el recorrido detector→alerta con observaciones sintéticas. La captura frente a un switch con SPAN o un tap queda pendiente.
+El 19/11/2026 se compiló `bin/netdiag-pcap` y se ejecutó dentro del contenedor `lab-netdiag` con `CAP_NET_RAW` sobre el bridge aislado. El generador Scapy emitió tráfico real. Aparecieron cuatro de los cinco tipos: `passive_gratuitous_arp`, `passive_icmp_redirect`, `passive_inbound_scan` y `passive_dns_tunnel`; `passive_dhcp_server` no se disparó en esa ventana aunque el OFFER rogue sí se vio en el diagnóstico DHCP. El contador de DNS tunnel crece mientras el generador sigue en bucle, así que no se interpreta como número de incidentes distintos. Falta un switch físico con SPAN o un tap.
 
-**Criterio de cierre:** una ventana con GARP, ICMP redirect, DHCP OFFER de un servidor no autorizado, escaneo SYN y dominio de alta entropía genera los cinco hallazgos con evidencia; un servidor autorizado o el gateway del histórico no genera `passive_dhcp_server`. Se comprueba con tests y con el endpoint sobre datos sintéticos.
+**Criterio de cierre:** una ventana con GARP, ICMP redirect, SYN y dominios de alta entropía genera hallazgos con evidencia y alertas `passive_anomaly` con tráfico real. Comprobado en laboratorio; la captura en SPAN/tap físico sigue pendiente.
 
 ### F48 — Documentación en inglés — **implementada**
 
