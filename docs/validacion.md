@@ -339,4 +339,4 @@ Verificación real:
 - Descarga remota de `SHA256SUMS` y `SHA256SUMS.minisig` desde la release: `minisign -V` devolvió `Signature and comment signature verified`; `sha256sum SHA256SUMS` coincide con el comentario firmado.
 - `docs/public_keys.md` añade la huella concreta y el comando de verificación de esta versión.
 
-GitHub no expone API para fijar Discussions: la Discussion #1 sigue needing el paso manual ⋯ → *Pin discussion*.
+GitHub no expone API para fijar Discussions: la Discussion #1 sigue necesitando el paso manual ⋯ → *Pin discussion*.
