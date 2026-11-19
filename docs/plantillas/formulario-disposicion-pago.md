@@ -49,6 +49,11 @@ El umbral sigue siendo 3 instalaciones reales con 7 días, 2 casos concretos y
 
 Publicado con OK explícito del propietario el 19/11/2026. GitHub Pages sirve
 `master:/docs` en <https://kr3s4l4.github.io/netdiag/>; el formulario está en
-`/formulario-disposicion-pago.html`. El enlace se añadió a ambos README y al
+`/plantillas/formulario-disposicion-pago.html`. El enlace se añadió a ambos README y al
 Discussion #1. No se ha tocado `docs/respuesta-hn.md` ni se han publicado textos
 en Reddit sin su autorización específica.
+
+El seguimiento de cada manifiesto está en el
+[plan de seguimiento a 7 días](../plan-seguimiento-f42.md) y en la cola de
+[registro-evidencia-f42.md](registro-evidencia-f42.md). El recordatorio para el
+Discussion es un borrador: no se publica sin OK explícito.

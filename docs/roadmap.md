@@ -299,10 +299,10 @@ Runbook y plantillas en `SECURITY.md` y `docs/plantillas/`. `min_version` ya via
 
 ### F42 — Validación de mercado sin telemetría — **plantillas listas; ejecución en curso**
 
-Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantillas/`.
+Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantillas/`. Calendario a 7 días, hoja de registro y borrador de recordatorio en `docs/plan-seguimiento-f42.md`.
 
 - Publicar Community y medir solo fuentes públicas: descargas de GitHub, estrellas, forks, issues y Discussions.
-- Discussion fijado con tres preguntas: dónde se desplegó, qué se intentó hacer, qué faltó.
+- Discussion #1 con tres preguntas: dónde se desplegó, qué se intentó hacer, qué faltó. Fijarlo es un paso manual opcional; la API de GitHub no lo expone.
 - Encuesta voluntaria de 5 preguntas; **nunca instrumentar el binario**.
 - Piloto de 30 días con 3–5 organizaciones, sin SLA y con una llamada semanal de 20 minutos.
 - Umbral para pasar a F35/F37/F38: 3 instalaciones reales con 7 días de uso, 2 casos de uso concretos y 1 disposición a pagar o carta de intención.

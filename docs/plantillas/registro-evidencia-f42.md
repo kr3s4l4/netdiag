@@ -10,6 +10,16 @@ Solo fuentes públicas y respuestas voluntarias. Nunca datos sacados del binario
 - Encuesta voluntaria de 5 preguntas.
 - Llamadas y escritos del piloto.
 
+## Cola de manifiestos recibidos
+
+Hoja de trabajo del [plan de seguimiento a 7 días](../plan-seguimiento-f42.md). El correo completo se queda en el buzón; aquí solo iniciales o alias.
+
+| Recibido (UTC) | Canal | Contacto | Despliegue | Instalado | Fecha D+7 | Sigue D+7 | Caso de uso | Intención / banda | Próxima acción | Estado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `[AAAA-MM-DD HH:MM]` | `[correo / Discussion / HN / Megathread]` | `[alias]` | `[tipo de red, sin IPs]` | `[SÍ / NO]` | `[AAAA-MM-DD]` | `[SÍ / NO / PENDIENTE]` | `[frase concreta]` | `[...]` | `[qué y cuándo]` | `[ABIERTO / EVIDENCIA / CERRADO]` |
+
+Solo `Sigue D+7 = SÍ` mueve la fila a «Evidencia de uso real». Sin caso concreto, no hay segunda casilla. Sin intención escrita, no hay disposición a pagar.
+
 ## Evidencia de uso real
 
 | Organización | Fecha | Fuente | ¿Instalación real? | ¿7 días de uso? | Caso de uso concreto | Cita textual | Enlace | Validado por |
