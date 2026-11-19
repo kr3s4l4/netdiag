@@ -136,6 +136,8 @@ La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan 
 
 **Evidencia firmada.** `scripts/sign-evidence.sh` reutiliza `netdiag container build` con una clave Ed25519 local distinta de la clave de release. Permite firmar informes, diffs y bundles de sede en un contenedor `.ndc` verificable sin nube. Procedimiento en [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
 
+**Evidencia de uso voluntaria.** `netdiag evidence usage` genera un `.ndc` firmado con día de instalación, escaneos, sedes y bandas agregadas de hosts gestionados. No incluye IPs, MACs, nombres ni secretos, y nunca se envía automáticamente. No sustituye la evidencia escrita de F42. Procedimiento en [docs/evidencia-uso.md](docs/evidencia-uso.md).
+
 **Sonda portable (F49).** `netdiag probe --site-id 1 --out sonda.json` recoge ARP y tablas del kernel, intenta LLDP/CDP por SNMP y marca `available:false` cuando WiFi o VPN no están disponibles. El JSON puede llevar firma minisign opcional con `--seed-file`. `netdiag probe import [--key CLAVE.pub] sonda.json` lo importa en la base local; si la sonda está firmada, exige la clave pública. No hay nube, envío automático ni cobro por sonda. Detalles en [docs/escaneo-remoto.md](docs/escaneo-remoto.md).
 
 **Dossier local (F68).** `evidence.dossier` genera cada `interval_hours` un `.ndc` firmado con informe ejecutivo, diff, auditorías y snapshots de los últimos `days` días, conserva los últimos `keep` y nunca envía nada. `netdiag evidence dossier` permite generarlo a mano. La semilla no va en `config.yaml`: solo su ruta, con permisos `0600`.

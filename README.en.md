@@ -119,6 +119,8 @@ The **Diagnostics** view and `GET /api/v1/diagnostics/enterprise` correlate data
 
 **Signed evidence.** `scripts/sign-evidence.sh` reuses `netdiag container build` with a local Ed25519 key distinct from the release key. It packages reports, diffs and site bundles into a verifiable `.ndc` without a cloud. Procedure in [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
 
+**Voluntary usage evidence.** `netdiag evidence usage` produces a signed `.ndc` with days installed, scans, sites and aggregated managed-host bands. It contains no IPs, MACs, names or secrets, and is never sent automatically. It does not replace the written evidence for F42. Procedure in [docs/evidencia-uso.md](docs/evidencia-uso.md).
+
 **Portable probe (F49).** `netdiag probe --site-id 1 --out sonda.json` collects ARP and kernel tables, attempts LLDP/CDP over SNMP and reports `available:false` for unavailable WiFi or VPN sources. The JSON may carry an optional minisign signature via `--seed-file`. `netdiag probe import [--key CLAVE.pub] sonda.json` writes it to the local database; a signed probe requires the public key. No cloud, no automatic upload and no charge per probe. See [docs/escaneo-remoto.md](docs/escaneo-remoto.md).
 
 **Local dossier (F68).** `evidence.dossier` writes a signed `.ndc` every `interval_hours` containing the executive report, diff, audits and snapshots from the last `days` days, keeps the latest `keep` files and never uploads them. `netdiag evidence dossier` generates one manually. The seed is not stored in `config.yaml`: only a `0600` path to it.

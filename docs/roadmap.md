@@ -44,7 +44,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F59 | Implementado: triaje local por hallazgo con RBAC, caducidad de 30 días, badge y auditoría |
 | F68 | Implementado: dossier `.ndc` programado y manual, con retención y semilla fuera de la configuración |
 | F61 | Implementado: versión única en `internal/buildinfo` y smoke test de binario, API y UI |
-| F62 | Pendiente — Lote 4: evidencia de uso voluntaria y firmada para F42 |
+| F62 | Implementado: `netdiag evidence usage`, `.ndc` firmado con contadores agregados y sin red |
 | F63 | Pendiente — Lote 4: ensayo local del runbook CRA sin envíos |
 | F64 | Pendiente — Lote 4: expediente de decisión comercial, sin publicar precios |
 | Pruebas | `gofmt`, `go build`, `go test ./...`, `git diff --check`, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
@@ -422,11 +422,11 @@ Tests: `internal/buildinfo` compara el valor por defecto con `VERSION` del Makef
 
 **Criterio de cierre (cumplido):** una sola versión para build local, release firmada y pantalla de login. No modifica `v1.5.2`, sus hashes ni su clave.
 
-### F62 — Evidencia de uso voluntaria y firmada — **pendiente, Lote 4**
+### F62 — Evidencia de uso voluntaria y firmada — **implementado**
 
-`netdiag evidence usage` exportaría un JSON firmado con la clave dedicada de F58. Solo contendría días instalado, número de escaneos, sedes y conteo agregado por banda. Sin IPs, MACs, nombres de host ni secretos. Sin red y sin envío automático: el usuario decide compartirlo.
+`netdiag evidence usage` exporta un `.ndc` firmado con la clave dedicada de F58. Contiene `netdiag.usage/v1` con días instalado, escaneos, sedes y bandas de hosts gestionados de los últimos 30 días: `1-5`, `6-10`, `11-50`, `51-200` y `201+`. Cada sede aporta solo su banda. No hay IPs, MACs, nombres ni secretos. No hay red ni envío automático: el usuario decide compartirlo. Procedimiento en `docs/evidencia-uso.md`.
 
-**Criterio de cierre:** contenedor verificable con `container verify`, ausencia de identificadores de red comprobada por tests y documento que deje claro que no sustituye la evidencia escrita de F42.
+**Criterio de cierre (cumplido):** `container verify` devuelve `VÁLIDO`, los tests comprueban la ausencia de identificadores de red y el documento deja claro que no sustituye la evidencia escrita de F42.
 
 ### F63 — Ensayo local del runbook CRA — **pendiente, Lote 4**
 

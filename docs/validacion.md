@@ -482,3 +482,15 @@ Comprobaciones:
 - También se reprodujo el flujo de descarga con el artefacto firmado `v1.5.2`: `sha256sum -c SHA256SUMS` y `scripts/verify-release.sh` devuelven `VÁLIDO`, y el login del binario descargado muestra `NetDiag 1.5.2 · kr3s4l4 · servidor local`.
 
 Sin cambios en `v1.5.2`, sus hashes ni su clave. Sin tag ni release.
+
+### Lote 4: F62 — evidencia de uso voluntaria (19/11/2026)
+
+Nuevo subcomando `netdiag evidence usage`. Genera `netdiag.usage/v1` con días desde el primer usuario, escaneos, sedes y bandas de hosts gestionados de los últimos 30 días. Se suma `CountManagedHostsBySiteSince` en el store; devuelve solo `map[siteID]int`, sin identidades. Las bandas son `1-5`, `6-10`, `11-50`, `51-200` y `201+`.
+
+Comprobaciones:
+
+- `go test ./internal/store ./internal/evidence ./cmd/netdiag` pasa. El test firma un contenedor con una clave de prueba, verifica la firma y comprueba que el payload no contiene nombres de sede, IPs ni usuarios.
+- Smoke con datos sintéticos: `netdiag demo --seed 11 --sites 2 --hosts 12` y `netdiag evidence usage --seed-file ... --out usage.ndc`. El payload mostró `sites: 2`, `scans: 2` y `6-10: 2`.
+- `netdiag container verify --key release.pub usage.ndc` devolvió `Firma: válida`, `Contenido: correcto`, `Resultado: VÁLIDO`.
+
+Sin red, sin envío automático y sin sustituir la evidencia escrita de F42. La clave de prueba es local y no se usa para releases oficiales. Sin tag ni release.

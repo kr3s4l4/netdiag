@@ -137,6 +137,7 @@ Comandos:
   probe                 Exporta observaciones locales a JSON (firma opcional)
   probe import <archivo> Importa una sonda en la base local
   evidence dossier      Genera un dossier .ndc con informes, diffs y auditorías
+  evidence usage        Exporta contadores agregados de uso en un .ndc firmado
   demo                  Genera datos sintéticos en <data_dir>/demo
   update check|apply|rollback|commit  Gestiona actualizaciones firmadas
   version               Muestra la versión
@@ -1548,10 +1549,25 @@ func probeImportCmd(args []string) int {
 }
 
 func evidenceCmd(args []string) int {
-	if len(args) == 0 || args[0] != "dossier" {
-		fmt.Fprintln(os.Stderr, "use: netdiag evidence dossier [--site-id 1] [--days 30] [--out RUTA] [--seed-file RUTA] [--key-pub CLAVE]")
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, `Uso: netdiag evidence <subcomando> [opciones]
+
+Subcomandos:
+  dossier  Genera un dossier .ndc con informes, diffs y auditorías
+  usage    Exporta un .ndc con contadores agregados de uso, firmado en local`)
 		return 2
 	}
+	switch args[0] {
+	case "dossier":
+		return evidenceDossierCmd(args[1:])
+	case "usage":
+		return evidenceUsageCmd(args[1:])
+	default:
+		return fail("subcomando de evidence desconocido: %s", args[0])
+	}
+}
+
+func evidenceDossierCmd(args []string) int {
 	fs := flag.NewFlagSet("evidence dossier", flag.ExitOnError)
 	cf := addCommonFlags(fs)
 	siteID := fs.Int64("site-id", 1, "sede incluida en el dossier")
@@ -1560,7 +1576,7 @@ func evidenceCmd(args []string) int {
 	keyPub := fs.String("key-pub", "", "clave pública minisign (ruta o base64)")
 	out := fs.String("out", "", "ruta del .ndc; por defecto <data_dir>/dossiers")
 	containerVersion := fs.String("version", version, "versión grabada en el manifiesto")
-	if err := parseFlags(fs, args[1:]); err != nil {
+	if err := parseFlags(fs, args); err != nil {
 		return fail("opciones de evidence dossier no válidas: %v", err)
 	}
 	if fs.NArg() > 0 {
@@ -1583,6 +1599,41 @@ func evidenceCmd(args []string) int {
 		return fail("no se pudo generar el dossier: %v", err)
 	}
 	fmt.Printf("dossier válido: %s (%d bytes)\n", entry.Path, entry.Size)
+	return 0
+}
+
+func evidenceUsageCmd(args []string) int {
+	fs := flag.NewFlagSet("evidence usage", flag.ExitOnError)
+	cf := addCommonFlags(fs)
+	seedFile := fs.String("seed-file", "", "JSON local con la semilla minisign")
+	keyPub := fs.String("key-pub", "", "clave pública minisign (ruta o base64)")
+	out := fs.String("out", "", "ruta del .ndc; por defecto <data_dir>/netdiag-usage-*.ndc")
+	containerVersion := fs.String("version", version, "versión grabada en el manifiesto")
+	if err := parseFlags(fs, args); err != nil {
+		return fail("opciones de evidence usage no válidas: %v", err)
+	}
+	if fs.NArg() > 0 {
+		return fail("evidence usage no acepta argumentos posicionales")
+	}
+	cfg, cfgPath, err := loadConfig(cf)
+	if err != nil {
+		return fail("configuración no válida: %v", err)
+	}
+	a, err := app.New(cfg, cfgPath, app.BuildInfo{Version: version, Commit: commit, BuildDate: buildDate}, newLogger(cfg))
+	if err != nil {
+		return fail("no se pudo abrir la aplicación: %v", err)
+	}
+	defer a.Close()
+	entry, err := evidence.BuildUsage(a.Store(), evidence.UsageOptions{
+		SeedFile: *seedFile, KeyPub: *keyPub, Out: *out,
+		DataDir: cfg.Storage.DataDir, Version: *containerVersion,
+	})
+	if err != nil {
+		return fail("no se pudo generar la evidencia de uso: %v", err)
+	}
+	fmt.Printf("evidencia de uso válida: %s (%d bytes)\n", entry.Path, entry.Size)
+	fmt.Println("Solo contadores agregados: sin IPs, MACs, nombres ni envío automático.")
+	fmt.Println("No sustituye la evidencia escrita de F42.")
 	return 0
 }
 

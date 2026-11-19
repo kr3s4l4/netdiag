@@ -857,3 +857,45 @@ func (s *Store) CountManagedHosts(since time.Time) (int, error) {
 	}
 	return len(seen), rows.Err()
 }
+
+// CountManagedHostsBySiteSince returns the same billing-style count grouped by
+// site. Only integers leave this method: no identity, IP, MAC or hostname is
+// exposed to callers building anonymous usage evidence.
+func (s *Store) CountManagedHostsBySiteSince(since time.Time) (map[int64]int, error) {
+	rows, err := s.db.Query(`SELECT site_id, identity, tags FROM hosts WHERE last_seen >= ?`, since.UnixMilli())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	seen := make(map[string]struct{})
+	counts := make(map[int64]int)
+	for rows.Next() {
+		var siteID int64
+		var identity, raw string
+		if err := rows.Scan(&siteID, &identity, &raw); err != nil {
+			return nil, err
+		}
+		var tags []string
+		if err := json.Unmarshal([]byte(raw), &tags); err != nil {
+			continue
+		}
+		skip := false
+		for _, tag := range tags {
+			t := strings.ToLower(strings.TrimSpace(tag))
+			if t == "guest" || t == "excluded" {
+				skip = true
+				break
+			}
+		}
+		if skip {
+			continue
+		}
+		key := fmt.Sprintf("%d:%s", siteID, identity)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		counts[siteID]++
+	}
+	return counts, rows.Err()
+}
