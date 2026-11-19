@@ -137,22 +137,24 @@ No responder con quejas ni republicar el mismo post. La ruta correcta es el Mega
 Entendido, gracias por el aviso. Lo llevo al Megathread de New Project. Perdón por no haber revisado la regla 6 antes.
 ```
 
-**Entrada corta para el Megathread:**
+**Enlace verificado:** <https://www.reddit.com/r/selfhosted/comments/1xurjda/new_project_megathread_week_of_12_nov_2026/>. El hilo dice que se publica un Megathread nuevo cada viernes y que se puede participar cualquier día. Hoy es jueves 19/11, así que esta semana sigue siendo la vigente; el viernes 20/11 aparecerá la siguiente. El hilo recomienda este formato: `Project Name`, `Repo/Website Link`, `Description` y `AI Involvement`.
+
+**Entrada para el Megathread:**
 
 ```text
-NetDiag v1.5.2 — inventario y diagnósticos de red autocontendidos.
+**Project Name:** NetDiag v1.5.2
 
-Un único binario Go, SQLite local, interfaz web en español/inglés. Sin agentes, sin nube, sin telemetría y sin npm. Descubrimiento ARP/ICMP, topología L2/L3, diagnósticos heurísticos con evidencia, alertas, informes y multisede.
+**Repo/Website Link:** https://github.com/kr3s4l4/netdiag
+Release firmada: https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.2
 
-Release firmada con minisign; clave pública y verificación en el repo. Beta: úsalo solo en redes propias o con autorización.
+**Description:** Escáner de red y monitor de inventario autocontendido. Un único binario Go, SQLite local, interfaz web en español/inglés. Sin agentes, sin nube, sin telemetría y sin npm. Descubrimiento ARP/ICMP, topología L2/L3, diagnósticos heurísticos con evidencia, alertas, informes y multisede. AGPL-3.0. Beta: úsalo solo en redes propias o con autorización.
 
-Busco que gente real lo pruebe y me diga dónde lo desplegó y qué le faltó.
+**AI Involvement:** Desarrollo en solitario. Usé un asistente IA como herramienta para escribir parte del código y la documentación; revisé y probé cada cambio. NetDiag no incluye LLM, no llama a servicios de IA y no envía datos a ningún sitio.
 
-Repo: https://github.com/kr3s4l4/netdiag
-Releases: https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.2
+Busco que gente real lo pruebe y me diga dónde lo desplegó y qué le faltó. Gracias.
 ```
 
-En el Megathread se publica una entrada breve: no pegues el cuerpo completo ni abras otro post. Después responde a quien comente con las respuestas listas, en castellano o en inglés. Esto cuenta como señal pública, no como evidencia F42.
+La línea de IA es obligatoria por honestidad: el proyecto se construyó con ayuda de un asistente, pero el producto no tiene IA, no consulta NVD ni usa SNI o DNS para inferencia. En el Megathread va una entrada breve: no pegues el cuerpo completo ni abras otro post. Después responde a quien comente con las respuestas listas, en castellano o en inglés. Esto cuenta como señal pública, no como evidencia F42.
 
 ## Error «Your repost includes a link that isn't working»
 
