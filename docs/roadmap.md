@@ -45,7 +45,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F68 | Implementado: dossier `.ndc` programado y manual, con retención y semilla fuera de la configuración |
 | F61 | Implementado: versión única en `internal/buildinfo` y smoke test de binario, API y UI |
 | F62 | Implementado: `netdiag evidence usage`, `.ndc` firmado con contadores agregados y sin red |
-| F63 | Pendiente — Lote 4: ensayo local del runbook CRA sin envíos |
+| F63 | Implementado: `security runbook --dry-run` genera borradores 24/72 h sin red |
 | F64 | Pendiente — Lote 4: expediente de decisión comercial, sin publicar precios |
 | Pruebas | `gofmt`, `go build`, `go test ./...`, `git diff --check`, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
 
@@ -430,11 +430,11 @@ Tests: `internal/buildinfo` compara el valor por defecto con `VERSION` del Makef
 
 **Criterio de cierre (cumplido):** `container verify` devuelve `VÁLIDO`, los tests comprueban la ausencia de identificadores de red y el documento deja claro que no sustituye la evidencia escrita de F42.
 
-### F63 — Ensayo local del runbook CRA — **pendiente, Lote 4**
+### F63 — Ensayo local del runbook CRA — **implementado**
 
-`netdiag security runbook --dry-run` generaría los borradores de notificación 24/72 h a partir del SBOM y la procedencia ya firmados. No enviaría correo, no contactaría la SRP y no crearía obligaciones legales.
+`netdiag security runbook --dry-run --dir DIR --out DIR` verifica las firmas detached de `manifest.json`, `sbom.cdx.json` y `provenance.intoto.jsonl` con la clave pública de release. Con esos datos genera `aviso-24h-dryrun.md`, `aviso-72h-dryrun.md`, `runbook-dryrun.json` y `NO-ENVIADO.txt`. No hay red, correo ni contacto con la SRP; el comando exige `--dry-run` y marca cada fichero como borrador sin obligación legal.
 
-**Criterio de cierre:** borradores deterministas, sin red y con la advertencia explícita de que F41 real sigue bloqueado hasta credenciales SRP y release correctiva.
+**Criterio de cierre (cumplido):** salida byte a byte determinista con T0 fijo por defecto, hashes del SBOM y la procedencia coincidentes con `sha256sum`, y advertencia explícita de que F41 real sigue bloqueado hasta credenciales SRP y release correctiva.
 
 ### F64 — Expediente de decisión comercial — **pendiente, Lote 4**
 

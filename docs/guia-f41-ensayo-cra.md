@@ -4,6 +4,21 @@ Objetivo: demostrar, con horas reales, que el proceso de incidentes funciona. **
 
 Tiempo estimado: 2 h de preparación + 7 días de reloj.
 
+## Ensayo rápido sin envíos (F63)
+
+Antes de rellenar a mano, genera los borradores desde la evidencia firmada de la release:
+
+```bash
+cd /run/media/kr3s4l4/importante/Github_Proyectos/proyectos/scaner_Red/kr3s4l4-Netdiag
+./bin/netdiag security runbook --dry-run \
+  --dir dist/release/1.5.2 \
+  --out /tmp/opencode/ensayo-cra/borradores
+```
+
+Salida: `aviso-24h-dryrun.md`, `aviso-72h-dryrun.md`, `runbook-dryrun.json` y `NO-ENVIADO.txt`. El comando exige `--dry-run`, verifica las tres firmas detached con `release.pub`, usa un T0 fijo por defecto y no abre ninguna conexión. Repetirlo en otro `--out` produce archivos idénticos. Sustituye los campos entre corchetes con datos sintéticos; no pegues credenciales SRP ni datos reales.
+
+Esto **no cierra F41**: siguen faltando responsable, cuenta SRP y release correctiva.
+
 ## 0. Datos que debes rellenar tú, en local
 
 No los pegues en el chat ni en el repositorio.

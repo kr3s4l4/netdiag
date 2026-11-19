@@ -47,6 +47,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/netutil"
 	"github.com/kr3s4l4/netdiag/internal/probe"
 	"github.com/kr3s4l4/netdiag/internal/report"
+	"github.com/kr3s4l4/netdiag/internal/security"
 	"github.com/kr3s4l4/netdiag/internal/trace"
 	"github.com/kr3s4l4/netdiag/internal/update"
 	"gopkg.in/yaml.v3"
@@ -105,6 +106,8 @@ func run(args []string) int {
 		return probeCmd(rest)
 	case "evidence":
 		return evidenceCmd(rest)
+	case "security":
+		return securityCmd(rest)
 	case "demo":
 		return demoCmd(rest)
 	case "update", "updates":
@@ -138,6 +141,7 @@ Comandos:
   probe import <archivo> Importa una sonda en la base local
   evidence dossier      Genera un dossier .ndc con informes, diffs y auditorías
   evidence usage        Exporta contadores agregados de uso en un .ndc firmado
+  security runbook      Prepara borradores CRA 24/72 h en local, sin envíos
   demo                  Genera datos sintéticos en <data_dir>/demo
   update check|apply|rollback|commit  Gestiona actualizaciones firmadas
   version               Muestra la versión
@@ -1405,6 +1409,58 @@ func printContainerReport(rep *container.Report, verified bool, problem string) 
 	for _, warning := range rep.Warnings {
 		fmt.Printf("Aviso: %s\n", warning)
 	}
+}
+
+func securityCmd(args []string) int {
+	if len(args) == 0 || args[0] != "runbook" {
+		fmt.Fprintln(os.Stderr, `Uso: netdiag security runbook --dry-run --dir DIR --out DIR [opciones]
+
+Prepara borradores CRA de 24 h y 72 h desde evidencia de release ya firmada.
+No envía correo, no contacta la SRP y no crea obligaciones legales.
+
+Opciones:
+  --dry-run           Obligatorio; confirma que solo se generan borradores
+  --dir RUTA          Directorio con manifest.json, sbom.cdx.json,
+                      provenance.intoto.jsonl y sus .minisig
+  --key RUTA|BASE64   Clave pública de release (por defecto <dir>/release.pub)
+  --out RUTA          Directorio de salida, creado con permisos 0700
+  --incident ID       ID sintético (por defecto INC-DRYRUN-2026-001)
+  --t0 RFC3339        Instante simulado (por defecto `+security.DryRunT0+`)
+  --version X         Versión del producto (por defecto la del manifiesto)`)
+		return 2
+	}
+	fs := flag.NewFlagSet("security runbook", flag.ExitOnError)
+	dryRun := fs.Bool("dry-run", false, "genera solo borradores locales")
+	dir := fs.String("dir", "dist/release/1.5.2", "directorio con la evidencia firmada")
+	keyPub := fs.String("key", "", "clave pública de release")
+	out := fs.String("out", "", "directorio de salida de los borradores")
+	incident := fs.String("incident", "", "ID sintético del incidente")
+	t0 := fs.String("t0", "", "instante T0 simulado en RFC3339")
+	productVersion := fs.String("version", "", "versión del producto")
+	if err := parseFlags(fs, args[1:]); err != nil {
+		return fail("opciones de security runbook no válidas: %v", err)
+	}
+	if fs.NArg() > 0 {
+		return fail("security runbook no acepta argumentos posicionales")
+	}
+	if !*dryRun {
+		return fail("solo se admite --dry-run: este comando nunca envía avisos reales")
+	}
+	result, err := security.BuildDryRun(security.RunbookOptions{
+		Dir: *dir, KeyPub: *keyPub, Out: *out,
+		Incident: *incident, T0: *t0, Version: *productVersion,
+	})
+	if err != nil {
+		return fail("no se pudo preparar el ensayo CRA: %v", err)
+	}
+	fmt.Printf("ensayo CRA listo en %s\n", *out)
+	for _, path := range result.Files {
+		fmt.Printf("  %s\n", path)
+	}
+	fmt.Printf("T0 %s · aviso 24 h antes de %s · notificación 72 h antes de %s\n",
+		result.T0, result.Deadline24h, result.Deadline72h)
+	fmt.Println("NO enviar a ENISA, CSIRT ni clientes. F41 real sigue bloqueado: credenciales SRP y release correctiva.")
+	return 0
 }
 
 func demoCmd(args []string) int {

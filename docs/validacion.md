@@ -500,3 +500,16 @@ Sin red, sin envío automático y sin sustituir la evidencia escrita de F42. La 
 Descargo «tal cual» y responsabilidad de autorización de escaneo en `README.md` y `README.en.md`. La pantalla de acceso muestra el aviso en español o inglés según el idioma de la UI. El asistente de primer arranque exige marcar una casilla antes de lanzar el primer escaneo y guarda esa marca solo en `localStorage` del navegador. `netdiag serve --accept-terms` o `terms.accepted: true` en la configuración registran la confirmación del operador; sin ellos se imprime un aviso en stderr, pero el servidor arranca igual.
 
 No hay petición de red, ni telemetría, ni cambio de licencia. El aviso no traslada la responsabilidad legal: quien escanea sigue necesitando autorización. F42 sigue con 0/3 instalaciones reales, 0/2 casos y 0/1 disposición a pagar.
+
+### Lote 4: F63 — ensayo local del runbook CRA (19/11/2026)
+
+Nuevo subcomando `netdiag security runbook --dry-run`. Verifica con `release.pub` las firmas detached de `manifest.json`, `sbom.cdx.json` y `provenance.intoto.jsonl`, y escribe cuatro ficheros en el directorio elegido: dos borradores 24/72 h, un `runbook-dryrun.json` y un marcador `NO-ENVIADO.txt`. Sin red, sin correo y sin SRP. El comando se niega a funcionar sin `--dry-run`.
+
+Comprobaciones:
+
+- `go test ./internal/security ./cmd/netdiag` pasa. Los tests usan una clave de prueba, comprueban un SBOM manipulado y exigen salida byte a byte determinista.
+- Smoke contra `dist/release/1.5.2` en modo solo lectura: versión `1.5.2`, 46 componentes SBOM únicos, T0 `2026-01-01T00:00:00Z`, plazos `2026-01-02T00:00:00Z` y `2026-01-04T00:00:00Z`.
+- Los tres hashes del JSON coinciden con `sha256sum` de los ficheros de la release.
+- Dos ejecuciones con `--out` distinto producen árboles idénticos (`diff -r` sin salida).
+
+Sin envíos reales. F41 sigue bloqueado por credenciales SRP y release correctiva; este borrador no crea obligaciones legales ni cierra el ensayo humano de 7 días. Sin tag ni release.
