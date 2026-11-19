@@ -1987,10 +1987,11 @@ async function renderReports() {
     </tr>`).join('') : `<tr><td colspan="5"><div class="empty">${icon('reports')}Sin informes generados</div></td></tr>`;
   content.innerHTML = `
     <div class="spread mb">
-      <div class="muted small">Los informes se generan en el servidor y quedan disponibles para descargar. El PDF incluye portada, resumen ejecutivo e inventario completo.</div>
+      <div class="muted small">Los informes se generan en el servidor y quedan disponibles para descargar. El ejecutivo PDF cabe en una página; los demás formatos incluyen el inventario completo.</div>
       <div class="row">
         <a class="btn sm" href="/api/v1/hosts/export?format=csv" download>${icon('download')} Inventario CSV</a>
-        <button class="btn primary" data-action="report-new">${icon('plus')} Generar informe</button>
+        <button class="btn" data-action="report-new">${icon('plus')} ${esc(tr('Otro informe'))}</button>
+        <button class="btn primary" data-action="report-executive">${icon('reports')} ${esc(tr('Informe ejecutivo (1 página)'))}</button>
       </div>
     </div>
     <div class="card">
@@ -2013,12 +2014,29 @@ function openReportModal() {
         <div class="field full"><label>Título (opcional)</label>
           <input class="input" name="title" maxlength="120" placeholder="Informe de red — sede principal"></div>
       </div>
-      <div class="notice mt"><span>El informe incluye el inventario actual y las alertas de los últimos 7 días.</span></div>
+      <div class="notice mt"><span>${esc(tr('El informe incluye el inventario actual y las alertas de los últimos 7 días. El ejecutivo PDF resume todo en una página sin secretos ni configuración.'))}</span></div>
     </form>`;
   openModal('Generar informe', body, {
     footer: `<button class="btn" data-action="modal-close">Cancelar</button>
       <button class="btn primary" data-action="report-create">${icon('download')} Generar</button>`,
   });
+}
+
+// F32: genera el PDF ejecutivo de una página con un solo clic. El backend
+// construye el resumen a partir de datos agregados y lo registra como informe.
+async function createExecutiveReport() {
+  const rec = await api('/reports', {
+    method: 'POST',
+    body: {
+      site_id: Number(state.siteId) || 0,
+      kind: 'executive',
+      format: 'pdf',
+      title: 'Informe ejecutivo de red',
+    },
+  });
+  closeModal();
+  toast(rec.name || 'Informe ejecutivo listo', { type: 'ok', title: 'Informe listo' });
+  await renderReports();
 }
 
 async function submitReport(form) {

@@ -17,6 +17,12 @@ import (
 func (s *Server) diagnosticsInput(r *http.Request) (diagnostics.Input, time.Time, time.Time) {
 	siteID := queryInt64(r, "site_id")
 	from, to := parseWindow(r, 24*time.Hour)
+	return s.diagnosticsFor(siteID, from, to), from, to
+}
+
+// diagnosticsFor is the request-free form used by exports such as the
+// one-page executive report. It reads the same local sources as the API.
+func (s *Server) diagnosticsFor(siteID int64, from, to time.Time) diagnostics.Input {
 	cfg := config.Diagnostics{EnterpriseMode: true, MinConfidence: 60, MinAvailability: 99,
 		MaxRTTMS: 200, MaxAnomalies: 200, StormHosts: 3}
 	if s.cfg != nil {
@@ -84,7 +90,7 @@ func (s *Server) diagnosticsInput(r *http.Request) (diagnostics.Input, time.Time
 	if err != nil {
 		in.Passive = nil
 	}
-	return in, from, to
+	return in
 }
 
 // handleEnterpriseDiagnostics returns every detector's findings plus the

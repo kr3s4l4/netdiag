@@ -1410,6 +1410,7 @@ document.addEventListener('click', async (e) => {
       case 'integration-delete': await deleteIntegration(Number(target.dataset.id)); break;
       case 'integration-test': await testIntegration(Number(target.dataset.id), target); break;
       case 'report-new': openReportModal(); break;
+      case 'report-executive': await createExecutiveReport(); break;
       case 'report-create': await createReportFromModal(); break;
       case 'report-delete': await deleteReport(Number(target.dataset.id)); break;
       case 'scan-start': await startScanFromModal(); break;

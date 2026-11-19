@@ -388,3 +388,16 @@ Se validó con Chromium headless sobre CDP, contra un binario `1.5.1` construido
 - Al guardar, apareció el aviso «Regla creada», el número de reglas pasó de 11 a 13 en dos pruebas y la URL quedó coherente en `#/alerts`. No hubo promesas rechazadas ni errores de JavaScript.
 
 F31 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.
+
+### F32: informe ejecutivo de una página (19/11/2026)
+
+Se validó con Chromium headless sobre CDP y descarga real, contra un binario `1.5.1` construido desde `master` y un servicio en `127.0.0.1:18083` con la base del laboratorio Docker y la sede `Laboratorio` activa. `go test ./...` y `make build` pasan.
+
+- `/reports` muestra el botón «Informe ejecutivo (1 página)». Al pulsarlo se creó `netdiag-executive-20261119-102816.pdf` (8.686 bytes) y apareció el aviso «Informe listo»; no hubo errores ni promesas rechazadas.
+- El archivo descargado por la sesión autenticada empieza por `%PDF-1.3` y tiene exactamente **1 página** (`/Type /Page`). Contiene «Resumen del inventario», «Disponibilidad y latencia · últimos 7 días», «Cambios principales», «Hallazgos de mayor severidad», «Página 1 de 1» y «datos agregados sin secretos».
+- El pie indica `NetDiag 1.5.1 · edición community · retención 7 días · generado 19/11/2026 10:28`. No aparece el pie personalizado que se pasó al generador en la prueba unitaria.
+- En el laboratorio se mostraron 5 dispositivos, 4 en línea, 1 caído, 8 alertas críticas, disponibilidad `100,0 %`, latencia «Sin muestras» y «Basado en 20 muestras de los últimos 7 días». Los cinco cambios son altas de hosts y los cuatro hallazgos son los de mayor severidad y confianza.
+- `internal/report/executive_test.go` comprueba que una comunidad SNMP (`public`) y un secreto (`secretpass`) no aparecen en el PDF y se sustituyen por `[redactada]`; también comprueba el pie y la página única.
+- Con `NetDiagI18n.setLang('en')` el botón pasó a «Executive report (1 page)».
+
+F32 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.

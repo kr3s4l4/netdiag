@@ -190,7 +190,7 @@ Canales: `webhook`, `slack`, `discord`, `telegram`, `pagerduty`, `smtp`, `syslog
 | Método | Ruta | Notas |
 | --- | --- | --- |
 | GET | `/reports?site_id=<id>` | Últimos 200; `0` (o ausente) incluye todas las sedes |
-| POST | `/reports` | `site_id`, `kind` (`inventory\|executive\|alerts`), `format` (`pdf\|csv\|json\|html`), `title` |
+| POST | `/reports` | `site_id`, `kind` (`inventory\|executive\|alerts`), `format` (`pdf\|csv\|json\|html`), `title`. Con `kind=executive` y `format=pdf`, el PDF cabe en una página: inventario resumido, 7 días de disponibilidad y latencia, cambios y hallazgos principales, con credenciales redactadas y pie con versión, edición, retención y fecha |
 | GET | `/reports/{id}/download` | Descarga autenticada |
 | DELETE | `/reports/{id}` | Elimina registro y archivo |
 

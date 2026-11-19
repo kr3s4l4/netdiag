@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kr3s4l4/netdiag/internal/diagnostics"
+	"github.com/kr3s4l4/netdiag/internal/history"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/report"
 )
@@ -70,6 +72,43 @@ func (s *Server) handleCreateReport(w http.ResponseWriter, r *http.Request) {
 	if len(items) > 1000 {
 		items = items[:1000]
 	}
+	// F32: the executive PDF is a curated one-page summary. It reads the same
+	// local sources as /history/compare and /diagnostics/enterprise, replaces
+	// the 24 h fleet figures with a seven-day window, and adds only safe
+	// edition metadata. No configuration values or credentials are exported.
+	edition := "community"
+	retentionDays := 7
+	samples7D := 0
+	var changes []model.HistoryChange
+	var findings []model.DiagnosticAnomaly
+	if req.Kind == "executive" {
+		now := time.Now()
+		periodA, periodB := history.DefaultPeriods(now, 7, 24*time.Hour)
+		if diff, err := history.BuildReport(s.st, req.SiteID, periodA, periodB); err == nil {
+			changes = diff.Changes
+		} else if s.log != nil {
+			s.log.Warn("no se pudieron leer cambios para el informe ejecutivo", "error", err)
+		}
+		diagReport := diagnostics.Analyzer{}.Analyze(s.diagnosticsFor(req.SiteID, periodA.From, periodA.To))
+		findings = diagReport.Anomalies
+		since := now.AddDate(0, 0, -7)
+		if availability, rtt, err := s.st.FleetSummaryForSite(req.SiteID, since); err == nil {
+			stats.Availability, stats.AvgRTT = availability, rtt
+		} else if s.log != nil {
+			s.log.Warn("no se pudieron leer métricas de 7 días para el informe ejecutivo", "error", err)
+		}
+		if samples, err := s.st.MetricsForSite(req.SiteID, since, 50000); err == nil {
+			samples7D = len(samples)
+		}
+		status := s.licenseStatus(now)
+		if status.Edition != "" {
+			edition = status.Edition
+		}
+		if status.Limits.RetentionDays > 0 {
+			retentionDays = status.Limits.RetentionDays
+		}
+	}
+
 	gen := s.reports
 	if gen == nil {
 		s.fail(w, r, http.StatusInternalServerError, "generador de informes no configurado")
@@ -87,6 +126,13 @@ func (s *Server) handleCreateReport(w http.ResponseWriter, r *http.Request) {
 		Stats:   *stats,
 		From:    from,
 		To:      to,
+
+		Version:       s.version,
+		Edition:       edition,
+		RetentionDays: retentionDays,
+		Samples7D:     samples7D,
+		Changes:       changes,
+		Findings:      findings,
 	})
 	if err != nil {
 		s.fail(w, r, http.StatusInternalServerError, "no se pudo generar el informe: "+err.Error())

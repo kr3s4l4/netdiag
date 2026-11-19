@@ -11,7 +11,11 @@ import (
 // Missing or invalid licences are not errors: Community remains fully usable
 // and the reason is exposed as a warning instead.
 func (s *Server) handleSystemLicense(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
+	writeJSON(w, http.StatusOK, s.licenseStatus(time.Now()))
+}
+
+// licenseStatus is the safe representation shared by the API and exports.
+func (s *Server) licenseStatus(now time.Time) license.Status {
 	managed := 0
 	sites := 0
 	if s.st != nil {
@@ -28,7 +32,7 @@ func (s *Server) handleSystemLicense(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if s.licenses == nil {
-		writeJSON(w, http.StatusOK, license.Status{
+		return license.Status{
 			Status:       "community",
 			Edition:      "community",
 			Capabilities: []string{},
@@ -36,8 +40,7 @@ func (s *Server) handleSystemLicense(w http.ResponseWriter, r *http.Request) {
 			Warnings:     []string{},
 			ManagedHosts: managed,
 			Sites:        sites,
-		})
-		return
+		}
 	}
-	writeJSON(w, http.StatusOK, s.licenses.Status(now, managed, sites))
+	return s.licenses.Status(now, managed, sites)
 }

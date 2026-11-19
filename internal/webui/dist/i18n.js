@@ -1037,6 +1037,12 @@
     'Crear regla': 'Create rule',
     'No se encontró el hallazgo': 'Finding not found',
 
+    // ---- F32 informe ejecutivo ----
+    'Informe ejecutivo (1 página)': 'Executive report (1 page)',
+    'Otro informe': 'Other report',
+    'El informe incluye el inventario actual y las alertas de los últimos 7 días. El ejecutivo PDF resume todo en una página sin secretos ni configuración.':
+      'The report includes the current inventory and the last 7 days of alerts. The executive PDF fits on one page, with no secrets or configuration.',
+
     // ---- document title ----
     'NetDiag · Inventario y monitoreo de red': 'NetDiag · Network inventory and monitoring',
   };

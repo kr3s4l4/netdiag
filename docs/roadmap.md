@@ -20,6 +20,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F28 | Implementado y verificado con CDP: puntuación 0–100 explicable, desglose 40/20/20/20 y acceso a la evidencia; pendiente de release |
 | F29 | Implementado y verificado con CDP: `Ctrl+K` busca hosts, alertas y redes; pendiente de release |
 | F31 | Implementado y verificado con CDP: «Ver host», «Copiar comando» y «Crear regla» desde cada hallazgo; pendiente de release |
+| F32 | Implementado y verificado con CDP y descarga real: PDF ejecutivo de una página desde un botón; pendiente de release |
 | F30 | Implementado y verificado con CDP: campana, historial por sede y eventos persistentes; pendiente de release |
 | F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
@@ -115,7 +116,9 @@ Para cada hallazgo de `/diagnostics`:
 
 **Esfuerzo:** 3–5 h.
 
-### F32 — Informe ejecutivo de una página
+### F32 — Informe ejecutivo de una página — implementado en `master`
+
+**Estado:** el botón «Informe ejecutivo (1 página)» de `/reports` genera un PDF A4 de una sola página. Incluye resumen del inventario, disponibilidad y latencia de 7 días con su número de muestras, hasta cinco cambios de `/history/compare`, hasta cuatro hallazgos de mayor severidad y un pie con versión, edición, retención activa y fecha. Los textos se redactan antes de escribirse: comunidades SNMP, tokens y credenciales `clave/valor` se sustituyen por `[redactada]` o `[redactado]`; el pie del llamador nunca se copia al PDF. El cálculo de 7 días reutiliza `FleetSummaryForSite`, y los cambios y hallazgos salen de las mismas funciones que las rutas `/history/compare` y `/diagnostics/enterprise`. Los tests verifican una página, la redacción y las marcas del pie; la validación real descargó el PDF desde la UI. Pendiente de publicación en `v1.5.2`.
 
 **Objetivo:** entregar un artefacto listo para clientes o dirección.
 
@@ -343,7 +346,7 @@ El primer comentario público real en HN señaló que el repo parecía estar sol
 | F29 | F40 | Alta: implementada en `master`, entrega 1.5.2 |
 | F30 | Ninguna | Alta: implementada en `master`, entrega 1.5.2 |
 | F31 | F28 y modal de reglas de alertas | Alta: implementada en `master`, entrega 1.5.2 |
-| F32 | F28 para el panel y F21/F22 para datos | Alta, entrega 1.5.2 |
+| F32 | F28, F21 y F31 para datos y redacción | Alta: implementada en `master`, entrega 1.5.2 |
 | F33, F34 | Ninguna | Cerradas en 1.5.0 |
 | F35 | F33, F34 | Alta: habilita prueba y venta |
 | F36 | F23 | Media: reutiliza minisign y canonicalización |
