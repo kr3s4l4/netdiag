@@ -573,6 +573,23 @@ var migrations = [][]string{
 		`CREATE INDEX idx_passive_kind ON passive_observations(site_id, kind, observed_at DESC)`,
 		`CREATE INDEX idx_passive_time ON passive_observations(site_id, observed_at DESC)`,
 	},
+	{
+		// v1.5.11: F59 local human triage of diagnostic findings. Reviews
+		// expire after 30 days and never close alerts automatically.
+		`CREATE TABLE finding_reviews (
+			site_id INTEGER NOT NULL,
+			finding_type TEXT NOT NULL,
+			host_key TEXT NOT NULL,
+			status TEXT NOT NULL,
+			note TEXT NOT NULL DEFAULT '',
+			reviewer TEXT NOT NULL DEFAULT '',
+			expires_at INTEGER NOT NULL,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL,
+			PRIMARY KEY (site_id, finding_type, host_key)
+		)`,
+		`CREATE INDEX idx_finding_reviews_expires ON finding_reviews(expires_at)`,
+	},
 }
 
 func (s *Store) migrate() error {

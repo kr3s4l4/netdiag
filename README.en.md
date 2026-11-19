@@ -111,11 +111,17 @@ The **Diagnostics** view and `GET /api/v1/diagnostics/enterprise` correlate data
 
 **Explanation without AI.** `cause`, `impact` and `next_steps` come from deterministic templates keyed by finding type. The same evidence always produces the same text. Hypotheses are ranked by confidence and never exceed the evidence confidence: they are leads to verify, not confirmed causes. Three fixed correlation rules cover gateway spoofing, an L2 loop and MAC movement or spoofing.
 
+**Local triage (F59).** Each finding can be marked `pending`, `confirmed`, `false_positive` or `resolved` in **Diagnostics**. The decision is keyed by `(site_id, finding_type, host_key)`, records the authenticated reviewer, a note of up to 500 characters and an audit entry, and expires after 30 days. `operator`, `admin` and `owner` may review; `viewer` is read-only. The badge also appears in **Alerts**. A review never closes an alert or changes the evidence. Manage it with `GET/POST/DELETE /api/v1/diagnostics/reviews`.
+
 **History summary.** `POST /api/v1/history/compare` adds `narrative`: short sentences built only from structured changes. The history view and the executive PDF show them as a summary; they infer no causes and do not replace the evidence table.
 
 **TLS certificates.** The `tls_expiring` detector reads `TLSCert.NotAfter` already collected during the handshake. It warns at 30 and 14 days and flags one day or less as critical. The `tls_expiring` alert rule uses category `tls` and the same `min_confidence` as the other finding rules.
 
 **Signed evidence.** `scripts/sign-evidence.sh` reuses `netdiag container build` with a local Ed25519 key distinct from the release key. It packages reports, diffs and site bundles into a verifiable `.ndc` without a cloud. Procedure in [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
+
+**Portable probe (F49).** `netdiag probe --site-id 1 --out sonda.json` collects ARP and kernel tables, attempts LLDP/CDP over SNMP and reports `available:false` for unavailable WiFi or VPN sources. The JSON may carry an optional minisign signature via `--seed-file`. `netdiag probe import [--key CLAVE.pub] sonda.json` writes it to the local database; a signed probe requires the public key. No cloud, no automatic upload and no charge per probe. See [docs/escaneo-remoto.md](docs/escaneo-remoto.md).
+
+**Local dossier (F68).** `evidence.dossier` writes a signed `.ndc` every `interval_hours` containing the executive report, diff, audits and snapshots from the last `days` days, keeps the latest `keep` files and never uploads them. `netdiag evidence dossier` generates one manually. The seed is not stored in `config.yaml`: only a `0600` path to it.
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
@@ -123,6 +129,13 @@ curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/arp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/dhcp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/snmp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/passive?site_id=1'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/reviews?site_id=1'
+```
+
+```bash
+netdiag probe --site-id 1 --out sonda.json [--seed-file RUTA]
+netdiag probe import [--key CLAVE.pub] sonda.json
+netdiag evidence dossier [--site-id 1] [--days 30] [--seed-file RUTA] [--key-pub CLAVE]
 ```
 
 ## Integrations

@@ -552,6 +552,26 @@ const DIAG_TYPE_LABELS = {
   tls_expiring: 'Certificado por caducar',
 };
 
+const REVIEW_LABELS = {
+  pending: 'Pendiente',
+  confirmed: 'Confirmado',
+  false_positive: 'Falso positivo',
+  resolved: 'Resuelto',
+};
+const REVIEW_TONES = {
+  pending: 'warning',
+  confirmed: 'up',
+  false_positive: 'muted',
+  resolved: 'up',
+};
+
+function reviewBadge(review) {
+  if (!review) return `<span class="badge muted">${esc(tr('Sin revisar'))}</span>`;
+  const tone = REVIEW_TONES[review.status] || 'muted';
+  const label = tr(REVIEW_LABELS[review.status] || review.status);
+  return `<span class="badge ${esc(tone)}">${esc(label)}</span>`;
+}
+
 function passiveSection(passive) {
   const rows = passive.observations || [];
   const status = passive.available
@@ -632,6 +652,7 @@ async function renderDiagnostics() {
   state.diagnosticsReport = report;
   const anomalies = report.anomalies || [];
   const counts = report.counts || {};
+  const canReview = ['admin', 'owner', 'operator'].includes((state.auth && state.auth.user && state.auth.user.role) || '');
   const windowLabel = `${fmtDate(report.from)} — ${fmtDate(report.to)}`;
 
   const rows = anomalies.length ? anomalies.map((a) => {
@@ -641,7 +662,7 @@ async function renderDiagnostics() {
     return `
     <tr>
       <td><span class="badge ${esc(a.severity)}">${esc(tr(SEV_LABELS[a.severity] || a.severity))}</span></td>
-      <td><div class="name-cell"><b>${esc(tr(DIAG_TYPE_LABELS[a.type] || a.type))}</b><span>${esc(a.detail)}</span></div></td>
+      <td><div class="name-cell"><b>${esc(tr(DIAG_TYPE_LABELS[a.type] || a.type))}</b><span>${esc(a.detail)}</span><div class="mt">${reviewBadge(a.review)}</div></div></td>
       <td>${(a.host_ips || []).length ? (a.host_ips || []).slice(0, 3).map((ip) => `<span class="mono-ip">${esc(ip)}</span>`).join('<br>') : '<span class="muted">—</span>'}</td>
       <td>${diagConfidenceBar(a.confidence)}</td>
       <td class="tiny muted">${fmtDate(a.detected_at)}</td>
@@ -657,6 +678,7 @@ async function renderDiagnostics() {
       <div class="diag-actions">
         ${diagHost ? `<a class="tiny" href="#/hosts/${encodeURIComponent(diagHost)}">${esc(tr('Ver host'))}</a>` : ''}
         ${diagCmd ? `<button class="btn sm ghost" data-action="copy-text" data-text="${esc(diagCmd)}">${icon('copy')} ${esc(tr('Copiar comando'))}</button>` : ''}
+        ${canReview ? `<button class="btn sm ghost" data-action="diag-review" data-id="${esc(a.id || '')}" data-type="${esc(a.type)}" data-host-key="${esc(a.host_key || '')}">${icon('check')} ${esc(tr('Revisar'))}</button>` : ''}
         <button class="btn sm ghost" data-action="diag-create-rule" data-id="${esc(a.id || '')}">${icon('plus')} ${esc(tr('Crear regla'))}</button>
       </div></td>
     </tr>`;
@@ -1310,9 +1332,22 @@ async function alertsListBody() {
   if (f.status) q.set('status', f.status);
   if (f.severity) q.set('severity', f.severity);
   if (f.search) q.set('search', f.search);
-  const [res, stats, rulesRes] = await Promise.all([api('/alerts?' + q.toString()), api('/alerts/stats'), api('/alerts/rules')]);
+  const [res, stats, rulesRes, reviewsRes, hostsRes] = await Promise.all([
+    api('/alerts?' + q.toString()), api('/alerts/stats'), api('/alerts/rules'),
+    api('/diagnostics/reviews?limit=500').catch(() => ({ items: [] })),
+    api('/hosts?limit=500').catch(() => ({ items: [] })),
+  ]);
   const rulesCount = (rulesRes.items || []).length;
   const items = res.items || [];
+  const reviewByKey = new Map();
+  ((reviewsRes.items) || []).forEach((r) => { if (!reviewByKey.has(r.host_key)) reviewByKey.set(r.host_key, r); });
+  const hostKeyByID = new Map();
+  ((hostsRes.items) || []).forEach((h) => {
+    let key = '';
+    if (h.mac) key = 'mac:' + String(h.mac).toLowerCase().trim();
+    else if (h.ip) key = 'ip:' + String(h.ip).toLowerCase().trim();
+    if (key && h.id) hostKeyByID.set(Number(h.id), key);
+  });
   const pages = Math.max(1, Math.ceil((res.total || 0) / f.limit));
   const vc = (col) => typeof showViewColumn === 'function' ? showViewColumn('alerts', col) : true;
   const showSeverity = vc('severity');
@@ -1329,6 +1364,12 @@ async function alertsListBody() {
     + (showCreated ? 1 : 0) + (showAcked ? 1 : 0) + (showResolved ? 1 : 0);
   const rows = items.length ? items.map((a) => {
     const actions = [];
+    const alertKey = (a.host_id && hostKeyByID.get(Number(a.host_id)))
+      || (a.host_ip ? 'ip:' + String(a.host_ip).toLowerCase().trim() : '');
+    const linkedReview = alertKey ? reviewByKey.get(alertKey) : null;
+    if (linkedReview) {
+      actions.unshift(`<span class="badge tiny ${esc(REVIEW_TONES[linkedReview.status] || 'muted')}" title="${esc(tr('Revisión local de hallazgos'))}">${esc(tr(REVIEW_LABELS[linkedReview.status] || linkedReview.status))}</span>`);
+    }
     if (a.status === 'active') actions.push(`<button class="btn sm" data-action="alert-ack" data-id="${a.id}">Reconocer</button>`);
     if (a.status !== 'resolved') actions.push(`<button class="btn sm" data-action="alert-resolve" data-id="${a.id}">Resolver</button>`);
     const cells = [];
@@ -1615,6 +1656,75 @@ async function openRuleFromFinding(id) {
     }
   } catch {}
   openRuleModal(null, diagRulePreset(a));
+}
+
+function currentFinding(id, type, hostKey) {
+  const items = (state.diagnosticsReport && state.diagnosticsReport.anomalies) || [];
+  return items.find((x) => String(x.id) === String(id)
+    || (type && x.type === type && (x.host_key || '') === (hostKey || '')));
+}
+
+function openFindingReview(id, type, hostKey) {
+  const a = currentFinding(id, type, hostKey);
+  if (!a) { toast(tr('No se encontró el hallazgo'), { type: 'err' }); return; }
+  const review = a.review || null;
+  const active = review ? review.status : 'pending';
+  const options = Object.keys(REVIEW_LABELS).map((v) =>
+    `<option value="${v}" ${v === active ? 'selected' : ''}>${esc(tr(REVIEW_LABELS[v]))}</option>`).join('');
+  const ids = `data-id="${esc(a.id || '')}" data-type="${esc(a.type)}" data-host-key="${esc(a.host_key || '')}"`;
+  const body = `<form data-form="finding-review" ${ids}>
+    <div class="form-row"><label class="label">${esc(tr('Hallazgo'))}</label><div>${esc(tr(DIAG_TYPE_LABELS[a.type] || a.type))}</div></div>
+    ${a.host_key ? `<div class="form-row"><label class="label">${esc(tr('Host'))}</label><div class="mono">${esc(a.host_key)}</div></div>` : ''}
+    <div class="form-row"><label class="label" for="review-status">${esc(tr('Estado'))}</label><select class="select" id="review-status" name="status">${options}</select></div>
+    <div class="form-row"><label class="label" for="review-note">${esc(tr('Nota (máx. 500 caracteres)'))}</label><textarea class="input" id="review-note" name="note" rows="4" maxlength="500">${esc(review ? review.note || '' : '')}</textarea></div>
+    ${review ? `<div class="tiny muted">${esc(tr('Revisor'))}: ${esc(review.reviewer || '—')} · ${fmtDate(review.updated_at)}</div>` : ''}
+  </form>`;
+  const footer = `<button class="btn ghost" data-action="modal-close">${esc(tr('Cancelar'))}</button>
+    ${review ? `<button class="btn ghost" data-action="diag-review-delete" ${ids}>${esc(tr('Borrar revisión'))}</button>` : ''}
+    <button class="btn primary" data-action="diag-review-save" ${ids}>${esc(tr('Guardar revisión'))}</button>`;
+  openModal(tr('Revisar hallazgo'), body, { footer });
+}
+
+async function saveFindingReview(id, type, hostKey) {
+  const form = document.querySelector('form[data-form="finding-review"]');
+  const a = currentFinding(id, type, hostKey);
+  if (!form || !a) { toast(tr('No se encontró el hallazgo'), { type: 'err' }); return; }
+  const btn = document.querySelector('[data-action="diag-review-save"]');
+  if (btn) btn.disabled = true;
+  try {
+    await api('/diagnostics/reviews', {
+      method: 'POST',
+      body: {
+        finding_type: a.type,
+        host_key: a.host_key || 'global',
+        status: form.querySelector('[name="status"]').value,
+        note: form.querySelector('[name="note"]').value,
+      },
+    });
+    closeModal();
+    toast(tr('Revisión guardada'), { type: 'ok' });
+    await renderDiagnostics();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    toast(e.message || String(e), { type: 'err', title: 'Error' });
+  }
+}
+
+async function deleteFindingReview(id, type, hostKey) {
+  const a = currentFinding(id, type, hostKey);
+  if (!a) { toast(tr('No se encontró el hallazgo'), { type: 'err' }); return; }
+  const btn = document.querySelector('[data-action="diag-review-delete"]');
+  if (btn) btn.disabled = true;
+  try {
+    const q = new URLSearchParams({ finding_type: a.type, host_key: a.host_key || 'global' });
+    await api('/diagnostics/reviews?' + q.toString(), { method: 'DELETE' });
+    closeModal();
+    toast(tr('Revisión borrada'), { type: 'ok' });
+    await renderDiagnostics();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    toast(e.message || String(e), { type: 'err', title: 'Error' });
+  }
 }
 
 async function submitRule(form) {

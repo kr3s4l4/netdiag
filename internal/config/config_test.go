@@ -108,6 +108,82 @@ func TestEnvOverrides(t *testing.T) {
 	}
 }
 
+func writeDossierSeed(t *testing.T, path string, perm os.FileMode) {
+	t.Helper()
+	seed := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x11}, 32))
+	content := `{"seed":"` + seed + `","key_id":"4556494430303031"}`
+	if err := os.WriteFile(path, []byte(content), perm); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func dossierPublicKey() string {
+	return base64.StdEncoding.EncodeToString(append([]byte("Ednetdiag1"), bytes.Repeat([]byte{0x22}, 32)...))
+}
+
+func TestDossierDefaultsAndValidation(t *testing.T) {
+	cfg := Defaults()
+	if cfg.Evidence.Dossier.Enabled || cfg.Evidence.Dossier.IntervalHours != 24 ||
+		cfg.Evidence.Dossier.Days != 30 || cfg.Evidence.Dossier.Keep != 7 ||
+		cfg.Evidence.Dossier.SeedFile != "" || cfg.Evidence.Dossier.KeyPub != "" {
+		t.Fatalf("defaults de dossier inesperados: %+v", cfg.Evidence.Dossier)
+	}
+
+	dir := t.TempDir()
+	seedPath := filepath.Join(dir, "dossier-seed.json")
+	writeDossierSeed(t, seedPath, 0o600)
+	cfg.Storage.DataDir = dir
+	cfg.Evidence.Dossier.Enabled = true
+	cfg.Evidence.Dossier.SeedFile = seedPath
+	cfg.Evidence.Dossier.KeyPub = dossierPublicKey()
+	if err := cfg.Normalize(); err != nil {
+		t.Fatalf("configuración de dossier válida rechazada: %v", err)
+	}
+
+	cfg.Evidence.Dossier.KeyPub = ""
+	if err := cfg.Validate(); err == nil || !strings.Contains(err.Error(), "key_pub") {
+		t.Fatalf("se esperaba error por key_pub, obtenido %v", err)
+	}
+}
+
+func TestDossierRejectsLooseSeedPermissions(t *testing.T) {
+	dir := t.TempDir()
+	seedPath := filepath.Join(dir, "dossier-seed.json")
+	writeDossierSeed(t, seedPath, 0o644)
+
+	cfg := Defaults()
+	cfg.Storage.DataDir = dir
+	cfg.Evidence.Dossier.Enabled = true
+	cfg.Evidence.Dossier.SeedFile = seedPath
+	cfg.Evidence.Dossier.KeyPub = dossierPublicKey()
+	if err := cfg.Normalize(); err == nil || !strings.Contains(err.Error(), "0600") {
+		t.Fatalf("se esperaba error de permisos 0600, obtenido %v", err)
+	}
+}
+
+func TestDossierEnvOverrides(t *testing.T) {
+	dir := t.TempDir()
+	seedPath := filepath.Join(dir, "dossier-seed.json")
+	writeDossierSeed(t, seedPath, 0o600)
+	t.Setenv("NETDIAG_DATA_DIR", dir)
+	t.Setenv("NETDIAG_EVIDENCE_DOSSIER_ENABLED", "true")
+	t.Setenv("NETDIAG_EVIDENCE_DOSSIER_INTERVAL_HOURS", "12")
+	t.Setenv("NETDIAG_EVIDENCE_DOSSIER_DAYS", "14")
+	t.Setenv("NETDIAG_EVIDENCE_DOSSIER_KEEP", "3")
+	t.Setenv("NETDIAG_EVIDENCE_DOSSIER_SEED_FILE", seedPath)
+	t.Setenv("NETDIAG_EVIDENCE_DOSSIER_KEY_PUB", dossierPublicKey())
+
+	cfg, err := Load(filepath.Join(dir, "missing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := cfg.Evidence.Dossier
+	if !got.Enabled || got.IntervalHours != 12 || got.Days != 14 || got.Keep != 3 ||
+		got.SeedFile != seedPath || got.KeyPub != dossierPublicKey() {
+		t.Fatalf("variables de entorno no aplicadas: %+v", got)
+	}
+}
+
 func TestNormalizeAllowedHosts(t *testing.T) {
 	cfg := Defaults()
 	cfg.Storage.DataDir = t.TempDir()

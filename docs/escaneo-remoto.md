@@ -58,6 +58,32 @@ ssh -o BatchMode=yes operator@172.20.50.10 \
   '/opt/netdiag/netdiag scan --network 3 --json' > sede-a.json
 ```
 
+## Sonda portable (F49)
+
+Cuando interesa observar ARP, LLDP/CDP, WiFi o VPN desde otro punto de red, el mismo binario incluye `netdiag probe`. La sonda es un JSON local con esquema `netdiag.probe/v1`; **no se envía a ningún servicio**.
+
+```bash
+# En el equipo remoto, sin privilegios especiales
+/opt/netdiag/netdiag probe --site-id 1 --out sonda.json
+
+# Firma opcional con una clave Ed25519 local (misma idea que la evidencia)
+/opt/netdiag/netdiag probe --site-id 1 \
+  --seed-file "$HOME/.netdiag-evidence/evidence-seed.json" \
+  --out sonda-firmada.json
+```
+
+En la consola, tras copiar el archivo por SSH, USB o el mecanismo que uses:
+
+```bash
+./bin/netdiag probe import --data-dir /var/lib/netdiag sonda.json
+./bin/netdiag probe import --data-dir /var/lib/netdiag \
+  --key "$HOME/.netdiag-evidence/evidence.pub" sonda-firmada.json
+```
+
+Si la sonda está firmada, `import` exige `--key`; sin clave, la rechaza. La firma cubre el JSON canónico, incluido `site_id`; no cifra el contenido. `--site-id` en `import` permite reasignar la sede de destino.
+
+Fuentes: ARP y tablas del kernel siempre que estén disponibles; SNMP/LLDP/CDP best-effort contra el gateway local; WiFi muestra `available:false` salvo compilación con `-tags pcap` e interfaz en modo monitor; VPN se lee pasivamente del kernel sin privilegios. La sonda no factura aparte: la factura sigue dependiendo solo de la banda de hosts gestionados.
+
 ## Red aislada
 
 Si no hay conectividad entre sedes:
@@ -74,7 +100,7 @@ ssh operator@host '/tmp/netdiag scan 192.168.10.0/24 --json' > sede.json
 ARP, LLDP y CDP no cruzan dominios de broadcast.
 Un escaneo remoto ve la red donde se ejecuta, no las demás.
 No es un escáner centralizado ni un túnel SOCKS.
-Para un mapa de muchas redes, hace falta un punto de observación por red: F49.
+Para un mapa de muchas redes, hace falta un punto de observación por red: usa `netdiag probe` en cada red e importa los JSON en local.
 ```
 
 ## Seguridad

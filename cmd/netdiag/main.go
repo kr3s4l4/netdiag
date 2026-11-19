@@ -37,11 +37,14 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/capture"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/container"
+	"github.com/kr3s4l4/netdiag/internal/cryptoutil"
 	"github.com/kr3s4l4/netdiag/internal/demo"
 	"github.com/kr3s4l4/netdiag/internal/discover"
+	"github.com/kr3s4l4/netdiag/internal/evidence"
 	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
 	"github.com/kr3s4l4/netdiag/internal/netutil"
+	"github.com/kr3s4l4/netdiag/internal/probe"
 	"github.com/kr3s4l4/netdiag/internal/report"
 	"github.com/kr3s4l4/netdiag/internal/trace"
 	"github.com/kr3s4l4/netdiag/internal/update"
@@ -96,6 +99,10 @@ func run(args []string) int {
 		return licenseCmd(rest)
 	case "container":
 		return containerCmd(rest)
+	case "probe":
+		return probeCmd(rest)
+	case "evidence":
+		return evidenceCmd(rest)
 	case "demo":
 		return demoCmd(rest)
 	case "update", "updates":
@@ -125,6 +132,9 @@ Comandos:
   backup                Crea una copia de seguridad completa en ZIP
   license show|activate|clear|sign  Gestiona la licencia offline
   container inspect|verify|build  Inspecciona o verifica contenedores .ndc
+  probe                 Exporta observaciones locales a JSON (firma opcional)
+  probe import <archivo> Importa una sonda en la base local
+  evidence dossier      Genera un dossier .ndc con informes, diffs y auditorías
   demo                  Genera datos sintéticos en <data_dir>/demo
   update check|apply|rollback|commit  Gestiona actualizaciones firmadas
   version               Muestra la versión
@@ -1425,6 +1435,152 @@ Opciones:
 	fmt.Printf("  Alertas / metrics: %d / %d\n", res.Alerts, res.Metrics)
 	fmt.Printf("  Hosts gestionados (30 días): %d\n", res.ManagedHosts)
 	fmt.Printf("\nPara verlo:\n  netdiag serve --data-dir %s\n", res.DemoDir)
+	return 0
+}
+
+// probeCmd exports a local observation document. It never sends it anywhere.
+func probeCmd(args []string) int {
+	if len(args) > 0 && args[0] == "import" {
+		return probeImportCmd(args[1:])
+	}
+	fs := flag.NewFlagSet("probe", flag.ExitOnError)
+	cf := addCommonFlags(fs)
+	siteID := fs.Int64("site-id", 1, "sede a la que pertenece la sonda")
+	out := fs.String("out", "", "ruta del JSON de salida (obligatoria)")
+	seedFile := fs.String("seed-file", "", "JSON local con semilla minisign para firmar la sonda")
+	producer := fs.String("producer", "netdiag-probe", "identificador del productor")
+	if err := parseFlags(fs, args); err != nil {
+		return fail("opciones de probe no válidas: %v", err)
+	}
+	if fs.NArg() > 0 {
+		return fail("probe no acepta argumentos posicionales; use: netdiag probe --site-id 1 --out sonda.json")
+	}
+	if *siteID <= 0 {
+		return fail("--site-id debe ser mayor que 0")
+	}
+	if strings.TrimSpace(*out) == "" {
+		return fail("--out es obligatorio")
+	}
+	cfg, _, err := loadConfig(cf)
+	if err != nil {
+		return fail("configuración no válida: %v", err)
+	}
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	doc, err := probe.Collect(ctx, cfg, *siteID)
+	if err != nil {
+		return fail("no se pudo recoger la sonda: %v", err)
+	}
+	doc.Producer = strings.TrimSpace(*producer)
+	if *seedFile != "" {
+		seed, keyID, err := cryptoutil.LoadSigningMaterial(*seedFile, "")
+		if err != nil {
+			return fail("%v", err)
+		}
+		if err := doc.Sign(seed, keyID, "netdiag-probe"); err != nil {
+			return fail("no se pudo firmar la sonda: %v", err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(*out), 0o700); err != nil {
+		return fail("no se pudo crear el directorio de salida: %v", err)
+	}
+	if err := probe.Save(*out, doc); err != nil {
+		return fail("no se pudo escribir la sonda: %v", err)
+	}
+	fmt.Printf("sonda escrita: %s\n", *out)
+	if doc.Signature != nil {
+		fmt.Printf("firmada con key_id=%s\n", doc.Signature.KeyID)
+	} else {
+		fmt.Println("sin firma: use --seed-file para firma local opcional")
+	}
+	return 0
+}
+
+func probeImportCmd(args []string) int {
+	fs := flag.NewFlagSet("probe import", flag.ExitOnError)
+	cf := addCommonFlags(fs)
+	key := fs.String("key", "", "clave pública minisign (ruta o base64), exigida si la sonda está firmada")
+	siteID := fs.Int64("site-id", 0, "sede de destino; 0 usa la de la sonda")
+	if err := parseFlags(fs, args); err != nil {
+		return fail("opciones de probe import no válidas: %v", err)
+	}
+	if fs.NArg() != 1 {
+		return fail("use: netdiag probe import [--key CLAVE.pub] sonda.json")
+	}
+	doc, err := probe.Load(fs.Arg(0))
+	if err != nil {
+		return fail("%v", err)
+	}
+	if doc.Signature != nil {
+		publicKey := cryptoutil.PublicKeyB64(*key)
+		if publicKey == "" {
+			return fail("la sonda está firmada: indique --key con la clave pública minisign")
+		}
+		if err := doc.Verify(publicKey); err != nil {
+			return fail("%v", err)
+		}
+		fmt.Println("firma de sonda verificada")
+	} else if *key != "" {
+		fmt.Println("advertencia: la sonda no está firmada; --key se ignora")
+	}
+	if *siteID > 0 {
+		doc.SiteID = *siteID
+	}
+	cfg, cfgPath, err := loadConfig(cf)
+	if err != nil {
+		return fail("configuración no válida: %v", err)
+	}
+	a, err := app.New(cfg, cfgPath, app.BuildInfo{Version: version, Commit: commit, BuildDate: buildDate}, newLogger(cfg))
+	if err != nil {
+		return fail("no se pudo abrir la aplicación: %v", err)
+	}
+	defer a.Close()
+	report, err := probe.Import(a.Store(), doc)
+	if err != nil {
+		return fail("no se pudo importar la sonda: %v", err)
+	}
+	fmt.Printf("sonda importada en la sede %d: ARP=%d vecinos=%d SNMP=%d SNMP profundo=%d AP=%d clientes=%d VPN=%d\n",
+		doc.SiteID, report.ARP, report.Neighbors, report.SNMP, report.SNMPDeep,
+		report.WiFiAPs, report.WiFiClients, report.VPN)
+	return 0
+}
+
+func evidenceCmd(args []string) int {
+	if len(args) == 0 || args[0] != "dossier" {
+		fmt.Fprintln(os.Stderr, "use: netdiag evidence dossier [--site-id 1] [--days 30] [--out RUTA] [--seed-file RUTA] [--key-pub CLAVE]")
+		return 2
+	}
+	fs := flag.NewFlagSet("evidence dossier", flag.ExitOnError)
+	cf := addCommonFlags(fs)
+	siteID := fs.Int64("site-id", 1, "sede incluida en el dossier")
+	days := fs.Int("days", 0, "días de historia; 0 usa evidence.dossier.days")
+	seedFile := fs.String("seed-file", "", "JSON local con la semilla minisign")
+	keyPub := fs.String("key-pub", "", "clave pública minisign (ruta o base64)")
+	out := fs.String("out", "", "ruta del .ndc; por defecto <data_dir>/dossiers")
+	containerVersion := fs.String("version", version, "versión grabada en el manifiesto")
+	if err := parseFlags(fs, args[1:]); err != nil {
+		return fail("opciones de evidence dossier no válidas: %v", err)
+	}
+	if fs.NArg() > 0 {
+		return fail("evidence dossier no acepta argumentos posicionales")
+	}
+	cfg, cfgPath, err := loadConfig(cf)
+	if err != nil {
+		return fail("configuración no válida: %v", err)
+	}
+	a, err := app.New(cfg, cfgPath, app.BuildInfo{Version: version, Commit: commit, BuildDate: buildDate}, newLogger(cfg))
+	if err != nil {
+		return fail("no se pudo abrir la aplicación: %v", err)
+	}
+	defer a.Close()
+	entry, err := a.Evidence().Generate(evidence.Options{
+		SiteID: *siteID, Days: *days, SeedFile: *seedFile,
+		KeyPub: *keyPub, Out: *out, Version: *containerVersion,
+	})
+	if err != nil {
+		return fail("no se pudo generar el dossier: %v", err)
+	}
+	fmt.Printf("dossier válido: %s (%d bytes)\n", entry.Path, entry.Size)
 	return 0
 }
 

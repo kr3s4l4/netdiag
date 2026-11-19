@@ -103,6 +103,49 @@ abriéndose con `unzip`.
   --key "$HOME/.netdiag-evidence/evidence.pub" evidencia.ndc
 ```
 
+## Dossier local (F68)
+
+`evidence.dossier` genera el mismo tipo de `.ndc` de forma programada dentro de
+`netdiag serve`, como las copias de seguridad. Incluye `diff.json`,
+`informe-ejecutivo.pdf`, `auditoria.json`, `audit-snapshots.json`,
+`audit-diff.json` y `dossier.json` de los últimos `days` días, conserva los
+últimos `keep` archivos y no envía nada a ningún destino.
+
+```yaml
+evidence:
+  dossier:
+    enabled: true
+    interval_hours: 24
+    days: 30
+    keep: 7
+    seed_file: /home/netdiag/.netdiag-evidence/evidence-seed.json
+    key_pub: /home/netdiag/.netdiag-evidence/evidence.pub
+```
+
+La semilla **no se escribe en `config.yaml`**: solo la ruta, con permisos
+`0600`. Las variables `NETDIAG_EVIDENCE_DOSSIER_*` permiten sobreescribir cada
+campo. Si falta la ruta de la semilla o la clave pública, la configuración no
+valida.
+
+```bash
+# Generación manual; útil antes de activar el programador
+./bin/netdiag evidence dossier --site-id 1 --days 30 \
+  --seed-file "$HOME/.netdiag-evidence/evidence-seed.json" \
+  --key-pub "$HOME/.netdiag-evidence/evidence.pub"
+
+# Verificación con la misma clave pública
+./bin/netdiag container verify \
+  --key "$HOME/.netdiag-evidence/evidence.pub" \
+  /var/lib/netdiag/dossiers/netdiag-dossier-20261119-120000.ndc
+```
+
+## Sondas firmadas (F49)
+
+`netdiag probe` puede firmar su JSON con el mismo formato de semilla local. La
+firma cubre el documento canónico con `signature: null`; `netdiag probe import`
+exige `--key` cuando la sonda está firmada. No hay nube ni envío automático. El
+procedimiento está en [escaneo-remoto.md](escaneo-remoto.md).
+
 ## Límites
 
 ```text

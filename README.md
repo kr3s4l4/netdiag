@@ -128,11 +128,17 @@ La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan 
 
 **Explicación sin IA.** `cause`, `impact` y `next_steps` salen de plantillas deterministas según el tipo de hallazgo. La misma evidencia produce siempre el mismo texto. Las hipótesis van ordenadas por confianza y nunca superan la confianza de la evidencia: son pistas para verificar, no una causa confirmada. Tres reglas fijas de correlación refuerzan los casos de suplantación de gateway, lazo L2 y movimiento o suplantación de MAC.
 
+**Triaje local (F59).** Cada hallazgo puede marcarse `pending`, `confirmed`, `false_positive` o `resolved` desde **Diagnósticos**. La decisión se guarda por `(site_id, finding_type, host_key)` con el usuario autenticado como revisor, nota de hasta 500 caracteres, auditoría en cada cambio y caducidad de 30 días. `operator`, `admin` y `owner` pueden revisar; `viewer` solo lee. El estado aparece también como badge en **Alertas**. Una revisión nunca cierra una alerta ni modifica la evidencia. Gestión en `GET/POST/DELETE /api/v1/diagnostics/reviews`.
+
 **Resumen del histórico.** `POST /api/v1/history/compare` añade `narrative`: frases cortas construidas solo con los cambios estructurados. La UI de histórico y el PDF ejecutivo las muestran como resumen; no interpretan causas ni sustituyen la tabla de evidencia.
 
 **Certificados TLS.** El detector `tls_expiring` lee `TLSCert.NotAfter` ya recogido en el handshake. Avisa a 30 y 14 días como aviso, y a 1 día o menos como crítico. La regla de alerta `tls_expiring` usa categoría `tls` y el mismo `min_confidence` que las demás reglas de hallazgos.
 
 **Evidencia firmada.** `scripts/sign-evidence.sh` reutiliza `netdiag container build` con una clave Ed25519 local distinta de la clave de release. Permite firmar informes, diffs y bundles de sede en un contenedor `.ndc` verificable sin nube. Procedimiento en [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
+
+**Sonda portable (F49).** `netdiag probe --site-id 1 --out sonda.json` recoge ARP y tablas del kernel, intenta LLDP/CDP por SNMP y marca `available:false` cuando WiFi o VPN no están disponibles. El JSON puede llevar firma minisign opcional con `--seed-file`. `netdiag probe import [--key CLAVE.pub] sonda.json` lo importa en la base local; si la sonda está firmada, exige la clave pública. No hay nube, envío automático ni cobro por sonda. Detalles en [docs/escaneo-remoto.md](docs/escaneo-remoto.md).
+
+**Dossier local (F68).** `evidence.dossier` genera cada `interval_hours` un `.ndc` firmado con informe ejecutivo, diff, auditorías y snapshots de los últimos `days` días, conserva los últimos `keep` y nunca envía nada. `netdiag evidence dossier` permite generarlo a mano. La semilla no va en `config.yaml`: solo su ruta, con permisos `0600`.
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
@@ -142,6 +148,7 @@ curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/arp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/dhcp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/snmp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/passive?site_id=1'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/reviews?site_id=1'
 ```
 
 ## Integraciones externas
@@ -372,6 +379,10 @@ netdiag config [show|path|init|validate]
 netdiag doctor
 netdiag user [list|add|passwd|role|delete]
 netdiag backup [--out RUTA] [--keep N]
+netdiag container inspect|verify|build ...
+netdiag probe [--site-id 1] [--out sonda.json] [--seed-file RUTA]
+netdiag probe import [--key CLAVE.pub] [--site-id 1] sonda.json
+netdiag evidence dossier [--site-id 1] [--days 30] [--seed-file RUTA] [--key-pub CLAVE]
 ```
 
 Escaneo distribuido en sedes remotas, sin agente ni telemetría:
@@ -392,7 +403,7 @@ Las opciones se aceptan antes o después de los argumentos posicionales. Precede
 flags de línea de comandos  >  variables NETDIAG_*  >  config.yaml  >  valores por defecto
 ```
 
-Variables admitidas: `NETDIAG_CONFIG`, `NETDIAG_DATA_DIR`, `NETDIAG_DB`, `NETDIAG_LISTEN`, `NETDIAG_PUBLIC_URL`, `NETDIAG_LOG_LEVEL`, `NETDIAG_LOG_FORMAT`, `NETDIAG_PROFILE`, `NETDIAG_SCAN_TIMEOUT`, `NETDIAG_SCAN_CONCURRENCY`, `NETDIAG_AUTH`, `NETDIAG_SESSION_HOURS`, `NETDIAG_MONITOR`, `NETDIAG_MONITOR_INTERVAL`, `NETDIAG_SNMP`, entre otras.
+Variables admitidas: `NETDIAG_CONFIG`, `NETDIAG_DATA_DIR`, `NETDIAG_DB`, `NETDIAG_LISTEN`, `NETDIAG_PUBLIC_URL`, `NETDIAG_LOG_LEVEL`, `NETDIAG_LOG_FORMAT`, `NETDIAG_PROFILE`, `NETDIAG_SCAN_TIMEOUT`, `NETDIAG_SCAN_CONCURRENCY`, `NETDIAG_AUTH`, `NETDIAG_SESSION_HOURS`, `NETDIAG_MONITOR`, `NETDIAG_MONITOR_INTERVAL`, `NETDIAG_SNMP`, `NETDIAG_EVIDENCE_DOSSIER_ENABLED`, `NETDIAG_EVIDENCE_DOSSIER_INTERVAL_HOURS`, `NETDIAG_EVIDENCE_DOSSIER_DAYS`, `NETDIAG_EVIDENCE_DOSSIER_KEEP`, `NETDIAG_EVIDENCE_DOSSIER_SEED_FILE`, `NETDIAG_EVIDENCE_DOSSIER_KEY_PUB`, entre otras.
 
 ### Recuperar el acceso
 
@@ -441,6 +452,14 @@ storage:
   backup_dir: ""            # por defecto <data_dir>/backups
   backup_interval: 24h      # mínimo 15m
   backup_keep: 7
+evidence:
+  dossier:
+    enabled: false          # programador dentro de netdiag serve
+    interval_hours: 24
+    days: 30                # historia incluida
+    keep: 7                 # dossiers conservados
+    seed_file: ""           # ruta local 0600; nunca la semilla
+    key_pub: ""             # clave pública minisign
 security:
   auth: true
   session_hours: 12
@@ -522,6 +541,8 @@ internal/topology      grafo de red y confianza de enlaces
 internal/alerts        reglas, deduplicación y canales
 internal/report        PDF, CSV, JSON, HTML
 internal/backup        ZIP de base, configuración y clave; retención
+internal/probe         sonda portable JSON con firma opcional e importación local
+internal/evidence      dossiers .ndc firmados con informes, diffs y auditorías
 internal/webui         SPA embebida bilingüe (HTML/CSS/JS, sin dependencias)
 ```
 
@@ -538,4 +559,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal, modo auditoría y auto-actualización firmada con rollback. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia, líneas base auditables, manifiestos manipulados, instalación atómica, confirmación y reversión. F13, F14, F15, F16, F17 y F26 quedan documentados como opcionales diferidos. La licencia AGPL, los avisos de terceros, el modelo comercial, el pipeline de publicación firmada y el paquete de confianza empresarial están documentados y enlazados desde esta página. Las mejoras F27–F40 están priorizadas en [docs/roadmap.md](docs/roadmap.md). Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal, modo auditoría y auto-actualización firmada con rollback. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia, líneas base auditables, manifiestos manipulados, instalación atómica, confirmación y reversión. F13, F14, F15, F16, F17 y F26 quedan documentados como opcionales diferidos. La licencia AGPL, los avisos de terceros, el modelo comercial, el pipeline de publicación firmada y el paquete de confianza empresarial están documentados y enlazados desde esta página. Las mejoras F27–F40 están priorizadas en [docs/roadmap.md](docs/roadmap.md). El trabajo posterior en `master` añade F49 (sonda portable), F59 (triaje local) y F68 (dossier firmado); no cambia la release publicada `v1.5.2`. Las contribuciones y los informes de errores son bienvenidos.

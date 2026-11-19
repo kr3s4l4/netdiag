@@ -97,7 +97,9 @@ func (s *Server) diagnosticsFor(siteID int64, from, to time.Time) diagnostics.In
 // explicit limitations of the heuristic analysis.
 func (s *Server) handleEnterpriseDiagnostics(w http.ResponseWriter, r *http.Request) {
 	in, _, _ := s.diagnosticsInput(r)
-	writeJSON(w, http.StatusOK, diagnostics.Analyzer{}.Analyze(in))
+	report := diagnostics.Analyzer{}.Analyze(in)
+	report.Anomalies = s.attachFindingReviews(in.SiteID, report.Anomalies)
+	writeJSON(w, http.StatusOK, report)
 }
 
 // handleSTPDiagnostics returns the L2 cycle findings only.

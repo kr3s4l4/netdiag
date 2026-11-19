@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kr3s4l4/netdiag/internal/cryptoutil"
 	"gopkg.in/yaml.v3"
 )
 
@@ -76,6 +77,7 @@ type Config struct {
 	Integrations Integrations `yaml:"integrations" json:"integrations"`
 	Update       Update       `yaml:"update" json:"update"`
 	Storage      Storage      `yaml:"storage" json:"storage"`
+	Evidence     Evidence     `yaml:"evidence" json:"evidence"`
 	Security     Security     `yaml:"security" json:"security"`
 	Diagnostics  Diagnostics  `yaml:"diagnostics" json:"diagnostics"`
 	VPN          VPN          `yaml:"vpn" json:"vpn"`
@@ -173,6 +175,22 @@ type Storage struct {
 	BackupDir      string   `yaml:"backup_dir" json:"backup_dir"`
 	BackupInterval Duration `yaml:"backup_interval" json:"backup_interval"`
 	BackupKeep     int      `yaml:"backup_keep" json:"backup_keep"`
+}
+
+// Evidence configures signed, local-only evidence dossiers. The private seed
+// is never stored here: seed_file is a path to a local 0600 JSON file.
+type Evidence struct {
+	Dossier Dossier `yaml:"dossier" json:"dossier"`
+}
+
+// Dossier controls the periodic .ndc bundle of reports, diffs and audits.
+type Dossier struct {
+	Enabled       bool   `yaml:"enabled" json:"enabled"`
+	IntervalHours int    `yaml:"interval_hours" json:"interval_hours"`
+	Days          int    `yaml:"days" json:"days"`
+	Keep          int    `yaml:"keep" json:"keep"`
+	SeedFile      string `yaml:"seed_file" json:"seed_file"`
+	KeyPub        string `yaml:"key_pub" json:"key_pub"`
 }
 
 // Security holds auth and hardening settings.
@@ -338,6 +356,14 @@ func Defaults() *Config {
 			BackupInterval: Duration(24 * time.Hour),
 			BackupKeep:     7,
 		},
+		Evidence: Evidence{
+			Dossier: Dossier{
+				Enabled:       false,
+				IntervalHours: 24,
+				Days:          30,
+				Keep:          7,
+			},
+		},
 		Security: Security{
 			Auth:         true,
 			SessionHours: 12,
@@ -429,6 +455,25 @@ func (c *Config) Normalize() error {
 	if c.Storage.BackupKeep <= 0 {
 		c.Storage.BackupKeep = 7
 	}
+	d := &c.Evidence.Dossier
+	if d.IntervalHours <= 0 {
+		d.IntervalHours = 24
+	}
+	if d.Days <= 0 {
+		d.Days = 30
+	}
+	if d.Keep <= 0 {
+		d.Keep = 7
+	}
+	d.SeedFile = strings.TrimSpace(d.SeedFile)
+	if strings.HasPrefix(d.SeedFile, "~") {
+		home, _ := os.UserHomeDir()
+		d.SeedFile = filepath.Join(home, strings.TrimPrefix(d.SeedFile, "~"))
+	}
+	if d.SeedFile != "" && !filepath.IsAbs(d.SeedFile) {
+		d.SeedFile = filepath.Join(c.Storage.DataDir, d.SeedFile)
+	}
+	d.KeyPub = cryptoutil.PublicKeyB64(d.KeyPub)
 	if strings.HasPrefix(c.Server.TLSCert, "~") {
 		home, _ := os.UserHomeDir()
 		c.Server.TLSCert = filepath.Join(home, strings.TrimPrefix(c.Server.TLSCert, "~"))
@@ -608,6 +653,30 @@ func (c *Config) Validate() error {
 		}
 		if c.Storage.BackupKeep < 1 || c.Storage.BackupKeep > 365 {
 			errs = append(errs, "storage.backup_keep debe estar entre 1 y 365")
+		}
+	}
+	d := c.Evidence.Dossier
+	if d.IntervalHours < 1 || d.IntervalHours > 720 {
+		errs = append(errs, "evidence.dossier.interval_hours debe estar entre 1 y 720")
+	}
+	if d.Days < 1 || d.Days > 3650 {
+		errs = append(errs, "evidence.dossier.days debe estar entre 1 y 3650")
+	}
+	if d.Keep < 1 || d.Keep > 365 {
+		errs = append(errs, "evidence.dossier.keep debe estar entre 1 y 365")
+	}
+	if d.Enabled || d.SeedFile != "" {
+		if d.SeedFile == "" {
+			errs = append(errs, "evidence.dossier.seed_file es obligatoria cuando evidence.dossier.enabled=true")
+		} else if _, _, err := cryptoutil.LoadSigningMaterial(d.SeedFile, ""); err != nil {
+			errs = append(errs, "evidence.dossier.seed_file no válida: "+err.Error())
+		}
+	}
+	if d.Enabled || d.KeyPub != "" {
+		if d.KeyPub == "" {
+			errs = append(errs, "evidence.dossier.key_pub es obligatoria cuando evidence.dossier.enabled=true")
+		} else if raw, err := base64.StdEncoding.DecodeString(d.KeyPub); err != nil || len(raw) != 42 || string(raw[:2]) != "Ed" {
+			errs = append(errs, "evidence.dossier.key_pub debe ser una clave pública minisign válida")
 		}
 	}
 	if c.Diagnostics.MinConfidence < 1 || c.Diagnostics.MinConfidence > 100 {
@@ -917,4 +986,24 @@ func applyEnv(c *Config) {
 		}
 	})
 	set("NETDIAG_UPDATE_RESTART_COMMAND", func(v string) { c.Update.RestartCommand = v })
+	set("NETDIAG_EVIDENCE_DOSSIER_ENABLED", func(v string) {
+		c.Evidence.Dossier.Enabled = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+	})
+	set("NETDIAG_EVIDENCE_DOSSIER_INTERVAL_HOURS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Evidence.Dossier.IntervalHours = n
+		}
+	})
+	set("NETDIAG_EVIDENCE_DOSSIER_DAYS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Evidence.Dossier.Days = n
+		}
+	})
+	set("NETDIAG_EVIDENCE_DOSSIER_KEEP", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Evidence.Dossier.Keep = n
+		}
+	})
+	set("NETDIAG_EVIDENCE_DOSSIER_SEED_FILE", func(v string) { c.Evidence.Dossier.SeedFile = v })
+	set("NETDIAG_EVIDENCE_DOSSIER_KEY_PUB", func(v string) { c.Evidence.Dossier.KeyPub = v })
 }

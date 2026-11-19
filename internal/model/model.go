@@ -392,23 +392,25 @@ type MTUProblem struct {
 // Cause, Impact, NextSteps and Limitations are deterministic explanations
 // derived from Type; Recommendation is kept for backward compatibility.
 type DiagnosticAnomaly struct {
-	ID             string       `json:"id"`
-	Type           string       `json:"type"`
-	Category       string       `json:"category"`
-	Severity       string       `json:"severity"`
-	Title          string       `json:"title"`
-	Detail         string       `json:"detail"`
-	HostIDs        []int64      `json:"host_ids,omitempty"`
-	HostIPs        []string     `json:"host_ips,omitempty"`
-	Confidence     int          `json:"confidence"`
-	Evidence       []string     `json:"evidence,omitempty"`
-	Recommendation string       `json:"recommendation,omitempty"`
-	Cause          string       `json:"cause,omitempty"`
-	Impact         string       `json:"impact,omitempty"`
-	NextSteps      []string     `json:"next_steps,omitempty"`
-	Limitations    string       `json:"limitations,omitempty"`
-	Hypotheses     []Hypothesis `json:"hypotheses,omitempty"`
-	DetectedAt     time.Time    `json:"detected_at"`
+	ID             string         `json:"id"`
+	Type           string         `json:"type"`
+	Category       string         `json:"category"`
+	Severity       string         `json:"severity"`
+	Title          string         `json:"title"`
+	Detail         string         `json:"detail"`
+	HostIDs        []int64        `json:"host_ids,omitempty"`
+	HostIPs        []string       `json:"host_ips,omitempty"`
+	Confidence     int            `json:"confidence"`
+	Evidence       []string       `json:"evidence,omitempty"`
+	Recommendation string         `json:"recommendation,omitempty"`
+	Cause          string         `json:"cause,omitempty"`
+	Impact         string         `json:"impact,omitempty"`
+	NextSteps      []string       `json:"next_steps,omitempty"`
+	Limitations    string         `json:"limitations,omitempty"`
+	Hypotheses     []Hypothesis   `json:"hypotheses,omitempty"`
+	HostKey        string         `json:"host_key,omitempty"`
+	Review         *FindingReview `json:"review,omitempty"`
+	DetectedAt     time.Time      `json:"detected_at"`
 }
 
 // Hypothesis is a deterministic, ranked explanation for a finding. It is
@@ -421,6 +423,20 @@ type Hypothesis struct {
 	Evidence    []string `json:"evidence,omitempty"`
 	Check       string   `json:"check"`
 	Limitations string   `json:"limitations,omitempty"`
+}
+
+// FindingReview is a local human triage decision for a diagnostic finding.
+// It is keyed by type and stable host identity, not by the volatile finding ID.
+type FindingReview struct {
+	SiteID      int64     `json:"site_id"`
+	FindingType string    `json:"finding_type"`
+	HostKey     string    `json:"host_key"`
+	Status      string    `json:"status"`
+	Note        string    `json:"note,omitempty"`
+	Reviewer    string    `json:"reviewer,omitempty"`
+	ExpiresAt   time.Time `json:"expires_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // ARPObservation is one IP→MAC binding seen during a scan. It is the raw

@@ -227,6 +227,24 @@ curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/snmp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/passive?site_id=1'
 ```
 
+### Triaje local de hallazgos (F59)
+
+Las decisiones humanas se guardan aparte de los hallazgos calculados. La clave es `(site_id, finding_type, host_key)`; `host_key` prefiere `mac:<lower>`, luego `ip:<lower>` y finalmente `global`. El estado caduca a los 30 días: si no hay revisión vigente, el hallazgo vuelve a mostrarse como «Sin revisar».
+
+| Método | Ruta | Notas |
+| --- | --- | --- |
+| GET | `/diagnostics/reviews?site_id=1&status=confirmed&limit=200` | Lista decisiones vigentes; sin `site_id` devuelve todas las sedes; cualquier rol autenticado |
+| POST | `/diagnostics/reviews?site_id=1` | `admin`/`owner`/`operator`; cuerpo `{finding_type, host_key, status, note}` |
+| DELETE | `/diagnostics/reviews?site_id=1&finding_type=...&host_key=...` | `admin`/`owner`/`operator`; también acepta esos campos en el cuerpo |
+
+`status` vale `pending`, `confirmed`, `false_positive` o `resolved`; `note` tiene un máximo de 500 caracteres. El revisor es siempre el usuario autenticado. Cada alta o borrado genera `finding_review.upsert` o `finding_review.deleted` en la auditoría. La respuesta de `/diagnostics/enterprise` añade `host_key` y `review` a cada anomalía cuando existe una decisión vigente. Este triaje **no cierra alertas**, no altera la evidencia y no envía nada a terceros.
+
+```bash
+curl -b cookies.txt -H 'Content-Type: application/json' \
+  -d '{"finding_type":"arp_gateway_mac_changed","host_key":"mac:aa:bb:cc:dd:ee:ff","status":"confirmed","note":"Comprobado en local"}' \
+  'http://127.0.0.1:8080/api/v1/diagnostics/reviews?site_id=1'
+```
+
 ### Integraciones externas
 
 Exportación de eventos (`alert`, `scan.finished`, `integration.test`) a sistemas externos. Las escrituras requieren rol `admin`; la lectura está disponible para cualquier rol autenticado. Los campos sensibles se cifran con AES-256-GCM en la base de datos y la API devuelve `********` en su lugar; enviar ese valor o una cadena vacía al actualizar conserva el secreto almacenado.

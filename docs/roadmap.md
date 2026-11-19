@@ -40,7 +40,10 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F57 | Implementado: `narrative` determinista en `/history/compare`, UI e informe ejecutivo |
 | F58 | Implementado: `scripts/sign-evidence.sh` y procedimiento de evidencia firmada con clave dedicada |
 | F60 | Implementado: detector `tls_expiring`, regla de alerta y categoría `tls` |
-| Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
+| F49 | Implementado: `netdiag probe` y `probe import`, JSON local con firma minisign opcional |
+| F59 | Implementado: triaje local por hallazgo con RBAC, caducidad de 30 días, badge y auditoría |
+| F68 | Implementado: dossier `.ndc` programado y manual, con retención y semilla fuera de la configuración |
+| Pruebas | `gofmt`, `go build`, `go test ./...`, `git diff --check`, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
 
 ## Mejoras de 1.5.2 y trabajo posterior
 
@@ -385,6 +388,24 @@ El detector `tls_expiring` lee `TLSCert.NotAfter` del handshake ya recogido. Avi
 
 **Criterio de cierre (cumplido):** tests del detector, de la regla y de la UI, con `enterprise_mode: false` evaluando SLA y TLS.
 
+### F49 — Sonda portable — **implementado**
+
+`netdiag probe` usa el mismo binario para recoger ARP y tablas del kernel desde un punto de red remoto. LLDP/CDP por SNMP es best-effort; WiFi marca `available:false` sin `-tags pcap` e interfaz monitor; VPN se lee del kernel sin privilegios. El JSON usa `netdiag.probe/v1`, puede firmarse con `--seed-file` y se importa con `netdiag probe import [--key CLAVE.pub]`. Una sonda firmada sin clave pública se rechaza. No hay nube, envío automático ni cobro por sonda.
+
+**Criterio de cierre (cumplido):** ciclo `probe → import` validado con y sin firma; importación sin clave de una sonda firmada rechazada; tests de firma y persistencia en `internal/probe`.
+
+### F59 — Triaje local de hallazgos — **implementado**
+
+Cada hallazgo puede revisarse desde **Diagnósticos** con estado `pending`, `confirmed`, `false_positive` o `resolved`, nota de hasta 500 caracteres y caducidad de 30 días. La clave es `(site_id, finding_type, host_key)`, con MAC estable preferida sobre IP. Revisan `operator`, `admin` y `owner`; `viewer` solo lee. El badge aparece también en **Alertas**. Test unitario de API: RBAC, validación, filtros, borrado y auditoría `finding_review.upsert`/`finding_review.deleted`. Registro `v1.5.11`.
+
+**Criterio de cierre (cumplido):** la revisión se asocia al revisor autenticado, se auditoriza en cada cambio y nunca cierra alertas ni modifica la evidencia.
+
+### F68 — Dossier local firmado — **implementado**
+
+`evidence.dossier` genera `.ndc` firmados dentro de `netdiag serve` con informe ejecutivo, diff, auditorías y snapshots de los últimos `days` días. Conserva los últimos `keep`, admite `netdiag evidence dossier` manual y valida `enabled=true` solo con `seed_file` y `key_pub`. La semilla queda fuera de `config.yaml`: solo su ruta `0600`. El generador verifica cada contenedor antes de darlo por válido.
+
+**Criterio de cierre (cumplido):** generación manual y verificación con `container verify` sobre datos temporales; configuración y variables `NETDIAG_EVIDENCE_DOSSIER_*` cubiertas por tests.
+
 ### F55 — Precios — **borrador, no aprobado**
 
 Las bandas `solo-5`, `solo-10` y `pro-50` siguen siendo propuestas. No se activan sin decisión escrita o cierre de F42. La facturación, cuando se active, seguirá siendo por banda de hosts gestionados, nunca por informe, alerta, escaneo, usuario, host detectado, sonda o sede.
@@ -422,6 +443,9 @@ Las bandas `solo-5`, `solo-10` y `pro-50` siguen siendo propuestas. No se activa
 | F57 | F21, F32 | Media: reutiliza el diff y el PDF de una página |
 | F58 | F36, F37 | Media: firma de evidencia con clave separada |
 | F60 | F43, F45 | Media: reutiliza certificados ya recogidos |
+| F49 | F51, F36 | Media: punto de observación portable y firma local |
+| F59 | F43–F47 | Media: triaje humano sin cerrar alertas automáticamente |
+| F68 | F32, F36, F57 | Media: dossier firmado con informe, diff y auditoría |
 
 ## Cierre de salida al mercado
 

@@ -457,3 +457,15 @@ F27 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`
 - Dos generaciones con la misma época reproducible produjeron hashes idénticos para binarios, SBOM, procedencia y manifiesto. Solo cambian las notas, el contenedor que las incluye y `SHA256SUMS`.
 - La clave oficial `netdiag-release` estaba cifrada con contraseña. La contraseña se introdujo en local y permitió derivar `signing.json` con `key_id=c98b13d8c8f73259`, sin guardar secretos en el repo ni enviarlos a ningún servicio. Los artefactos finales están firmados con esa clave oficial. `minisign -Vm SHA256SUMS` y `minisign -Vm manifest.json` contra `~/.minisign/netdiag-release.pub` devolvieron `Signature and comment signature verified`.
 - No queda ningún artefacto con clave de prueba en `dist/release/1.5.2`; las notas ya no llevan el aviso **NO PUBLICABLE**.
+
+### Lote 3: F49, F59 y F68 (19/11/2026)
+
+Validación en `master` sobre un directorio de datos temporal, sin tocar la release `v1.5.2` ni la clave de release. `gofmt`, `go build ./...` y `go test ./...` pasan. No hay `node` en la máquina, así que los cambios JS no tienen `node --check`; la sintaxis se revisó por lectura y los casos de uso se comprueban en el diff.
+
+- **F49:** `netdiag probe --data-dir "$DIR" --site-id 1 --out "$DIR/sonda.json"` terminó sin firma y avisó de `--seed-file`. `netdiag probe import` cargó `ARP=2 ... VPN=7`. Con una semilla local de prueba se generó una sonda firmada; `probe import --key` la aceptó y la misma sonda sin `--key` fue rechazada. Tests `TestSignVerifyRoundTrip` y `TestImportWritesObservations` cubren firma, manipulación y persistencia.
+- **F59:** migración `v1.5.11` y `FindingReview` con clave `(site_id, finding_type, host_key)`. El test de API comprueba que `viewer` puede listar pero no revisar ni borrar, que `operator` guarda y elimina, que `status` y `note` se validan, que el listado sin `site_id` incluye todas las sedes y que quedan las entradas `finding_review.upsert` y `finding_review.deleted` con el revisor autenticado.
+- **F68:** sin semilla, `netdiag evidence dossier` falló con `evidence.dossier.seed_file no configurada y no se indicó --seed-file`, como se esperaba. Con semilla y clave pública locales generó `dossier.ndc` (4102 bytes) y `container verify` devolvió `Resultado: VÁLIDO`, con `Firma: válida` y `Contenido: correcto`.
+- **Config:** nuevos tests de defaults, validación con `enabled=true`, rechazo de permisos distintos de `0600` en la semilla y variables `NETDIAG_EVIDENCE_DOSSIER_*`.
+- **Límites comprobados:** la sonda no envía datos; WiFi queda `available:false` en el binario portable; la firma da integridad y procedencia, no confidencialidad; el triaje no cierra alertas y expira a los 30 días; el dossier conserva solo los últimos `keep`.
+
+Estos cambios siguen en `master` y **no son parte de la release `v1.5.2`**. No se han creado tag ni release para este lote.

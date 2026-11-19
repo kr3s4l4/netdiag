@@ -138,6 +138,9 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/diagnostics/dhcp", "Servidores DHCP y anomalías del sondeo UDP", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 	{"GET", "/api/v1/diagnostics/snmp", "Anomalías SNMP profundas y tablas IP-MIB/Q-BRIDGE", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 	{"GET", "/api/v1/diagnostics/passive", "Hallazgos de captura pasiva y metadatos sin payload", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
+	{"GET", "/api/v1/diagnostics/reviews", "Listar decisiones locales de triaje de hallazgos", "Diagnósticos", false, false, "", []string{"site_id", "status", "limit"}, false, false},
+	{"POST", "/api/v1/diagnostics/reviews", "Crear o renovar una revisión de hallazgo", "Diagnósticos", false, false, "FindingReviewRequest", nil, false, false},
+	{"DELETE", "/api/v1/diagnostics/reviews", "Borrar una revisión de hallazgo", "Diagnósticos", false, false, "", []string{"site_id", "finding_type", "host_key"}, false, false},
 
 	{"GET", "/api/v1/system/info", "Información del sistema, capacidades y marca demo", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/license", "Estado de la licencia offline y avisos", "Sistema", false, false, "", nil, false, false},
@@ -541,5 +544,17 @@ func openAPISchemas() map[string]any {
 			},
 		},
 		"Config": map[string]any{"type": "object", "additionalProperties": true},
+		"FindingReviewRequest": map[string]any{
+			"type":     "object",
+			"required": []string{"finding_type", "status"},
+			"properties": map[string]any{
+				"site_id":      map[string]any{"type": "integer", "minimum": 0},
+				"host_id":      map[string]any{"type": "integer", "minimum": 0},
+				"finding_type": str,
+				"host_key":     str,
+				"status":       map[string]any{"type": "string", "enum": []string{"pending", "confirmed", "false_positive", "resolved"}},
+				"note":         map[string]any{"type": "string", "maxLength": 500},
+			},
+		},
 	}
 }

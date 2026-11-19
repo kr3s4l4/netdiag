@@ -20,6 +20,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/cryptoutil"
 	"github.com/kr3s4l4/netdiag/internal/discover"
+	"github.com/kr3s4l4/netdiag/internal/evidence"
 	"github.com/kr3s4l4/netdiag/internal/integrations"
 	"github.com/kr3s4l4/netdiag/internal/license"
 	"github.com/kr3s4l4/netdiag/internal/model"
@@ -53,6 +54,7 @@ type App struct {
 	wifi         *wifi.Manager
 	reports      *report.Generator
 	backups      *backup.Manager
+	evidence     *evidence.Manager
 	updates      *update.Manager
 	licenses     *license.Manager
 	engine       *discover.Engine
@@ -142,6 +144,7 @@ func New(cfg *config.Config, cfgPath string, build BuildInfo, log *slog.Logger) 
 		wifi:         wifi.New(st, cfg.WiFi, log),
 		reports:      reports,
 		backups:      backup.New(st, cfg, cfgPath, log),
+		evidence:     evidence.New(st, reports, cfg, build.Version, log),
 		updates:      updates,
 		licenses:     licenses,
 		engine:       discover.New(),
@@ -196,6 +199,9 @@ func (a *App) Hub() *api.Hub { return a.hub }
 // Backups exposes the backup manager (used by CLI subcommands).
 func (a *App) Backups() *backup.Manager { return a.backups }
 
+// Evidence exposes the dossier manager (used by CLI subcommands).
+func (a *App) Evidence() *evidence.Manager { return a.evidence }
+
 // Updates exposes the update manager (used by CLI subcommands).
 func (a *App) Updates() *update.Manager { return a.updates }
 
@@ -229,6 +235,9 @@ func (a *App) Run(ctx context.Context) error {
 	go a.updateLoop(ctx)
 	if a.backups != nil {
 		go a.backups.Start(ctx)
+	}
+	if a.evidence != nil {
+		go a.evidence.Start(ctx)
 	}
 
 	handler := webui.Handler(a.api.Handler())
@@ -326,6 +335,9 @@ func (a *App) UpdateConfig(cfg *config.Config) error {
 	if a.backups != nil {
 		a.backups.UpdateConfig(cfg)
 	}
+	if a.evidence != nil {
+		a.evidence.UpdateConfig(cfg)
+	}
 	return nil
 }
 
@@ -379,6 +391,9 @@ func (a *App) updateLoop(ctx context.Context) {
 func (a *App) runMaintenance() {
 	cfg := a.currentCfg()
 	a.auth.PurgeExpiredSessions()
+	if err := a.st.PurgeExpiredFindingReviews(); err != nil {
+		a.log.Warn("no se pudieron purgar revisiones caducadas", "error", err)
+	}
 	if cfg.Storage.MetricsDays > 0 {
 		if err := a.st.PurgeMetrics(cfg.Storage.MetricsDays); err != nil {
 			a.log.Warn("no se pudieron purgar métricas", "error", err)
