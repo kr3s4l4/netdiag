@@ -37,7 +37,7 @@
 
 ## Hacia dónde va NetDiag
 
-La versión 1.5 ya cubre el núcleo: descubrimiento, inventario, topología, diagnósticos, alertas, informes, multi-sede, auditoría y actualización firmada. El [roadmap](docs/roadmap.md) describe el siguiente tramo, **todavía por implementar**:
+La versión 1.5 ya cubre el núcleo: descubrimiento, inventario, topología, diagnósticos, alertas, informes, multi-sede, auditoría y actualización firmada. El [roadmap](docs/roadmap.md) describe el estado de las mejoras cerradas y las que siguen pendientes:
 
 | Bloque | Qué aporta | Estado |
 | --- | --- | --- |
@@ -101,7 +101,7 @@ curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -F 'file=@sucursal.json' \
 
 ## Diagnósticos empresariales
 
-La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan los datos ya recogidos por NetDiag para señalar problemas típicos de redes corporativas. Cada hallazgo incluye tipo, severidad, hosts implicados, evidencia, confianza (1–100) y una recomendación. Los detectores exigen varias señales simultáneas para evitar falsos positivos y respetan `site_id` y la ventana `from`/`to`.
+La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan los datos ya recogidos por NetDiag para señalar problemas típicos de redes corporativas. Cada hallazgo incluye tipo, severidad, hosts implicados, evidencia, confianza (1–100), `cause`, `impact`, `next_steps`, `limitations` e `hypotheses`. El campo `recommendation` se mantiene por compatibilidad. Los detectores exigen varias señales simultáneas para evitar falsos positivos y respetan `site_id` y la ventana `from`/`to`.
 
 | Categoría | Señales utilizadas |
 | --- | --- |
@@ -116,14 +116,23 @@ La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan 
 | DHCP rogue | Varios servidores DHCP que responden, servidor no autorizado, suplantación del gateway y cambio de MAC del servidor |
 | SNMP profundo | ARP del switch frente al histórico, MAC en varios puertos/VLAN o movida entre escaneos, y desacuerdo entre FDB y LLDP/CDP |
 | Captura pasiva | ARP gratuito repetido, ICMP redirect, DHCP OFFER/ACK de otro servidor, SYN entrantes y consultas DNS de alta entropía |
+| Certificados TLS | `TLSCert.NotAfter` a 30, 14 o 1 día de caducar; crítico en el último día |
 
-**Limitaciones:** por defecto NetDiag no captura tramas ni BPDUs, no lee OID de dúplex ni contadores broadcast o de fragmentación, y no ve el tráfico ARP o DHCP de otros clientes. Los sondeos son activos (ICMP/ARP, UDP/68 y SNMP) y sus hallazgos se infieren de tablas e históricos: son pistas para investigar, no confirmación protocolaria de un ataque. La captura pasiva es opt-in, metadata-only y también requiere validación humana. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados.
+**Limitaciones:** por defecto NetDiag no captura tramas ni BPDUs, no lee OID de dúplex ni contadores broadcast o de fragmentación, y no ve el tráfico ARP o DHCP de otros clientes. Los sondeos son activos (ICMP/ARP, UDP/68 y SNMP) y sus hallazgos se infieren de tablas e históricos: son pistas para investigar, no confirmación protocolaria de un ataque. La captura pasiva es opt-in, metadata-only y también requiere validación humana. El aviso TLS solo lee la fecha del certificado ofrecido: no consulta CA, OCSP ni DNS, y no sabe si hay renovación en curso. Cada hallazgo lleva sus límites en `limitations` y el informe añade los globales. Con `enterprise_mode: false` se evalúan los umbrales SLA y los certificados TLS; el resto de detectores de red permanecen desactivados.
 
 **DHCP rogue.** Con `diagnostics.dhcp_probe: true` (por defecto) se envían DHCPINFORM y DHCPDISCOVER por UDP/68 sin raw sockets; las respuestas se guardan en `dhcp_observations` durante `diagnostics.dhcp_history_days` (30 días). `NETDIAG_DHCP_PROBE`, `NETDIAG_DHCP_PROBE_TIMEOUT` y `NETDIAG_DHCP_AUTHORIZED` permiten ajustar el sondeo y la lista de servidores de confianza. Histórico y anomalías en `GET /api/v1/diagnostics/dhcp`.
 
 **SNMP profundo.** Con `diagnostics.snmp_deep: true` (por defecto) el recolector consulta `ipAddrTable` (`.1.3.6.1.2.1.4.20`), las tablas ARP `.4.22`/`.4.35`, Q-BRIDGE `.1.3.6.1.2.1.17.7.*` y BRIDGE-MIB `.1.3.6.1.2.1.17.4.*`, con límites de 512 direcciones, 2000 ARP, 5000 FDB y 256 VLAN. Las filas se guardan por sede durante `diagnostics.snmp_history_days` (30 días). La comunidad que respondió se guarda **enmascarada** (`public` → `pu***ic`); la credencial en claro nunca se persiste ni se expone. Variables: `NETDIAG_SNMP_DEEP` y `NETDIAG_SNMP_HISTORY_DAYS`. Hallazgos y tablas en `GET /api/v1/diagnostics/snmp`. Los tipos `snmp_*` usan la regla de alerta `snmp_anomaly`.
 
 **Captura pasiva.** Desactivada por defecto. Requiere binario compilado con `-tags pcap`, `CAP_NET_RAW` y `diagnostics.passive_capture: true`. Abre una ventana acotada tras cada escaneo con BPF estrecho (`arp`, `icmp`, UDP/67-68-53 y SYN TCP) y guarda **solo metadatos** en `passive_observations` durante `diagnostics.passive_history_days` (7 días): nunca payload, credenciales ni respuestas DNS. Límites: `passive_seconds` (10), `passive_max_packets` (2000) y `passive_promiscuous` (false). Variables: `NETDIAG_PASSIVE_CAPTURE`, `NETDIAG_PASSIVE_IFACE`, `NETDIAG_PASSIVE_SECONDS`, `NETDIAG_PASSIVE_MAX_PACKETS`, `NETDIAG_PASSIVE_PROMISC` y `NETDIAG_PASSIVE_HISTORY_DAYS`. En builds portables el endpoint devuelve `available:false` y el escaneo continúa. Hallazgos y observaciones en `GET /api/v1/diagnostics/passive`; los tipos `passive_*` usan la regla `passive_anomaly`.
+
+**Explicación sin IA.** `cause`, `impact` y `next_steps` salen de plantillas deterministas según el tipo de hallazgo. La misma evidencia produce siempre el mismo texto. Las hipótesis van ordenadas por confianza y nunca superan la confianza de la evidencia: son pistas para verificar, no una causa confirmada. Tres reglas fijas de correlación refuerzan los casos de suplantación de gateway, lazo L2 y movimiento o suplantación de MAC.
+
+**Resumen del histórico.** `POST /api/v1/history/compare` añade `narrative`: frases cortas construidas solo con los cambios estructurados. La UI de histórico y el PDF ejecutivo las muestran como resumen; no interpretan causas ni sustituyen la tabla de evidencia.
+
+**Certificados TLS.** El detector `tls_expiring` lee `TLSCert.NotAfter` ya recogido en el handshake. Avisa a 30 y 14 días como aviso, y a 1 día o menos como crítico. La regla de alerta `tls_expiring` usa categoría `tls` y el mismo `min_confidence` que las demás reglas de hallazgos.
+
+**Evidencia firmada.** `scripts/sign-evidence.sh` reutiliza `netdiag container build` con una clave Ed25519 local distinta de la clave de release. Permite firmar informes, diffs y bundles de sede en un contenedor `.ndc` verificable sin nube. Procedimiento en [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
@@ -326,6 +335,7 @@ Estas decisiones no borran las ideas del roadmap: quedan como extensiones condic
 - **Pro y Enterprise** se venden con licencia comercial anual. El cobro es por banda de **hosts gestionados**, nunca por informe, alerta o host detectado.
 - La licencia se activa localmente, sin telemetría ni servidor online; el espejo de actualizaciones es opcional o puede ser interno.
 - Los artefactos oficiales se construyen de forma reproducible, se firman con minisign y se publican con SBOM y atestación: [docs/publicacion-segura.md](docs/publicacion-segura.md).
+- La evidencia local se firma aparte, con otra clave, en [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
 - Los precios, SKU y flujo de compra están en [docs/comercializacion.md](docs/comercializacion.md); el paquete que recibe un comprador corporativo, en [docs/confianza-empresarial.md](docs/confianza-empresarial.md).
 - Las dudas legales se resuelven en [docs/licenciamiento.md](docs/licenciamiento.md); las vulnerabilidades se reportan por [SECURITY.md](SECURITY.md).
 

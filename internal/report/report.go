@@ -42,6 +42,7 @@ type Request struct {
 	RetentionDays int
 	Samples7D     int
 	Changes       []model.HistoryChange
+	Narrative     []string
 	Findings      []model.DiagnosticAnomaly
 }
 
@@ -264,6 +265,22 @@ func writeExecutivePDF(path string, req Request) error {
 	}
 
 	y = section(y, "Cambios principales")
+	// F57: the deterministic diff narrative is rendered as compact evidence,
+	// never as an invented cause. At most two sentences fit on the one page.
+	narrativeLines := req.Narrative
+	if len(narrativeLines) > 2 {
+		narrativeLines = narrativeLines[:2]
+	}
+	if len(narrativeLines) > 0 {
+		pdf.SetFont("Helvetica", "I", 7.5)
+		pdf.SetTextColor(110, 110, 110)
+		for _, line := range narrativeLines {
+			pdf.SetXY(14, y)
+			pdf.CellFormat(182, 4, safe("Resumen: "+clipWords(line, 150)), "", 1, "L", false, 0, "")
+			y += 4
+		}
+		pdf.SetTextColor(30, 30, 30)
+	}
 	pdf.SetFillColor(10, 14, 20)
 	pdf.SetTextColor(255, 255, 255)
 	pdf.SetFont("Helvetica", "B", 8)
@@ -275,8 +292,12 @@ func writeExecutivePDF(path string, req Request) error {
 	pdf.SetTextColor(30, 30, 30)
 	pdf.SetFont("Helvetica", "", 7.5)
 	changes := req.Changes
-	if len(changes) > 5 {
-		changes = changes[:5]
+	maxChanges := 5
+	if len(narrativeLines) > 0 {
+		maxChanges = 4
+	}
+	if len(changes) > maxChanges {
+		changes = changes[:maxChanges]
 	}
 	if len(changes) == 0 {
 		pdf.SetXY(14, y)
@@ -345,7 +366,59 @@ func writeExecutivePDF(path string, req Request) error {
 		pdf.CellFormat(36, 11, strconv.Itoa(a.Confidence)+" %", "B", 1, "R", true, 0, "")
 		y += 11
 	}
-	y += 5
+	y += 4
+
+	// F50: the three questions the reader actually asks. Fixed templates, no
+	// generated prose, capped to three findings so the page stays auditable.
+	if len(findings) > 0 {
+		y = section(y, "Causa, impacto y pasos")
+		explainCount := len(findings)
+		if explainCount > 3 {
+			explainCount = 3
+		}
+		pdf.SetFont("Helvetica", "B", 7.5)
+		pdf.SetXY(14, y)
+		pdf.CellFormat(46, 5, safe("Hallazgo"), "B", 0, "L", true, 0, "")
+		pdf.CellFormat(136, 5, safe("Explicación y verificación"), "B", 1, "L", true, 0, "")
+		y += 5
+		for _, a := range findings[:explainCount] {
+			top := y
+			pdf.SetTextColor(30, 30, 30)
+			pdf.SetFont("Helvetica", "B", 7)
+			pdf.SetXY(14, top)
+			pdf.MultiCell(46, 3.4, safe(clipWords(a.Title, 42)), "B", "L", false)
+			rightY := pdf.GetY()
+
+			parts := []string{}
+			if a.Cause != "" {
+				parts = append(parts, "causa: "+a.Cause)
+			}
+			if a.Impact != "" {
+				parts = append(parts, "impacto: "+a.Impact)
+			}
+			if len(a.NextSteps) > 0 {
+				steps := a.NextSteps
+				if len(steps) > 2 {
+					steps = steps[:2]
+				}
+				parts = append(parts, "pasos: "+strings.Join(steps, "; "))
+			}
+			if len(a.Hypotheses) > 0 && a.Hypotheses[0].Label != "" {
+				parts = append(parts, fmt.Sprintf("hipotesis 1: %s (%d %%)", a.Hypotheses[0].Label, a.Hypotheses[0].Confidence))
+			}
+			if a.Limitations != "" {
+				parts = append(parts, "límite: "+a.Limitations)
+			}
+			pdf.SetFont("Helvetica", "", 7)
+			pdf.SetXY(62, top)
+			pdf.MultiCell(136, 3.4, safe(clipWords(strings.Join(parts, " · "), 240)), "B", "L", false)
+			if pdf.GetY() > rightY {
+				rightY = pdf.GetY()
+			}
+			y = rightY + 1
+		}
+		y += 2
+	}
 
 	pdf.SetFont("Helvetica", "I", 7.5)
 	pdf.SetTextColor(110, 110, 110)

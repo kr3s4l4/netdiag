@@ -17,12 +17,16 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F38 | Documentación y plantillas de confianza empresarial listas y publicadas |
 | F39 | Implementado y verificado: demo sintética aislada, marcada en UI e informes |
 | F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
-| F27 | Implementado y validado con CDP: red sugerida, primer escaneo y línea base automáticos; pendiente de release |
-| F28 | Implementado y verificado con CDP: puntuación 0–100 explicable, desglose 40/20/20/20 y acceso a la evidencia; pendiente de release |
-| F29 | Implementado y verificado con CDP: `Ctrl+K` busca hosts, alertas y redes; pendiente de release |
-| F31 | Implementado y verificado con CDP: «Ver host», «Copiar comando» y «Crear regla» desde cada hallazgo; pendiente de release |
-| F32 | Implementado y verificado con CDP y descarga real: PDF ejecutivo de una página desde un botón; pendiente de release |
-| F30 | Implementado y verificado con CDP: campana, historial por sede y eventos persistentes; pendiente de release |
+| F27 | Implementado y validado con CDP: red sugerida, primer escaneo y línea base automáticos; publicado en `v1.5.2` |
+| F28 | Implementado y verificado con CDP: puntuación 0–100 explicable, desglose 40/20/20/20 y acceso a la evidencia; publicado en `v1.5.2` |
+| F29 | Implementado y verificado con CDP: `Ctrl+K` busca hosts, alertas y redes; publicado en `v1.5.2` |
+| F31 | Implementado y verificado con CDP: «Ver host», «Copiar comando» y «Crear regla» desde cada hallazgo; publicado en `v1.5.2` |
+| F32 | Implementado y verificado con CDP y descarga real: PDF ejecutivo de una página desde un botón; publicado en `v1.5.2` |
+| F30 | Implementado y verificado con CDP: campana, historial por sede y eventos persistentes; publicado en `v1.5.2` |
+| F51 | Implementado: `scripts/remote-scan.sh` y procedimiento documentado para escaneo remoto por SSH |
+| F52 | Implementado: avisos de licencia y caducidad en UI sin bloquear lectura |
+| F53 | Alineado: roadmap y validación reflejan `v1.5.2` como versión publicada |
+| F54 | Documentado: tabla de laboratorio real en `scripts/lab/README.md` y encuesta bilingüe |
 | F41 | Parte técnica implementada y ensayo documentado; quedan credenciales SRP reales y release correctiva para el cierre legal |
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
 | F43 | Implementado y verificado: histórico IP→MAC, anomalías ARP y regla `anomaly` |
@@ -31,9 +35,14 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F46 | Implementado y validado con agente SNMP real: IP-MIB/Q-BRIDGE, comunidad enmascarada y correlación L2 |
 | F47 | Implementado y validado con `CAP_NET_RAW` y tráfico real: captura opt-in con `-tags pcap`, metadata-only y cinco detectores |
 | F48 | Implementado: `README.en.md` y respuesta al primer comentario público de HN |
+| F50 | Implementado: `cause`, `impact`, `next_steps` y `limitations` deterministas en cada hallazgo |
+| F56 | Implementado: hipótesis rankeadas y tres correlaciones fijas |
+| F57 | Implementado: `narrative` determinista en `/history/compare`, UI e informe ejecutivo |
+| F58 | Implementado: `scripts/sign-evidence.sh` y procedimiento de evidencia firmada con clave dedicada |
+| F60 | Implementado: detector `tls_expiring`, regla de alerta y categoría `tls` |
 | Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
 
-## Mejoras pendientes para 1.5.2
+## Mejoras de 1.5.2 y trabajo posterior
 
 Estaban previstas para 1.5.1, pero esa versión se publicó con el código de `master` disponible en ese momento. Siguen siendo cambios principalmente de interfaz, con bajo riesgo: no alteran SQLite ni la seguridad.
 
@@ -180,7 +189,7 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 
 ## Implementación pendiente
 
-### F35 — Activación offline — **implementado, pendiente de release**
+### F35 — Activación offline — **implementado y publicado en `v1.5.1`**
 
 Detalle de uso, claves y restauración en `docs/licenciamiento.md`.
 
@@ -195,7 +204,7 @@ Detalle de uso, claves y restauración en `docs/licenciamiento.md`.
 
 **Esfuerzo:** 6–8 h (realizado).
 
-### F36 — Contenedor firmado `.ndc` — **implementado, pendiente de release**
+### F36 — Contenedor firmado `.ndc` — **implementado y publicado en `v1.5.1`**
 
 Detalle de formato, comandos y protecciones en `docs/publicacion-segura.md`.
 
@@ -210,7 +219,7 @@ Detalle de formato, comandos y protecciones en `docs/publicacion-segura.md`.
 
 **Esfuerzo:** 6–8 h (realizado).
 
-### F37 — Publicación segura y reproducible — **implementado, verificado, pendiente de release**
+### F37 — Publicación segura y reproducible — **implementado, verificado y publicado en `v1.5.1`**
 
 Herramientas: `cmd/netdiag-release`, `scripts/release.sh`, `scripts/verify-release.sh`, `scripts/sbom.py` y `scripts/provenance.py`. Objetivos de `make release-secure`, `make verify-release` y `make release-keygen`.
 
@@ -340,6 +349,46 @@ El primer comentario público real en HN señaló que el repo parecía estar sol
 
 **Criterio de cierre:** un lector sin español puede arrancar NetDiag y entender el modelo de licencias desde el README inglés, y el hilo de HN tiene una respuesta clara y precisa. La publicación de esa respuesta queda sujeta a autorización.
 
+### F50 — Explicación determinista de hallazgos — **implementado**
+
+Cada `DiagnosticAnomaly` añade `cause`, `impact`, `next_steps` y `limitations` con plantillas fijas por tipo. `Recommendation` sigue presente por compatibilidad; no se añade IA, LLM ni servicio externo. La misma evidencia produce siempre el mismo texto, y los tests comprueban que el JSON anterior no cambia.
+
+**Criterio de cierre (cumplido):** el detalle de hallazgos de la UI y el PDF ejecutivo muestran causa, impacto, pasos y límites sin cambiar el número de páginas del PDF.
+
+### F51–F54 — Cierre de salida ligera — **implementados**
+
+F51 añade `scripts/remote-scan.sh` y `docs/escaneo-remoto.md` para orquestar escaneos en equipos remotos por SSH; NetDiag sigue sin ser cliente SSH. F52 muestra avisos de licencia y caducidad sin bloquear lectura ni borrar datos. F53 alinea roadmap y validación con `v1.5.2` como versión publicada. F54 documenta el laboratorio real y deja la encuesta bilingüe de cinco preguntas.
+
+**Criterio de cierre (cumplido):** script con sintaxis verificada y `--help`, documentación publicada y states del roadmap coherentes con el tag `v1.5.2`.
+
+### F56 — Hipótesis rankeadas — **implementado**
+
+`hypotheses` ordena pistas por confianza y nunca supera la confianza del hallazgo. Tres correlaciones fijas combinan señales ya existentes: `arp_gateway_mac_changed` con `dhcp_unauthorized_server` o `dhcp_gateway_spoof` sugiere suplantación de gateway; `stp_loop` con `broadcast_storm` sugiere lazo L2; `snmp_fdb_mac_moved` con `arp_ip_mac_changed` sugiere movimiento o suplantación de MAC.
+
+**Criterio de cierre (cumplido):** las hipótesis aparecen en el detalle de hallazgos y en los campos JSON, siempre como pistas a verificar, nunca como causa confirmada.
+
+### F57 — Resumen narrativo del diff — **implementado**
+
+`DiffReport.Narrative` contiene frases cortas construidas solo con los cambios estructurados. La vista de histórico y el PDF ejecutivo las muestran como resumen, con un máximo de dos frases en el PDF y cuatro cambios en la tabla para conservar una sola página.
+
+**Criterio de cierre (cumplido):** la narrativa es determinista, no interpreta causas y los tests verifican el PDF de una página con y sin resumen.
+
+### F58 — Evidencia firmada — **implementado**
+
+`scripts/sign-evidence.sh` usa `netdiag container build` con una clave Ed25519 local dedicada, distinta de la clave de release. Permite empaquetar informes, diffs y bundles de sede en `.ndc` y verificarlos sin nube. Procedimiento en `docs/evidencia-firmada.md`.
+
+**Criterio de cierre (cumplido):** script ejecutable, sintaxis verificada y documento con el flujo de generación de clave, firma y verificación. La clave de release `v1.5.2` no se reutiliza ni se modifica.
+
+### F60 — Aviso de certificados TLS — **implementado**
+
+El detector `tls_expiring` lee `TLSCert.NotAfter` del handshake ya recogido. Avisa a 30 y 14 días, marca crítico el último día y usa categoría `tls` con la regla de alerta `tls_expiring`. No consulta CA, OCSP ni DNS y no sabe si hay renovación en curso.
+
+**Criterio de cierre (cumplido):** tests del detector, de la regla y de la UI, con `enterprise_mode: false` evaluando SLA y TLS.
+
+### F55 — Precios — **borrador, no aprobado**
+
+Las bandas `solo-5`, `solo-10` y `pro-50` siguen siendo propuestas. No se activan sin decisión escrita o cierre de F42. La facturación, cuando se active, seguirá siendo por banda de hosts gestionados, nunca por informe, alerta, escaneo, usuario, host detectado, sonda o sede.
+
 ## Dependencias y orden recomendado
 
 | Fase | Depende de | Prioridad |
@@ -364,6 +413,15 @@ El primer comentario público real en HN señaló que el repo parecía estar sol
 | F44 | F43, F45 | Alta: aprovecha el histórico ARP y la regla dedicada |
 | F46 | F43, F45 | Alta: completa seguridad con SNMP y reutiliza `snmp_anomaly` |
 | F47 | F43, F45, F46 | Media: captura opcional con privilegios y reutiliza `passive_anomaly` |
+| F50 | F43–F47 | Alta: hace accionables los hallazgos existentes |
+| F51 | Ninguna | Media: operación remota sin agente ni nube |
+| F52 | F35 | Media: avisos sin bloqueo |
+| F53 | v1.5.2 | Alta: mantiene documentación y estado reales |
+| F54 | F42 | Media: evidencia de laboratorio y encuesta |
+| F56 | F50 | Media: prioriza pistas sin inventar causas |
+| F57 | F21, F32 | Media: reutiliza el diff y el PDF de una página |
+| F58 | F36, F37 | Media: firma de evidencia con clave separada |
+| F60 | F43, F45 | Media: reutiliza certificados ya recogidos |
 
 ## Cierre de salida al mercado
 

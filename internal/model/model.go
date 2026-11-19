@@ -389,19 +389,38 @@ type MTUProblem struct {
 }
 
 // DiagnosticAnomaly is the common envelope emitted by every detector.
+// Cause, Impact, NextSteps and Limitations are deterministic explanations
+// derived from Type; Recommendation is kept for backward compatibility.
 type DiagnosticAnomaly struct {
-	ID             string    `json:"id"`
-	Type           string    `json:"type"`
-	Category       string    `json:"category"`
-	Severity       string    `json:"severity"`
-	Title          string    `json:"title"`
-	Detail         string    `json:"detail"`
-	HostIDs        []int64   `json:"host_ids,omitempty"`
-	HostIPs        []string  `json:"host_ips,omitempty"`
-	Confidence     int       `json:"confidence"`
-	Evidence       []string  `json:"evidence,omitempty"`
-	Recommendation string    `json:"recommendation,omitempty"`
-	DetectedAt     time.Time `json:"detected_at"`
+	ID             string       `json:"id"`
+	Type           string       `json:"type"`
+	Category       string       `json:"category"`
+	Severity       string       `json:"severity"`
+	Title          string       `json:"title"`
+	Detail         string       `json:"detail"`
+	HostIDs        []int64      `json:"host_ids,omitempty"`
+	HostIPs        []string     `json:"host_ips,omitempty"`
+	Confidence     int          `json:"confidence"`
+	Evidence       []string     `json:"evidence,omitempty"`
+	Recommendation string       `json:"recommendation,omitempty"`
+	Cause          string       `json:"cause,omitempty"`
+	Impact         string       `json:"impact,omitempty"`
+	NextSteps      []string     `json:"next_steps,omitempty"`
+	Limitations    string       `json:"limitations,omitempty"`
+	Hypotheses     []Hypothesis `json:"hypotheses,omitempty"`
+	DetectedAt     time.Time    `json:"detected_at"`
+}
+
+// Hypothesis is a deterministic, ranked explanation for a finding. It is
+// always a lead to check by a person, never a claim of compromise.
+type Hypothesis struct {
+	Rank        int      `json:"rank"`
+	Label       string   `json:"label"`
+	Confidence  int      `json:"confidence"`
+	Why         string   `json:"why"`
+	Evidence    []string `json:"evidence,omitempty"`
+	Check       string   `json:"check"`
+	Limitations string   `json:"limitations,omitempty"`
 }
 
 // ARPObservation is one IP→MAC binding seen during a scan. It is the raw
@@ -958,6 +977,7 @@ type DiffReport struct {
 	PeriodB     HistoryPeriod   `json:"period_b"`
 	Changes     []HistoryChange `json:"changes"`
 	Summary     map[string]int  `json:"summary"`
+	Narrative   []string        `json:"narrative,omitempty"`
 	Limitations []string        `json:"limitations,omitempty"`
 	Truncated   bool            `json:"truncated,omitempty"`
 }

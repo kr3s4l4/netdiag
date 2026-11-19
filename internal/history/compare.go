@@ -112,6 +112,7 @@ func Compare(a, b model.HistoryPeriod) model.DiffReport {
 	for _, c := range report.Changes {
 		report.Summary[c.Type]++
 	}
+	report.Narrative = buildNarrative(&report, mapA, mapB)
 	return report
 }
 

@@ -80,12 +80,14 @@ func (s *Server) handleCreateReport(w http.ResponseWriter, r *http.Request) {
 	retentionDays := 7
 	samples7D := 0
 	var changes []model.HistoryChange
+	var narrative []string
 	var findings []model.DiagnosticAnomaly
 	if req.Kind == "executive" {
 		now := time.Now()
 		periodA, periodB := history.DefaultPeriods(now, 7, 24*time.Hour)
 		if diff, err := history.BuildReport(s.st, req.SiteID, periodA, periodB); err == nil {
 			changes = diff.Changes
+			narrative = diff.Narrative
 		} else if s.log != nil {
 			s.log.Warn("no se pudieron leer cambios para el informe ejecutivo", "error", err)
 		}
@@ -132,6 +134,7 @@ func (s *Server) handleCreateReport(w http.ResponseWriter, r *http.Request) {
 		RetentionDays: retentionDays,
 		Samples7D:     samples7D,
 		Changes:       changes,
+		Narrative:     narrative,
 		Findings:      findings,
 	})
 	if err != nil {

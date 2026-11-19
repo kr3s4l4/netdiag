@@ -159,3 +159,40 @@ func TestSecurityAlertWithoutHostKeepsSite(t *testing.T) {
 		t.Fatalf("las estadísticas de la sede deben incluirla: %+v, %v", stats, err)
 	}
 }
+
+func TestTLSExpiringRule(t *testing.T) {
+	if !store.ValidateRuleType("tls_expiring") {
+		t.Fatal("tls_expiring debe ser un tipo de regla válido")
+	}
+	dir := t.TempDir()
+	box, err := cryptoutil.LoadOrCreate(filepath.Join(dir, "secret.key"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := store.Open(filepath.Join(dir, "test.db"), box)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	if _, err := st.CreateRule(&model.AlertRule{
+		Name: "Certificados", Type: "tls_expiring", Enabled: true, Severity: model.SeverityWarning,
+		Config: map[string]any{"min_confidence": 75},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	m := New(st, config.Alerts{Enabled: true, MaxPerMinute: 30}, nil)
+	findings := []model.DiagnosticAnomaly{
+		{ID: "tls:expiring:7:443:tcp", Type: "tls_expiring", Category: "tls", Severity: model.SeverityWarning,
+			Title: "Certificado por caducar", Detail: "Caduca en 9 días", Confidence: 95,
+			HostIPs: []string{"192.168.1.10"}},
+		{ID: "arp:1", Type: "arp_ip_mac_changed", Category: "arp", Severity: model.SeverityWarning,
+			Title: "Cambio de MAC", Detail: "Otro hallazgo", Confidence: 95, HostIPs: []string{"192.168.1.11"}},
+	}
+	if got := m.EvaluateAnomalies(findings); got != 1 {
+		t.Fatalf("esperaba 1 alerta TLS, obtuve %d", got)
+	}
+	all, err := st.ListAlerts(model.AlertFilter{})
+	if err != nil || len(all.Items) != 1 || all.Items[0].Title != "Certificado por caducar" {
+		t.Fatalf("alerta TLS incorrecta: %+v, %v", all.Items, err)
+	}
+}

@@ -549,6 +549,7 @@ const DIAG_TYPE_LABELS = {
   passive_dhcp_server: 'Servidor DHCP no autorizado capturado',
   passive_inbound_scan: 'Posible escaneo de puertos entrante',
   passive_dns_tunnel: 'Posible túnel DNS',
+  tls_expiring: 'Certificado por caducar',
 };
 
 function passiveSection(passive) {
@@ -646,7 +647,12 @@ async function renderDiagnostics() {
       <td class="tiny muted">${fmtDate(a.detected_at)}</td>
       <td class="right nowrap"><details class="diag-details" data-finding="${esc(a.id || '')}"><summary>${esc(tr('Evidencia'))}</summary>
         <div class="diag-evidence">${(a.evidence || []).map((e) => `<div>· ${esc(e)}</div>`).join('')}
-        ${a.recommendation ? `<div class="mt"><b>${esc(tr('Recomendación'))}:</b> ${esc(a.recommendation)}</div>` : ''}</div>
+        ${a.cause ? `<div class="mt"><b>${esc(tr('Causa probable'))}:</b> ${esc(a.cause)}</div>` : ''}
+        ${a.impact ? `<div class="mt"><b>${esc(tr('Impacto posible'))}:</b> ${esc(a.impact)}</div>` : ''}
+        ${(a.next_steps || []).length ? `<div class="mt"><b>${esc(tr('Pasos de verificación'))}:</b><ol class="diag-steps">${a.next_steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol></div>` : ''}
+        ${a.limitations ? `<div class="mt"><b>${esc(tr('Limitaciones'))}:</b> ${esc(a.limitations)}</div>` : ''}
+        ${!a.next_steps && a.recommendation ? `<div class="mt"><b>${esc(tr('Recomendación'))}:</b> ${esc(a.recommendation)}</div>` : ''}
+        ${(a.hypotheses || []).length ? `<div class="mt"><b>${esc(tr('Hipótesis ordenadas'))}:</b>${a.hypotheses.map((h) => `<div class="tiny">${esc(h.rank)}. ${esc(h.label)} · ${esc(h.confidence)} % · ${esc(h.why)} <span class="muted">(${esc(h.check)})</span></div>`).join('')}</div>` : ''}</div>
       </details>
       <div class="diag-actions">
         ${diagHost ? `<a class="tiny" href="#/hosts/${encodeURIComponent(diagHost)}">${esc(tr('Ver host'))}</a>` : ''}
@@ -657,7 +663,7 @@ async function renderDiagnostics() {
   }).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
       <div class="tiny">${esc(tr('Las heurísticas no encontraron señales suficientes en la ventana analizada.'))}</div></div></div></td></tr>`;
 
-  const categoryCounts = ['arp', 'dhcp', 'snmp', 'capture', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
+  const categoryCounts = ['arp', 'dhcp', 'snmp', 'capture', 'tls', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
     .map((k) => [k, counts[k] || 0]).filter(([, v]) => v > 0);
   const hasEnterprise = report.enterprise_mode !== false;
 
@@ -802,6 +808,10 @@ async function renderHistoryCompare() {
   }).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin cambios entre los periodos'))}</b>
     <div class="tiny">${esc(tr('Las métricas y la topología disponibles no muestran diferencias con los umbrales configurados.'))}</div></div></div></td></tr>`;
 
+  const narrative = (report.narrative || []).length ? `<div class="notice mb">
+      ${icon('info')}<div><b>${esc(tr('Resumen del cambio'))}</b>
+      <ul class="diag-limits">${report.narrative.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+      <div class="tiny muted">${esc(tr('Frases deterministas generadas a partir de los cambios estructurados; no interpretan causas.'))}</div></div></div>` : '';
   const limitations = (report.limitations || []).length ? `<div class="notice warn mb">
       ${icon('warn')}<div><b>${esc(tr('Limitaciones del diff'))}</b>
       <ul class="diag-limits">${report.limitations.map((l) => `<li>${esc(l)}</li>`).join('')}</ul></div></div>` : '';
@@ -817,6 +827,7 @@ async function renderHistoryCompare() {
         </select>
       </div>
     </div>
+    ${narrative}
     ${limitations}
     <div class="grid cols-2 compare-periods mb">
       ${comparePeriodCard(a, 'up', maxRTT)}
@@ -1475,6 +1486,7 @@ const RULE_TYPE_OPTIONS = [
   ['dhcp_rogue', 'Servidor DHCP no autorizado'],
   ['snmp_anomaly', 'Anomalía SNMP'],
   ['passive_anomaly', 'Captura pasiva'],
+  ['tls_expiring', 'Certificado por caducar'],
 ];
 
 function ruleConfigFieldsHTML(type, cfg) {
@@ -1501,12 +1513,13 @@ function ruleConfigFieldsHTML(type, cfg) {
     case 'dhcp_rogue':
     case 'snmp_anomaly':
     case 'passive_anomaly':
+    case 'tls_expiring':
       return `<div class="form-grid">
         ${num('min_confidence', 'Confianza mínima', cfg.min_confidence !== undefined ? cfg.min_confidence : 75, 'Solo dispara hallazgos con esta confianza o superior.')}
         <div class="field"><label>Categoría</label>
           <select class="select" name="cfg_category">
             <option value="">Todas</option>
-            ${['arp', 'stp', 'vlan', 'wireless', 'performance', 'sla'].map((v) => `<option value="${v}" ${cfg.category === v ? 'selected' : ''}>${esc(tr(v))}</option>`).join('')}
+            ${['arp', 'stp', 'vlan', 'wireless', 'performance', 'sla', 'tls'].map((v) => `<option value="${v}" ${cfg.category === v ? 'selected' : ''}>${esc(tr(v))}</option>`).join('')}
           </select>
           <span class="help">Filtra qué familias de hallazgos disparan la regla.</span>
         </div>
@@ -1570,7 +1583,7 @@ function openRuleModal(id, preset) {
 
 // F31: abre el modal de reglas ya rellenado desde un hallazgo, sin salir de
 // diagnósticos. Solo usa tipos monitorizables y mapea severidad y confianza.
-const DIAG_RULE_CATEGORIES = ['arp', 'stp', 'vlan', 'wireless', 'performance', 'sla'];
+const DIAG_RULE_CATEGORIES = ['arp', 'stp', 'vlan', 'wireless', 'performance', 'sla', 'tls'];
 
 function diagRulePreset(a) {
   const category = String(a.category || '');
@@ -1579,6 +1592,7 @@ function diagRulePreset(a) {
   else if (category === 'dhcp' || /dhcp/i.test(a.type || '')) type = 'dhcp_rogue';
   else if (category === 'snmp' || /snmp/i.test(a.type || '')) type = 'snmp_anomaly';
   else if (category === 'capture' || category === 'passive' || /passive/i.test(a.type || '')) type = 'passive_anomaly';
+  else if (category === 'tls' || /tls/i.test(a.type || '')) type = 'tls_expiring';
   const config = { min_confidence: Number(a.confidence) || 60 };
   if (DIAG_RULE_CATEGORIES.includes(category)) config.category = category;
   const title = String(a.title || a.detail || a.type || 'hallazgo').slice(0, 50);
@@ -1614,7 +1628,7 @@ async function submitRule(form) {
     else delete cfg[key];
   });
   if (type === 'port_opened') cfg.ignore_ephemeral = fd.get('cfg_ignore_ephemeral') === 'on';
-  if (['anomaly', 'arp_spoofing', 'dhcp_rogue', 'snmp_anomaly', 'passive_anomaly'].includes(type)) {
+  if (['anomaly', 'arp_spoofing', 'dhcp_rogue', 'snmp_anomaly', 'passive_anomaly', 'tls_expiring'].includes(type)) {
     const category = String(fd.get('cfg_category') || '');
     if (category) cfg.category = category;
     else delete cfg.category;

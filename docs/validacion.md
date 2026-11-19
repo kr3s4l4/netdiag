@@ -70,6 +70,18 @@ Plantillas listas para copiar:
 - [Correo de piloto](plantillas/correo-piloto.md).
 - [Registro de evidencia F42](plantillas/registro-evidencia-f42.md).
 
+## Material de apoyo para la validación
+
+Estas mejoras facilitan una prueba real, pero **no cuentan como evidencia F42**: la aceptación sigue siendo uso repetido en una red real y disposición a pagar o piloto.
+
+- **Explicación sin IA (F50, F56):** cada hallazgo muestra causa, impacto, pasos siguientes y límites con plantillas deterministas. Las hipótesis están ordenadas por confianza y nunca superan la evidencia. Sirve para que un piloto entienda qué comprobar, no para presumir una causa.
+- **Resumen del histórico (F57):** `narrative` convierte los cambios estructurados en frases cortas visibles en la UI y el PDF ejecutivo. Útil para explicar al piloto qué cambió entre dos ventanas sin redactar a mano.
+- **Aviso TLS (F60):** `tls_expiring` avisa a 30 y 14 días y marca crítico el último día solo con la fecha del certificado ofrecido. Es una señal concreta que un piloto puede validar en su red.
+- **Evidencia firmada (F58):** `scripts/sign-evidence.sh` empaqueta informes, diffs y bundles de sede en `.ndc` con una clave distinta de la de release. Procedimiento en [evidencia-firmada.md](evidencia-firmada.md).
+- **Escaneo remoto (F51):** [escaneo-remoto.md](escaneo-remoto.md) describe cómo orquestar escaneos por SSH sin agente, sin nube y sin telemetría.
+
+Ninguna de estas funciones envía datos a NetDiag ni a terceros. La encuesta y el registro de evidencia siguen siendo los únicos canales de recogida voluntaria.
+
 ## Fases
 
 ### 1. Observar

@@ -315,6 +315,7 @@ var securityRuleCategories = map[string]string{
 	"dhcp_rogue":      "dhcp",
 	"snmp_anomaly":    "snmp",
 	"passive_anomaly": "capture",
+	"tls_expiring":    "tls",
 }
 
 // EvaluateAnomalies raises alerts for heuristic findings such as ARP conflicts.
@@ -346,7 +347,7 @@ func (m *Manager) EvaluateAnomalies(findings []model.DiagnosticAnomaly, defaultS
 		switch rule.Type {
 		case "anomaly":
 			// Generic fallback: skip families with a dedicated rule.
-		case "arp_spoofing", "dhcp_rogue", "snmp_anomaly", "passive_anomaly":
+		case "arp_spoofing", "dhcp_rogue", "snmp_anomaly", "passive_anomaly", "tls_expiring":
 			category = securityRuleCategories[rule.Type]
 		default:
 			continue

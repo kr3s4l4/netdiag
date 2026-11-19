@@ -50,6 +50,35 @@ func buildSample(t *testing.T, dir string) (string, string) {
 	return path, string(public)
 }
 
+func TestBuildSiteKindRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	seed, keyID, public := signingMaterial(t)
+	path := filepath.Join(dir, "sede.ndc")
+	if err := Build(path, BuildOptions{
+		Version:   "1.5.2",
+		Kind:      "site",
+		Producer:  "netdiag-tests",
+		CreatedAt: time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC),
+		Files: []InputFile{
+			{Name: "site-bundle.json", Data: []byte(`{"site_id":1,"hosts":3}`)},
+		},
+		Seed:  seed,
+		KeyID: keyID,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	rep, err := Verify(path, string(public))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rep.Valid || !rep.ContentOK || rep.Kind != "site" || rep.Version != "1.5.2" {
+		t.Fatalf("contenedor site no válido: %+v", rep)
+	}
+	if len(rep.Files) != 1 || rep.Files[0].Path != "site-bundle.json" {
+		t.Fatalf("payload inesperado: %+v", rep.Files)
+	}
+}
+
 func rewriteEntry(t *testing.T, path, entryName string, replacement []byte) {
 	t.Helper()
 	zr, err := zip.OpenReader(path)

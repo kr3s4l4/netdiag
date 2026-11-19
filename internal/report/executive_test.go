@@ -64,6 +64,83 @@ func TestExecutivePDFIsOnePageAndRedactsSecrets(t *testing.T) {
 	}
 }
 
+func TestExecutivePDFIncludesExplanationWithoutExtraPage(t *testing.T) {
+	dir := t.TempDir()
+	g := New(dir, "Laboratorio", "")
+	findings := []model.DiagnosticAnomaly{}
+	for i := 0; i < 4; i++ {
+		findings = append(findings, model.DiagnosticAnomaly{
+			Severity: "critical", Confidence: 95,
+			Title:       "Hallazgo de prueba con titulo largo para medir la altura de la tabla",
+			Cause:       "Otro equipo responde por la IP del gateway.",
+			Impact:      "El trafico puede pasar por un equipo no autorizado.",
+			NextSteps:   []string{"Comparar la MAC con el router.", "Localizar el puerto en el switch."},
+			Limitations: "Sin captura L2.",
+			Hypotheses: []model.Hypothesis{{
+				Rank: 1, Label: "Suplantacion", Confidence: 95,
+			}},
+		})
+	}
+	rec, err := g.Generate(Request{Kind: "executive", Format: "pdf", Findings: findings})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(rec.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(regexp.MustCompile(`/Type\s*/Page\b`).FindAll(data, -1)); got != 1 {
+		t.Fatalf("el PDF con explicaciones debe seguir en 1 pagina, tiene %d", got)
+	}
+	for _, want := range []string{"causa:", "impacto:", "pasos:", "hipotesis 1:"} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("el PDF no incluye %q", want)
+		}
+	}
+}
+
+func TestExecutivePDFIncludesNarrativeWithoutExtraPage(t *testing.T) {
+	dir := t.TempDir()
+	g := New(dir, "Laboratorio", "")
+	changes := []model.HistoryChange{}
+	for i := 0; i < 5; i++ {
+		changes = append(changes, model.HistoryChange{
+			Type: "host.added", Label: "Dispositivo nuevo con nombre largo para ocupar espacio",
+			Evidence: []string{"tres muestras"},
+		})
+	}
+	findings := []model.DiagnosticAnomaly{}
+	for i := 0; i < 4; i++ {
+		findings = append(findings, model.DiagnosticAnomaly{
+			Severity: "critical", Confidence: 95,
+			Title:       "Hallazgo de prueba con titulo largo para medir la altura de la tabla",
+			Cause:       "Otro equipo responde por la IP del gateway.",
+			Impact:      "El trafico puede pasar por un equipo no autorizado.",
+			NextSteps:   []string{"Comparar la MAC con el router.", "Localizar el puerto en el switch."},
+			Limitations: "Sin captura L2.",
+		})
+	}
+	rec, err := g.Generate(Request{
+		Kind: "executive", Format: "pdf",
+		Changes:   changes,
+		Narrative: []string{"Aparecieron 5 dispositivos nuevos en la ventana comparada.", "La topología ganó 2 enlaces."},
+		Findings:  findings,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(rec.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(regexp.MustCompile(`/Type\s*/Page\b`).FindAll(data, -1)); got != 1 {
+		t.Fatalf("el PDF con narrativa debe seguir en 1 pagina, tiene %d", got)
+	}
+	if !strings.Contains(string(data), "Resumen:") || !strings.Contains(string(data), "Aparecieron 5 dispositivos") {
+		t.Fatal("el PDF no incluye la narrativa del diff")
+	}
+}
+
 func TestRedactForReportKeepAggregates(t *testing.T) {
 	in := "Disponibilidad 99,2 % · comunidad public · token: abc123 · 12 hosts"
 	out := redactForReport(in)

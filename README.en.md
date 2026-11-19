@@ -84,7 +84,7 @@ curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -F 'file=@office.json' \
 
 ## Enterprise and security diagnostics
 
-The **Diagnostics** view and `GET /api/v1/diagnostics/enterprise` correlate data already collected by NetDiag. Each finding has type, severity, hosts, evidence, confidence and a recommendation. Detectors require several simultaneous signals and respect `site_id` and the `from`/`to` window.
+The **Diagnostics** view and `GET /api/v1/diagnostics/enterprise` correlate data already collected by NetDiag. Each finding has type, severity, hosts, evidence, confidence (1–100), `cause`, `impact`, `next_steps`, `limitations` and `hypotheses`. The `recommendation` field is kept for compatibility. Detectors require several simultaneous signals and respect `site_id` and the `from`/`to` window.
 
 | Category | Signals |
 | --- | --- |
@@ -99,14 +99,23 @@ The **Diagnostics** view and `GET /api/v1/diagnostics/enterprise` correlate data
 | Rogue DHCP | Several DHCP responders, unauthorized server, gateway spoofing, server MAC change |
 | Deep SNMP | Switch ARP vs. history, MAC on several ports/VLANs or moved between scans, FDB vs. LLDP/CDP |
 | Passive capture | Repeated gratuitous ARP, ICMP redirect, DHCP OFFER/ACK, inbound SYNs, high-entropy DNS names |
+| TLS certificates | `TLSCert.NotAfter` at 30, 14 or 1 day to expiry; critical on the last day |
 
-**Limits.** By default NetDiag captures no frames or BPDUs, reads no duplex OIDs or broadcast/fragment counters, and cannot see other clients' ARP/DHCP traffic. Active probes (ICMP/ARP, UDP/68, SNMP) and their findings are leads for investigation, not protocol-level proof. Passive capture is opt-in and metadata-only and also needs human review. All limitations are returned in `limitations`. With `enterprise_mode: false` only SLA thresholds are evaluated.
+**Limits.** By default NetDiag captures no frames or BPDUs, reads no duplex OIDs or broadcast/fragment counters, and cannot see other clients' ARP/DHCP traffic. Active probes (ICMP/ARP, UDP/68, SNMP) and their findings are leads for investigation, not protocol-level proof. Passive capture is opt-in and metadata-only and also needs human review. The TLS check only reads the expiry date offered in the handshake: it queries no CA, OCSP or DNS and cannot know whether renewal is in progress. Every finding carries its own `limitations`, and the report adds the global ones. With `enterprise_mode: false`, SLA thresholds and TLS certificates are evaluated; the other network detectors stay off.
 
 **Rogue DHCP.** With `diagnostics.dhcp_probe: true` (default), DHCPINFORM and DHCPDISCOVER are sent over UDP/68 without raw sockets; replies are stored in `dhcp_observations` for `dhcp_history_days` (30). Tune with `NETDIAG_DHCP_PROBE`, `NETDIAG_DHCP_PROBE_TIMEOUT` and `NETDIAG_DHCP_AUTHORIZED`. See `GET /api/v1/diagnostics/dhcp`.
 
 **Deep SNMP.** With `diagnostics.snmp_deep: true` (default), the collector queries `ipAddrTable` (`.1.3.6.1.2.1.4.20`), ARP tables `.4.22`/`.4.35`, Q-BRIDGE `.1.3.6.1.2.1.17.7.*` and BRIDGE-MIB `.1.3.6.1.2.1.17.4.*`, with row caps of 512 addresses, 2000 ARP, 5000 FDB and 256 VLANs. Rows are kept per site for `snmp_history_days` (30). The community that answered is stored **masked** (`public` → `pu***ic`); the plaintext credential is never persisted or exposed. Types `snmp_*` feed the `snmp_anomaly` rule. See `GET /api/v1/diagnostics/snmp`.
 
 **Passive capture.** Disabled by default. Requires a `-tags pcap` binary, `CAP_NET_RAW` and `diagnostics.passive_capture: true`. After each scan it opens a short, BPF-narrow window (ARP, ICMP, UDP/67-68-53 and TCP SYNs) and stores **metadata only** in `passive_observations` for `passive_history_days` (7): never payloads, credentials or DNS answers. Limits: `passive_seconds` (10), `passive_max_packets` (2000), `passive_promiscuous` (false). Environment: `NETDIAG_PASSIVE_CAPTURE`, `NETDIAG_PASSIVE_IFACE`, `NETDIAG_PASSIVE_SECONDS`, `NETDIAG_PASSIVE_MAX_PACKETS`, `NETDIAG_PASSIVE_PROMISC`, `NETDIAG_PASSIVE_HISTORY_DAYS`. Portable builds report `available:false` and keep scanning. See `GET /api/v1/diagnostics/passive`; types `passive_*` feed the `passive_anomaly` rule.
+
+**Explanation without AI.** `cause`, `impact` and `next_steps` come from deterministic templates keyed by finding type. The same evidence always produces the same text. Hypotheses are ranked by confidence and never exceed the evidence confidence: they are leads to verify, not confirmed causes. Three fixed correlation rules cover gateway spoofing, an L2 loop and MAC movement or spoofing.
+
+**History summary.** `POST /api/v1/history/compare` adds `narrative`: short sentences built only from structured changes. The history view and the executive PDF show them as a summary; they infer no causes and do not replace the evidence table.
+
+**TLS certificates.** The `tls_expiring` detector reads `TLSCert.NotAfter` already collected during the handshake. It warns at 30 and 14 days and flags one day or less as critical. The `tls_expiring` alert rule uses category `tls` and the same `min_confidence` as the other finding rules.
+
+**Signed evidence.** `scripts/sign-evidence.sh` reuses `netdiag container build` with a local Ed25519 key distinct from the release key. It packages reports, diffs and site bundles into a verifiable `.ndc` without a cloud. Procedure in [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
@@ -144,6 +153,8 @@ Community is AGPL-3.0 and free. Pro and Enterprise are commercial, offline-licen
 - [Report a real use case](.github/ISSUE_TEMPLATE/real-use-case.en.md)
 - [Roadmap](docs/roadmap.md) (Spanish; roadmap only, no operational docs)
 - [API reference](docs/api.md)
+- [Signed evidence](docs/evidencia-firmada.md) (Spanish)
+- [Remote scanning over SSH](docs/escaneo-remoto.md) (Spanish)
 - [Validation notes](docs/validacion.md) (Spanish)
 - [Distribution and licensing alternatives](docs/alternativas-publicacion-venta.md) (Spanish)
 

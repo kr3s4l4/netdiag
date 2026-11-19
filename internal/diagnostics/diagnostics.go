@@ -107,6 +107,9 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 	detectBroadcastStorms(in, report)
 	detectRogueAPs(in, report)
 	detectSLABreaches(in, report)
+	for _, a := range DetectTLSExpiry(in.Hosts, to, cfg) {
+		add(report, a)
+	}
 	if cfg.EnterpriseMode {
 		for _, a := range DetectARP(in.ARP, cfg) {
 			add(report, a)
@@ -121,6 +124,13 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 			add(report, a)
 		}
 	}
+
+	// F50/F56: one enrichment point for every detector, before sorting and
+	// counting. Recommendation stays as the compatibility field.
+	for i := range report.Anomalies {
+		enrich(&report.Anomalies[i])
+	}
+	rankCorrelations(report)
 
 	severityRank := map[string]int{model.SeverityCritical: 0, model.SeverityWarning: 1, model.SeverityInfo: 2}
 	sort.SliceStable(report.Anomalies, func(i, j int) bool {

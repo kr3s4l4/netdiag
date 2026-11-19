@@ -795,7 +795,7 @@ func ValidateRuleType(typ string) bool {
 	switch typ {
 	case "host_down", "host_new", "latency_high", "port_opened", "port_closed",
 		"service_changed", "device_changed", "subnet_usage", "scan_failed",
-		"anomaly", "arp_spoofing", "dhcp_rogue", "snmp_anomaly", "passive_anomaly":
+		"anomaly", "arp_spoofing", "dhcp_rogue", "snmp_anomaly", "passive_anomaly", "tls_expiring":
 		return true
 	}
 	return false
