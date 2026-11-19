@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kr3s4l4/netdiag/internal/capture"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/diagnostics"
 	"github.com/kr3s4l4/netdiag/internal/model"
@@ -74,6 +75,14 @@ func (s *Server) diagnosticsInput(r *http.Request) (diagnostics.Input, time.Time
 	in.SNMP, err = s.st.ListSNMPDeep(siteID, to.AddDate(0, 0, -snmpDays), 50000)
 	if err != nil {
 		in.SNMP = nil
+	}
+	passiveDays := cfg.PassiveHistoryDays
+	if passiveDays < 1 {
+		passiveDays = 7
+	}
+	in.Passive, err = s.st.ListPassiveObservations(siteID, to.AddDate(0, 0, -passiveDays), 50000)
+	if err != nil {
+		in.Passive = nil
 	}
 	return in, from, to
 }
@@ -190,6 +199,31 @@ func (s *Server) handleSNMPDiagnostics(w http.ResponseWriter, r *http.Request) {
 		"communities":  communities,
 		"ip_addresses": snap.IPAddresses, "arp": snap.ARP,
 		"vlans": snap.VLANs, "fdb": snap.FDB,
+		"limitations": report.Limitations,
+	})
+}
+
+// handlePassiveDiagnostics returns passive-capture findings and the metadata
+// behind them. The available flag tells the UI whether the binary was built
+// with pcap support; an empty window is not an error.
+func (s *Server) handlePassiveDiagnostics(w http.ResponseWriter, r *http.Request) {
+	in, from, to := s.diagnosticsInput(r)
+	report := diagnostics.Analyzer{}.Analyze(in)
+	findings := make([]model.DiagnosticAnomaly, 0)
+	for _, a := range report.Anomalies {
+		if strings.HasPrefix(a.Type, "passive_") {
+			findings = append(findings, a)
+		}
+	}
+	observations := in.Passive
+	if observations == nil {
+		observations = []model.PassiveObservation{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"site_id": in.SiteID, "generated_at": report.GeneratedAt,
+		"from": from, "to": to,
+		"available": capture.Available(), "enabled": in.Config.PassiveCapture,
+		"anomalies": findings, "observations": observations,
 		"limitations": report.Limitations,
 	})
 }

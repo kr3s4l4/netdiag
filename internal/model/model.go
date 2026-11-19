@@ -159,6 +159,23 @@ type SNMPDeep struct {
 	FDB         []SNMPFDBRow    `json:"-"`
 }
 
+// PassiveObservation is one metadata-only frame seen by the optional passive
+// capture. Payloads are never decoded beyond the protocol header or stored.
+type PassiveObservation struct {
+	ID         int64     `json:"id,omitempty"`
+	SiteID     int64     `json:"site_id,omitempty"`
+	ScanID     int64     `json:"scan_id,omitempty"`
+	Kind       string    `json:"kind"` // garp | icmp_redirect | dhcp_server | inbound_scan | dns_tunnel
+	Interface  string    `json:"interface,omitempty"`
+	SrcIP      string    `json:"src_ip,omitempty"`
+	DstIP      string    `json:"dst_ip,omitempty"`
+	SrcMAC     string    `json:"src_mac,omitempty"`
+	Protocol   string    `json:"protocol,omitempty"` // arp | icmp | udp | tcp
+	Detail     string    `json:"detail,omitempty"`   // puerto, dominio o Mensaje DHCP
+	Count      int       `json:"count,omitempty"`
+	ObservedAt time.Time `json:"observed_at,omitempty"`
+}
+
 // SNMPDeepSnapshot is the retained deep evidence for one site and window.
 type SNMPDeepSnapshot struct {
 	IPAddresses []SNMPIPAddress `json:"ip_addresses"`

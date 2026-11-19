@@ -277,6 +277,7 @@ func (a *App) runScan(ctx context.Context, state *runState, scan *model.Scan, ne
 		a.recordARPObservations(scan.SiteID, scan.ID, result.Hosts, now)
 		a.recordDHCPObservations(scan.SiteID, scan.ID, result, now)
 		a.recordSNMPDeep(scan.SiteID, scan.ID, result.Hosts, now)
+		a.recordPassive(scan, network.Interface, now)
 	}
 
 	if fullScan && network.ID > 0 && !result.Canceled {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -196,6 +197,47 @@ func TestSNMPDiagnosticsEndpoint(t *testing.T) {
 	}
 	if len(body.Limitations) == 0 {
 		t.Fatal("faltan limitaciones del análisis SNMP")
+	}
+}
+
+func TestPassiveDiagnosticsEndpoint(t *testing.T) {
+	s := newMetricsServer(t)
+	now := time.Now()
+	obs := []model.PassiveObservation{
+		{SiteID: 1, ScanID: 7, Kind: "icmp_redirect", SrcIP: "192.168.0.1", DstIP: "192.168.0.50", ObservedAt: now},
+		{SiteID: 1, ScanID: 7, Kind: "dhcp_server", SrcIP: "192.168.0.51", SrcMAC: "de:ad:be:ef:00:51", Detail: "DHCP OFFER", ObservedAt: now},
+	}
+	if err := s.st.SavePassiveObservations(obs); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	s.handlePassiveDiagnostics(rec, httptest.NewRequest(http.MethodGet, "/api/v1/diagnostics/passive?site_id=1", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("código %d: %s", rec.Code, rec.Body.String())
+	}
+	var body struct {
+		Available    bool                       `json:"available"`
+		Enabled      bool                       `json:"enabled"`
+		Anomalies    []model.DiagnosticAnomaly  `json:"anomalies"`
+		Observations []model.PassiveObservation `json:"observations"`
+		Limitations  []string                   `json:"limitations"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if len(body.Observations) != 2 {
+		t.Fatalf("observaciones inesperadas: %s", rec.Body.String())
+	}
+	if len(body.Anomalies) == 0 {
+		t.Fatalf("faltan hallazgos pasivos: %s", rec.Body.String())
+	}
+	for _, a := range body.Anomalies {
+		if !strings.HasPrefix(a.Type, "passive_") || a.Category != "capture" {
+			t.Fatalf("hallazgo inesperado: %+v", a)
+		}
+	}
+	if len(body.Limitations) == 0 {
+		t.Fatal("faltan limitaciones de la captura pasiva")
 	}
 }
 

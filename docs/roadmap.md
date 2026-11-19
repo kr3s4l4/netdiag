@@ -23,6 +23,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F45 | Implementado: reglas de alerta de seguridad dedicadas con precedencia |
 | F44 | Implementado: sonda DHCP UDP/68, histórico y detectores de servidor rogue |
 | F46 | Implementado: SNMP profundo IP-MIB/Q-BRIDGE, comunidad enmascarada y correlación L2 |
+| F47 | Implementado: captura pasiva opt-in con `-tags pcap`, metadata-only y cinco detectores |
 | Pruebas | `gofmt`, `go build`, `go vet`, `make test`, chequeo JS y smoke con binario real |
 
 ## Mejoras propuestas para 1.5.1
@@ -280,7 +281,7 @@ Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantilla
 
 Primera fase de seguridad del activo, sin captura de paquetes ni raw sockets. Cada escaneo guarda su par IP→MAC en `arp_observations` (v1.5.6, retención 30 días) y el detector compara lotes para emitir `arp_gateway_mac_changed`, `arp_ip_mac_changed`, `arp_mac_multi_ip` y `arp_ip_multi_mac`. La regla de alerta `anomaly` dispara avisos con `min_confidence` y `category`, con dedupe y host del inventario resuelto. Endpoint `GET /diagnostics/arp` y tabla `Histórico IP→MAC` en `#/diagnostics`.
 
-Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación sintética antigua del gateway con otra MAC, anomalía crítica confianza 95 y alerta `Posible MITM` visible con `site_id=1`. Detalle en `docs/validacion.md`. Siguieron F45 (alertas dedicadas), F44 (DHCP rogue) y F46 (SNMP profundo); queda F47 (captura pasiva).
+Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación sintética antigua del gateway con otra MAC, anomalía crítica confianza 95 y alerta `Posible MITM` visible con `site_id=1`. Detalle en `docs/validacion.md`. Siguieron F45 (alertas dedicadas), F44 (DHCP rogue), F46 (SNMP profundo) y F47 (captura pasiva metadata-only).
 
 **Criterio de cierre:** dos escaneos con MAC distinta para una misma IP generan un hallazgo con evidencia, y la alerta aparece filtrando por sede. Sin captura L2 no se confirma spoofing activo: es una pista para investigar.
 
@@ -288,7 +289,7 @@ Verificado en `127.0.0.1:18780`: escaneo real de `192.168.0.0/24`, observación 
 
 ### F45 — Alertas de seguridad dedicadas — **implementado**
 
-`EvaluateAnomalies` enruta los hallazgos a reglas `arp_spoofing`, `dhcp_rogue`, `snmp_anomaly` y `passive_anomaly`, con precedencia sobre `anomaly` para no duplicar avisos. La UI permite crearlas con `min_confidence` y `category`. Cubre las cuatro familias que faltaban antes de tener detectores para todas ellas.
+`EvaluateAnomalies` enruta los hallazgos a reglas `arp_spoofing`, `dhcp_rogue`, `snmp_anomaly` y `passive_anomaly`, con precedencia sobre `anomaly` para no duplicar avisos. La UI permite crearlas con `min_confidence` y `category`. Cubre las cinco familias que faltaban antes de tener detectores para todas ellas.
 
 ### F44 — DHCP rogue con UDP/68 — **implementado y verificado solo por tests**
 
@@ -305,6 +306,14 @@ Amplía el recolector con `ipAddrTable` (`.1.3.6.1.2.1.4.20`), las tablas ARP `.
 No hay switch SNMP real en este entorno, así que la verificación funcional usa filas sintéticas. Los walks tienen límites y degradan limpiamente si el dispositivo no expone las tablas.
 
 **Criterio de cierre:** un cambio de MAC del gateway en la tabla ARP del switch y una MAC en dos puertos o VLAN generan hallazgos con evidencia; FDB y LLDP en puertos distintos generan `snmp_lldp_fdb_disagree`. Se comprueba con tests y con el endpoint sobre datos sintéticos.
+
+### F47 — Captura pasiva — **implementada**
+
+Añade `internal/capture` con build-tags `pcap`/`!pcap`. El binario portable sigue funcionando sin raw sockets y `doctor` indica que la captura no está compilada. Con `-tags pcap`, `CAP_NET_RAW` y `diagnostics.passive_capture: true`, cada escaneo abre una ventana corta con BPF estrecho y guarda solo metadatos en `passive_observations` (v1.5.10), sin payload, credenciales ni respuestas DNS. `DetectPassive` emite cinco tipos `passive_*` con `category: "capture"` para la regla `passive_anomaly`: GARP repetido, ICMP redirect, DHCP no autorizado, SYN entrantes y túnel DNS. Endpoint `GET /diagnostics/passive` y sección «Captura pasiva» en `#/diagnostics`.
+
+No hay `CAP_NET_RAW` en este entorno, así que no se puede capturar tráfico real. Se verifica compilación en ambos modos, degradación limpia, parsers con paquetes construidos en memoria y el recorrido detector→alerta con observaciones sintéticas. La captura frente a un switch con SPAN o un tap queda pendiente.
+
+**Criterio de cierre:** una ventana con GARP, ICMP redirect, DHCP OFFER de un servidor no autorizado, escaneo SYN y dominio de alta entropía genera los cinco hallazgos con evidencia; un servidor autorizado o el gateway del histórico no genera `passive_dhcp_server`. Se comprueba con tests y con el endpoint sobre datos sintéticos.
 
 ## Dependencias y orden recomendado
 
@@ -325,6 +334,7 @@ No hay switch SNMP real en este entorno, así que la verificación funcional usa
 | F45 | F43 | Alta: evita alertas duplicadas al añadir detectores |
 | F44 | F43, F45 | Alta: aprovecha el histórico ARP y la regla dedicada |
 | F46 | F43, F45 | Alta: completa seguridad con SNMP y reutiliza `snmp_anomaly` |
+| F47 | F43, F45, F46 | Media: captura opcional con privilegios y reutiliza `passive_anomaly` |
 
 ## Cierre de salida al mercado
 

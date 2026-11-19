@@ -113,12 +113,15 @@ La vista **Diagnósticos** y `GET /api/v1/diagnostics/enterprise` correlacionan 
 | ARP / MITM | Cambio de MAC del gateway o de cualquier IP entre escaneos, una MAC con muchas IPs y una IP con varias MAC |
 | DHCP rogue | Varios servidores DHCP que responden, servidor no autorizado, suplantación del gateway y cambio de MAC del servidor |
 | SNMP profundo | ARP del switch frente al histórico, MAC en varios puertos/VLAN o movida entre escaneos, y desacuerdo entre FDB y LLDP/CDP |
+| Captura pasiva | ARP gratuito repetido, ICMP redirect, DHCP OFFER/ACK de otro servidor, SYN entrantes y consultas DNS de alta entropía |
 
-**Limitaciones:** NetDiag no captura tramas ni BPDUs, no lee OID de dúplex ni contadores broadcast o de fragmentación, y no ve el tráfico ARP o DHCP de otros clientes. Los sondeos son activos (ICMP/ARP, UDP/68 y SNMP) y sus hallazgos se infieren de tablas e históricos: son pistas para investigar, no confirmación protocolaria de un ataque. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados.
+**Limitaciones:** por defecto NetDiag no captura tramas ni BPDUs, no lee OID de dúplex ni contadores broadcast o de fragmentación, y no ve el tráfico ARP o DHCP de otros clientes. Los sondeos son activos (ICMP/ARP, UDP/68 y SNMP) y sus hallazgos se infieren de tablas e históricos: son pistas para investigar, no confirmación protocolaria de un ataque. La captura pasiva es opt-in, metadata-only y también requiere validación humana. El informe incluye siempre esas limitaciones en `limitations`. Con `enterprise_mode: false` solo se evalúan los umbrales SLA; los detectores de red permanecen desactivados.
 
 **DHCP rogue.** Con `diagnostics.dhcp_probe: true` (por defecto) se envían DHCPINFORM y DHCPDISCOVER por UDP/68 sin raw sockets; las respuestas se guardan en `dhcp_observations` durante `diagnostics.dhcp_history_days` (30 días). `NETDIAG_DHCP_PROBE`, `NETDIAG_DHCP_PROBE_TIMEOUT` y `NETDIAG_DHCP_AUTHORIZED` permiten ajustar el sondeo y la lista de servidores de confianza. Histórico y anomalías en `GET /api/v1/diagnostics/dhcp`.
 
 **SNMP profundo.** Con `diagnostics.snmp_deep: true` (por defecto) el recolector consulta `ipAddrTable` (`.1.3.6.1.2.1.4.20`), las tablas ARP `.4.22`/`.4.35`, Q-BRIDGE `.1.3.6.1.2.1.17.7.*` y BRIDGE-MIB `.1.3.6.1.2.1.17.4.*`, con límites de 512 direcciones, 2000 ARP, 5000 FDB y 256 VLAN. Las filas se guardan por sede durante `diagnostics.snmp_history_days` (30 días). La comunidad que respondió se guarda **enmascarada** (`public` → `pu***ic`); la credencial en claro nunca se persiste ni se expone. Variables: `NETDIAG_SNMP_DEEP` y `NETDIAG_SNMP_HISTORY_DAYS`. Hallazgos y tablas en `GET /api/v1/diagnostics/snmp`. Los tipos `snmp_*` usan la regla de alerta `snmp_anomaly`.
+
+**Captura pasiva.** Desactivada por defecto. Requiere binario compilado con `-tags pcap`, `CAP_NET_RAW` y `diagnostics.passive_capture: true`. Abre una ventana acotada tras cada escaneo con BPF estrecho (`arp`, `icmp`, UDP/67-68-53 y SYN TCP) y guarda **solo metadatos** en `passive_observations` durante `diagnostics.passive_history_days` (7 días): nunca payload, credenciales ni respuestas DNS. Límites: `passive_seconds` (10), `passive_max_packets` (2000) y `passive_promiscuous` (false). Variables: `NETDIAG_PASSIVE_CAPTURE`, `NETDIAG_PASSIVE_IFACE`, `NETDIAG_PASSIVE_SECONDS`, `NETDIAG_PASSIVE_MAX_PACKETS`, `NETDIAG_PASSIVE_PROMISC` y `NETDIAG_PASSIVE_HISTORY_DAYS`. En builds portables el endpoint devuelve `available:false` y el escaneo continúa. Hallazgos y observaciones en `GET /api/v1/diagnostics/passive`; los tipos `passive_*` usan la regla `passive_anomaly`.
 
 ```bash
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/enterprise?site_id=1&from=24h'
@@ -127,6 +130,7 @@ curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/vlan?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/arp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/dhcp?site_id=1'
 curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/snmp?site_id=1'
+curl -b cookies.txt 'http://127.0.0.1:8080/api/v1/diagnostics/passive?site_id=1'
 ```
 
 ## Integraciones externas

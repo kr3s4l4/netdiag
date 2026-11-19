@@ -187,9 +187,10 @@ type Security struct {
 }
 
 // Log holds logging settings.
-// Diagnostics tunes the enterprise heuristics. They never sniff raw frames:
-// findings come from adjacency, IF-MIB, inventory, metrics, ARP history and a
-// short DHCP UDP probe on the local segment.
+// Diagnostics tunes the enterprise heuristics. By default they never sniff raw
+// frames: findings come from adjacency, IF-MIB, inventory, metrics, ARP history
+// and a short DHCP UDP probe. PassiveCapture is an explicit, metadata-only
+// opt-in that requires a pcap build and CAP_NET_RAW.
 type Diagnostics struct {
 	EnterpriseMode        bool     `yaml:"enterprise_mode" json:"enterprise_mode"`
 	MinConfidence         int      `yaml:"min_confidence" json:"min_confidence"`
@@ -206,6 +207,12 @@ type Diagnostics struct {
 	AuthorizedDHCPServers []string `yaml:"authorized_dhcp_servers" json:"authorized_dhcp_servers"`
 	SNMPDeep              bool     `yaml:"snmp_deep" json:"snmp_deep"`
 	SNMPHistoryDays       int      `yaml:"snmp_history_days" json:"snmp_history_days"`
+	PassiveCapture        bool     `yaml:"passive_capture" json:"passive_capture"`
+	PassiveInterface      string   `yaml:"passive_interface" json:"passive_interface"`
+	PassiveSeconds        int      `yaml:"passive_seconds" json:"passive_seconds"`
+	PassiveMaxPackets     int      `yaml:"passive_max_packets" json:"passive_max_packets"`
+	PassivePromiscuous    bool     `yaml:"passive_promiscuous" json:"passive_promiscuous"`
+	PassiveHistoryDays    int      `yaml:"passive_history_days" json:"passive_history_days"`
 }
 
 // VPN controls the periodic heuristic detection of VPN tunnels. Detection is
@@ -352,6 +359,10 @@ func Defaults() *Config {
 			AuthorizedDHCPServers: []string{},
 			SNMPDeep:              true,
 			SNMPHistoryDays:       30,
+			PassiveCapture:        false,
+			PassiveSeconds:        10,
+			PassiveMaxPackets:     2000,
+			PassiveHistoryDays:    7,
 		},
 		Log: Log{Level: "info", Format: "text"},
 	}
@@ -494,6 +505,16 @@ func (c *Config) Normalize() error {
 	if c.Diagnostics.SNMPHistoryDays < 1 {
 		c.Diagnostics.SNMPHistoryDays = 30
 	}
+	if c.Diagnostics.PassiveSeconds < 1 {
+		c.Diagnostics.PassiveSeconds = 10
+	}
+	if c.Diagnostics.PassiveMaxPackets < 1 {
+		c.Diagnostics.PassiveMaxPackets = 2000
+	}
+	if c.Diagnostics.PassiveHistoryDays < 1 {
+		c.Diagnostics.PassiveHistoryDays = 7
+	}
+	c.Diagnostics.PassiveInterface = strings.TrimSpace(c.Diagnostics.PassiveInterface)
 	if c.Integrations.Timeout.Duration() <= 0 {
 		c.Integrations.Timeout = Duration(10 * time.Second)
 	}
@@ -612,6 +633,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Diagnostics.SNMPHistoryDays < 1 || c.Diagnostics.SNMPHistoryDays > 3650 {
 		errs = append(errs, "diagnostics.snmp_history_days debe estar entre 1 y 3650")
+	}
+	if c.Diagnostics.PassiveSeconds < 1 || c.Diagnostics.PassiveSeconds > 300 {
+		errs = append(errs, "diagnostics.passive_seconds debe estar entre 1 y 300")
+	}
+	if c.Diagnostics.PassiveMaxPackets < 100 || c.Diagnostics.PassiveMaxPackets > 100000 {
+		errs = append(errs, "diagnostics.passive_max_packets debe estar entre 100 y 100000")
+	}
+	if c.Diagnostics.PassiveHistoryDays < 1 || c.Diagnostics.PassiveHistoryDays > 3650 {
+		errs = append(errs, "diagnostics.passive_history_days debe estar entre 1 y 3650")
 	}
 	for _, value := range c.Diagnostics.AuthorizedDHCPServers {
 		if net.ParseIP(value) == nil {
@@ -838,6 +868,28 @@ func applyEnv(c *Config) {
 	set("NETDIAG_SNMP_HISTORY_DAYS", func(v string) {
 		if n, err := strconv.Atoi(v); err == nil {
 			c.Diagnostics.SNMPHistoryDays = n
+		}
+	})
+	set("NETDIAG_PASSIVE_CAPTURE", func(v string) {
+		c.Diagnostics.PassiveCapture = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+	})
+	set("NETDIAG_PASSIVE_IFACE", func(v string) { c.Diagnostics.PassiveInterface = strings.TrimSpace(v) })
+	set("NETDIAG_PASSIVE_SECONDS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Diagnostics.PassiveSeconds = n
+		}
+	})
+	set("NETDIAG_PASSIVE_MAX_PACKETS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Diagnostics.PassiveMaxPackets = n
+		}
+	})
+	set("NETDIAG_PASSIVE_PROMISC", func(v string) {
+		c.Diagnostics.PassivePromiscuous = v == "1" || strings.EqualFold(v, "true") || strings.EqualFold(v, "yes")
+	})
+	set("NETDIAG_PASSIVE_HISTORY_DAYS", func(v string) {
+		if n, err := strconv.Atoi(v); err == nil {
+			c.Diagnostics.PassiveHistoryDays = n
 		}
 	})
 	set("NETDIAG_DHCP_AUTHORIZED", func(v string) {

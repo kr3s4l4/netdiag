@@ -34,6 +34,7 @@ import (
 	"github.com/kr3s4l4/netdiag/internal/app"
 	"github.com/kr3s4l4/netdiag/internal/auth"
 	"github.com/kr3s4l4/netdiag/internal/backup"
+	"github.com/kr3s4l4/netdiag/internal/capture"
 	"github.com/kr3s4l4/netdiag/internal/config"
 	"github.com/kr3s4l4/netdiag/internal/container"
 	"github.com/kr3s4l4/netdiag/internal/demo"
@@ -917,6 +918,7 @@ func doctorCmd(args []string) int {
 	check("ICMP", checkICMP(), "ping sin privilegios o con capabilities")
 	check("ARP activo (pcap)", discover.ARPAvailable(), arpDetail())
 	check("DHCP activo (UDP/68)", discover.DHCPAvailable(), "sin raw sockets; SO_REUSEADDR en la IP local")
+	check("Captura pasiva (pcap)", capture.Available(), passiveDetail())
 	check("privilegios", os.Geteuid() == 0, privilegeDetail())
 	check("monitor", cfg.Monitor.Enabled, "intervalo "+cfg.Monitor.Interval.Duration().String())
 	check("alertas", cfg.Alerts.Enabled, fmt.Sprintf("máximo %d/min", cfg.Alerts.MaxPerMinute))
@@ -998,6 +1000,13 @@ func checkICMP() bool {
 func arpDetail() string {
 	if discover.ARPAvailable() {
 		return "compilado; requiere CAP_NET_RAW"
+	}
+	return "no compilado (build portable; usa -tags pcap)"
+}
+
+func passiveDetail() string {
+	if capture.Available() {
+		return "compilado; requiere CAP_NET_RAW y diagnósticos.passive_capture: true"
 	}
 	return "no compilado (build portable; usa -tags pcap)"
 }

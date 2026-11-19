@@ -27,6 +27,7 @@ type Input struct {
 	ARP        []model.ARPObservation
 	DHCP       []model.DHCPObservation
 	SNMP       *model.SNMPDeepSnapshot
+	Passive    []model.PassiveObservation
 	Config     config.Diagnostics
 }
 
@@ -78,6 +79,7 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 			"Sin captura ARP en vivo: los cambios IP→MAC se infieren del histórico de escaneos y son pistas, no confirmación de spoofing activo.",
 			"El sondeo DHCP usa UDP/68 sin raw sockets: solo ve respuestas a DHCPINFORM/DHCPDISCOVER, no el tráfico de otros clientes.",
 			"La comunidad SNMP se guarda enmascarada; los walks profundos tienen límite de filas y pueden desactivarse con diagnostics.snmp_deep: false.",
+			"La captura pasiva es opcional (diagnostics.passive_capture): solo se activa con -tags pcap y CAP_NET_RAW, guarda metadatos sin payload y necesita validación humana.",
 		},
 	}
 
@@ -113,6 +115,9 @@ func (Analyzer) Analyze(in Input) *model.DiagnosticsReport {
 			add(report, a)
 		}
 		for _, a := range DetectSNMP(in.SNMP, in.ARP, in.Hosts, in.Neighbors, cfg) {
+			add(report, a)
+		}
+		for _, a := range DetectPassive(in.Passive, in.ARP, cfg) {
 			add(report, a)
 		}
 	}

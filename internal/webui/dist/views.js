@@ -411,7 +411,35 @@ const DIAG_TYPE_LABELS = {
   snmp_fdb_vlan_conflict: 'Una MAC aparece en varias VLAN',
   snmp_lldp_fdb_disagree: 'LLDP y FDB no coinciden en el puerto',
   snmp_vlan_unknown: 'FDB referencia una VLAN sin nombre',
+  passive_gratuitous_arp: 'ARP gratuito repetido',
+  passive_icmp_redirect: 'ICMP redirect observado',
+  passive_dhcp_server: 'Servidor DHCP no autorizado capturado',
+  passive_inbound_scan: 'Posible escaneo de puertos entrante',
+  passive_dns_tunnel: 'Posible túnel DNS',
 };
+
+function passiveSection(passive) {
+  const rows = passive.observations || [];
+  const status = passive.available
+    ? (passive.enabled ? esc(tr('Activa')) : esc(tr('Desactivada')))
+    : esc(tr('No compilada (usa -tags pcap)'));
+  const badge = passive.available && passive.enabled ? 'info' : 'muted';
+  return `<div class="card mb">
+    <div class="card-head"><h3>${esc(tr('Captura pasiva'))}</h3><span class="badge ${badge}">${status}</span></div>
+    <div class="card pad">
+      <div class="tiny muted mb">${esc(tr('Solo metadatos: sin payload, credenciales ni respuestas DNS. Requiere CAP_NET_RAW y validación humana.'))}</div>
+      ${rows.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>${esc(tr('Tipo'))}</th><th>${esc(tr('Origen'))}</th><th>${esc(tr('Destino'))}</th><th>MAC</th><th>${esc(tr('Detalle'))}</th><th>${esc(tr('Interfaz'))}</th><th>${esc(tr('Visto'))}</th></tr></thead>
+        <tbody>${rows.slice(-12).reverse().map((o) => `<tr>
+          <td><span class="badge info">${esc(o.kind)}</span></td>
+          <td class="mono-ip">${esc(o.src_ip || '—')}</td><td class="mono-ip">${esc(o.dst_ip || '—')}</td>
+          <td class="mono">${esc(o.src_mac || '—')}</td><td class="tiny">${esc(o.detail || '—')}</td>
+          <td class="mono">${esc(o.interface || '—')}</td><td class="tiny muted">${fmtDate(o.observed_at)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>` : `<div class="muted small">${esc(tr('Sin observaciones en la ventana seleccionada'))}</div>`}
+    </div>
+  </div>`;
+}
 
 function snmpDeepSection(snmp) {
   const ips = snmp.ip_addresses || [];
@@ -457,11 +485,12 @@ async function renderDiagnostics() {
   setPageTitle('diagnostics');
   const content = document.getElementById('content');
   content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-  const [report, arp, dhcp, snmp] = await Promise.all([
+  const [report, arp, dhcp, snmp, passive] = await Promise.all([
     api('/diagnostics/enterprise'),
     api('/diagnostics/arp').catch(() => ({ observations: [] })),
     api('/diagnostics/dhcp').catch(() => ({ observations: [] })),
     api('/diagnostics/snmp').catch(() => ({ ip_addresses: [], arp: [], vlans: [], fdb: [], communities: {} })),
+    api('/diagnostics/passive').catch(() => ({ observations: [], available: false, enabled: false })),
   ]);
   const anomalies = report.anomalies || [];
   const counts = report.counts || {};
@@ -481,7 +510,7 @@ async function renderDiagnostics() {
     </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
       <div class="tiny">${esc(tr('Las heurísticas no encontraron señales suficientes en la ventana analizada.'))}</div></div></div></td></tr>`;
 
-  const categoryCounts = ['arp', 'dhcp', 'snmp', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
+  const categoryCounts = ['arp', 'dhcp', 'snmp', 'capture', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
     .map((k) => [k, counts[k] || 0]).filter(([, v]) => v > 0);
   const hasEnterprise = report.enterprise_mode !== false;
 
@@ -530,6 +559,7 @@ async function renderDiagnostics() {
       </table></div>
     </div>` : ''}
     ${snmpDeepSection(snmp)}
+    ${passiveSection(passive)}
     <div class="card pad">
       <div class="spread mb"><h3 style="margin:0;font-size:13.5px">${esc(tr('Limitaciones del análisis'))}</h3><span class="badge info">${esc(tr('Heurístico'))}</span></div>
       <ul class="diag-limits">${(report.limitations || []).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>

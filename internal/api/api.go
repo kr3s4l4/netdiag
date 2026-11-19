@@ -302,6 +302,7 @@ func (s *Server) register() {
 	m.HandleFunc("GET /api/v1/diagnostics/arp", s.handleARPDiagnostics)
 	m.HandleFunc("GET /api/v1/diagnostics/dhcp", s.handleDHCPDiagnostics)
 	m.HandleFunc("GET /api/v1/diagnostics/snmp", s.handleSNMPDiagnostics)
+	m.HandleFunc("GET /api/v1/diagnostics/passive", s.handlePassiveDiagnostics)
 
 	// ---- system ----
 	m.HandleFunc("GET /api/v1/system/info", s.handleSystemInfo)

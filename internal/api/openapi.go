@@ -137,6 +137,7 @@ var apiRoutes = []apiRoute{
 	{"GET", "/api/v1/diagnostics/arp", "Anomalías ARP y histórico IP→MAC", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 	{"GET", "/api/v1/diagnostics/dhcp", "Servidores DHCP y anomalías del sondeo UDP", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 	{"GET", "/api/v1/diagnostics/snmp", "Anomalías SNMP profundas y tablas IP-MIB/Q-BRIDGE", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
+	{"GET", "/api/v1/diagnostics/passive", "Hallazgos de captura pasiva y metadatos sin payload", "Diagnósticos", false, false, "", []string{"site_id", "from", "to"}, false, false},
 
 	{"GET", "/api/v1/system/info", "Información del sistema, capacidades y marca demo", "Sistema", false, false, "", nil, false, false},
 	{"GET", "/api/v1/system/license", "Estado de la licencia offline y avisos", "Sistema", false, false, "", nil, false, false},

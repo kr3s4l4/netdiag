@@ -185,17 +185,17 @@ Inventario de solo lectura del repo histórico. No se borró código: el activo 
 
 | Capacidad original | Estado actual |
 | --- | --- |
-| Captura pasiva y `AnomalyDetector` (ICMP redirect, GARP, IP→MAC, MAC→muchas IPs, TTL anómalo) | Parcial (F43: IP→MAC y MAC→muchas IPs desde escaneos; sin GARP, ICMP redirect ni TTL) |
-| Detección de MITM por cambio de MAC del gateway y duplicados IP/MAC | Sí (F43: histórico entre escaneos; sin captura ARP en vivo) |
-| DHCP rogue (OFFERs, sonda DISCOVER, regla `!IsGateway && >1 servidor`) | Parcial (F44: sonda UDP/68 y detectores; sin captura de OFFERs de terceros ni respuesta real en esta red) |
-| Escaneos entrantes, DNS tunneling y protocolos en claro | No |
-| Contexto DHCP y reducción de falsos positivos | Parcial (F44: lista de autorizados y correlación con ARP) |
-| Reglas de alerta `anomaly` y `dhcp_rogue` | Sí (F45: dedicadas con precedencia; F44 ya emite hallazgos `dhcp_*`) |
-| SNMP profundo: sweep de communities, IP-MIB, Q-BRIDGE, correlación ARP↔FDB↔LLDP | Parcial |
+| Captura pasiva y `AnomalyDetector` (ICMP redirect, GARP, IP→MAC, MAC→muchas IPs, TTL anómalo) | Parcial (F43 desde escaneos; F47 añade GARP, ICMP redirect, DHCP, SYN y DNS con `-tags pcap`; sin TTL) |
+| Detección de MITM por cambio de MAC del gateway y duplicados IP/MAC | Sí (F43: histórico entre escaneos; F47 añade GARP y ARP gratuito capturado cuando hay pcap) |
+| DHCP rogue (OFFERs, sonda DISCOVER, regla `!IsGateway && >1 servidor`) | Parcial (F44 sonda UDP/68 + F47 captura de OFFER/ACK; sin respuesta real en esta red) |
+| Escaneos entrantes, DNS tunneling y protocolos en claro | Parcial (F47: SYN y dominios DNS de alta entropía; metadata-only, sin payload) |
+| Contexto DHCP y reducción de falsos positivos | Sí (F44 autorizados y ARP; F47 reutiliza la lista y el gateway del histórico) |
+| Reglas de alerta `anomaly` y `dhcp_rogue` | Sí (F45 dedicadas con precedencia; F44/F46/F47 emiten sus propias familias) |
+| SNMP profundo: sweep de communities, IP-MIB, Q-BRIDGE, correlación ARP↔FDB↔LLDP | Parcial (F46 verificado con filas sintéticas; sin switch real) |
 | Escaneo de puertos y banners | Sí (parcial: no distingue `closed`/`filtered`) |
 | WiFi y VPN | Sí (en el original solo eran roadmap) |
 
-Nota: el «DNS spoofing» histórico era un contador de consultas UDP/53, no validación de respuestas. Prioridad: ~~anomalías ARP/MITM~~ (F43) → ~~alertas de seguridad dedicadas~~ (F45) → ~~DHCP rogue~~ (F44) → SNMP profundo → captura pasiva.
+Nota: el «DNS spoofing» histórico era un contador de consultas UDP/53, no validación de respuestas. Prioridad: ~~anomalías ARP/MITM~~ (F43) → ~~alertas de seguridad dedicadas~~ (F45) → ~~DHCP rogue~~ (F44) → ~~SNMP profundo~~ (F46) → ~~captura pasiva~~ (F47).
 
 ### F43 — Histórico IP→MAC y detección de MITM (18/11/2026)
 
@@ -248,6 +248,18 @@ Verificación: `gofmt`, `go vet`, `go test ./...` y `go build ./...`. Pruebas un
 Verificación: `gofmt`, `go vet`, `go test ./...` y `go build ./...`. Pruebas unitarias de parseo de OID, enmascaramiento, detector (ARP del switch, FDB, LLDP), store (guardado/lectura/purga), config y endpoint. Sin dispositivo SNMP real en esta red: la validación funcional se hace con filas sintéticas inyectadas en la base de prueba; el comportamiento frente a un switch real queda pendiente.
 
 **Smoke con binario real (`127.0.0.1:18780`).** Migración v1.5.9 aplicada (`user_version=15`, cuatro tablas `snmp_*`). Tras inyectar dos lotes sintéticos en sede 1, `GET /api/v1/diagnostics/snmp?site_id=1` devolvió 2 direcciones IP, 2 filas ARP, 2 VLAN, 3 FDB, comunidad `pu***ic` y cuatro hallazgos: `snmp_gateway_arp_conflict` (crítico, 90), `snmp_fdb_mac_moved` (88), `snmp_fdb_vlan_conflict` (85) y `snmp_fdb_port_conflict` (82). Con la regla `snmp_anomaly` (id 9) creada, un escaneo real generó cuatro alertas críticas con `site_id=1`; un segundo escaneo no añadió duplicados. Chromium headless confirmó en el DOM «SNMP profundo», «Comunidades usadas», «Direcciones IP (IP-MIB)», «ARP del switch (IP-MIB)», «VLAN (Q-BRIDGE)», «FDB (Q-BRIDGE / BRIDGE)» y la tarjeta de host con «Comunidad» y `pu***ic`. La credencial en claro no aparece ni en SQLite ni en las respuestas de la API.
+
+### F47 — Captura pasiva opcional y metadata-only (19/11/2026)
+
+- `internal/capture` con build-tags `pcap`/`!pcap`: `Available()`, `Capture()` y un `DefaultFilter` estrecho. En builds portables `Capture` devuelve `ErrUnavailable` y el escaneo continúa sin abrir raw sockets. `netdiag doctor` muestra «Captura pasiva (pcap)» con el estado del binario.
+- Opt-in con `diagnostics.passive_capture: false` por defecto. Interfaz, ventana (10–300 s), límite de paquetes (100–100000), modo promiscuo y retención (7 días) configurables por YAML o `NETDIAG_PASSIVE_*`. El hook tras `runScan` solo actúa si hay binario `pcap`, interfaz y opt-in.
+- Detectores puros sobre `gopacket`: GARP repetido, ICMP redirect, DHCP OFFER/ACK no autorizado (confían `authorized_dhcp_servers` y el gateway del histórico ARP), SYN entrantes a 10 o más puertos y DNS de alta entropía o volumen. Cinco tipos `passive_*` con `category: "capture"` para la regla `passive_anomaly`. Ningún hallazgo afirma un ataque sin validación humana.
+- Migración SQLite v1.5.10: `passive_observations` con índice por sede/tipo y por fecha. Solo se guardan protocolo, IP/MAC, interfaz, detalle acotado a 253 caracteres y marca de tiempo: ni payload, ni credenciales, ni respuestas DNS.
+- API `GET /api/v1/diagnostics/passive` con `available`, `enabled`, `observations`, `anomalies` y `limitations`; OpenAPI, sección «Captura pasiva» en `#/diagnostics`, etiquetas ES/EN y tarjeta de estado en la vista de diagnósticos.
+
+Verificación: `gofmt`, `go vet`, `go test ./...`, `go build ./...`, `go build -tags pcap ./...` y `go test -tags pcap ./...`. Pruebas unitarias de los cinco parsers, normalización acotada de la configuración, detector (cinco tipos, servidor DHCP autorizado y gateway confiable), store (guardado por sede, purga y límite de detalle) y endpoint. Sin `CAP_NET_RAW` en este entorno (`CapEff: 0000000000000000`, `ip4:icmp` → `operation not permitted`), la captura real queda pendiente de un laboratorio con privilegios; aquí solo se verifica compilación, degradación limpia y el recorrido completo con observaciones sintéticas.
+
+**Smoke con binario real (`127.0.0.1:18780`).** Migración v1.5.10 aplicada (`user_version=16`, tabla `passive_observations`). Con `diagnostics.passive_capture: true` en un binario portable, `GET /api/v1/diagnostics/passive?site_id=1` devolvió `available:false`, `enabled:true`, 0 observaciones, 0 hallazgos y 8 limitaciones. Tras inyectar 35 observaciones sintéticas en sede 1, el endpoint devolvió 35 observaciones y 6 hallazgos `capture`: los cinco tipos `passive_*` (`passive_dhcp_server` 88, `passive_icmp_redirect` 85, `passive_dns_tunnel` 82 y 80, `passive_inbound_scan` 80 y `passive_gratuitous_arp` 75). El DHCP OFFER del gateway no generó aviso. Con la regla `passive_anomaly` (id 10) creada, un escaneo real generó seis alertas críticas con `site_id=1`; un segundo escaneo no añadió duplicados. Chromium headless confirmó en el DOM «Captura pasiva», «No compilada (usa -tags pcap)», «Solo metadatos», la MAC `de:ad:be:ef:00:51`, `SYN:20` y los cinco títulos de hallazgo. No se persistió payload ni credencial alguna.
 
 ### Señales públicas reales a 18/11/2026
 

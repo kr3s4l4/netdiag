@@ -553,6 +553,26 @@ var migrations = [][]string{
 		`CREATE INDEX idx_snmp_fdb_mac ON snmp_fdb_rows(site_id, mac, observed_at DESC)`,
 		`CREATE INDEX idx_snmp_fdb_time ON snmp_fdb_rows(site_id, observed_at DESC)`,
 	},
+	{
+		// v1.5.10: F47 passive capture evidence. Only protocol metadata is
+		// stored; packet payloads never reach the database.
+		`CREATE TABLE passive_observations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			site_id INTEGER NOT NULL DEFAULT 1,
+			scan_id INTEGER NOT NULL DEFAULT 0,
+			kind TEXT NOT NULL,
+			interface TEXT NOT NULL DEFAULT '',
+			src_ip TEXT NOT NULL DEFAULT '',
+			dst_ip TEXT NOT NULL DEFAULT '',
+			src_mac TEXT NOT NULL DEFAULT '',
+			protocol TEXT NOT NULL DEFAULT '',
+			detail TEXT NOT NULL DEFAULT '',
+			packets INTEGER NOT NULL DEFAULT 1,
+			observed_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX idx_passive_kind ON passive_observations(site_id, kind, observed_at DESC)`,
+		`CREATE INDEX idx_passive_time ON passive_observations(site_id, observed_at DESC)`,
+	},
 }
 
 func (s *Store) migrate() error {
