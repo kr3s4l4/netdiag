@@ -585,3 +585,7 @@ Nada de esto cuenta para F42: sigue en 0/3, 0/2 y 0/1. No hay telemetría, enví
 ### Cierre del laboratorio (19/11/2026)
 
 El propietario pidió cerrar todo. Se detuvo la instancia visual de `127.0.0.1:18780` buscando el PID con `ss -ltnp` y enviando `kill`; nunca con `pkill -f`. El propietario ejecutó con `sudo` la eliminación de `lab-scapy`, `lab-snmp`, `lab-dhcp` y `lab-netdiag`, además de la red `netdiag-lab`, por nombre. `ss` confirma que no queda escucha en `18080`, `18081` ni `18780`. Los informes, el ZIP de copia y la evidencia firmada permanecen en `/tmp/opencode/lab-reports` y `/tmp/opencode/usage-keys`; la semilla de firma sigue con permisos `0600`. El repositorio queda limpio, sin tag ni release, y `v1.5.2` intacta.
+
+### Recordatorio F42 preparado (19/11/2026)
+
+A petición del propietario se amplió `docs/plan-seguimiento-f42.md` con dos variantes de recordatorio a D+7: una para quien ya respondió, por el mismo canal, y otra para el Discussion si nadie ha respondido. Se añadió una checklist previa a la publicación. Todo sigue marcado como **NO PUBLICADO**: requiere OK explícito y publicación desde la cuenta del propietario. F42 permanece en 0/3, 0/2 y 0/1.

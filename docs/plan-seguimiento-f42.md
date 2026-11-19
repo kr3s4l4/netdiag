@@ -81,6 +81,36 @@ Opcional, solo si alguien escribe en inglés:
 If you prefer English: where did you deploy it, what did you try first, and what was missing? No IPs or hostnames needed. Thanks.
 ```
 
+### Recordatorio a D+7
+
+**NO PUBLICADO.** Dos variantes. La fecha D+7 se calcula desde la recepción de cada manifiesto, no desde la publicación del plan.
+
+Para quien ya respondió, por el mismo canal:
+
+```text
+Hola, hace siete días que me contaste que usabas NetDiag. ¿Sigue instalado? Si es así, ¿qué has probado desde entonces y qué te falta todavía? No hace falta dar IPs ni nombres de equipos. Gracias.
+```
+
+Para el Discussion, solo si nadie ha respondido después de siete días:
+
+```text
+Recordatorio breve: sigo esperando casos reales de NetDiag para decidir el orden de las mejoras. Tres preguntas: ¿dónde lo desplegaste, qué probaste primero y qué te faltó? Sin IPs ni nombres de equipos.
+
+El manifiesto voluntario sigue aquí:
+https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html
+
+Es estático y no activa cobro. Gracias.
+```
+
+### Antes de publicar
+
+- [ ] Revisar que la URL siga respondiendo con `curl -I`.
+- [ ] Sin precios, bandas activas, cobro ni promesa de SLA.
+- [ ] Sin telemetría ni envío automático.
+- [ ] Publicar desde la cuenta del propietario en Discussion #1.
+- [ ] Anotar en `docs/validacion.md` la hora UTC y el ID del comentario.
+- [ ] No contar el recordatorio como evidencia: solo cuenta la respuesta de una persona real.
+
 ## Puerta de gasto
 
 Sin los tres umbrales cumplidos: no seguro caro, no espejo privado, no SLA, no demo completa y no telemetría «para medir mejor». Revisar cada dos semanas.
