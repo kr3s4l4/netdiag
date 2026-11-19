@@ -10,7 +10,7 @@ DESTDIR   ?=
 
 # F37: publicación reproducible. Estas variables se pasan desde el entorno;
 # la clave de firma NUNCA se guarda en el repositorio.
-RELEASE_VERSION ?= $(VERSION)
+RELEASE_VERSION ?=
 SIGNING_JSON    ?=
 PUBLIC_KEY      ?=
 NOTES_FILE      ?=
@@ -88,6 +88,7 @@ release-keygen:
 release-secure:
 	@test -n "$(SIGNING_JSON)" || { echo "Define SIGNING_JSON=/ruta/signing.json" >&2; exit 1; }
 	@test -n "$(NOTES_FILE)" || { echo "Define NOTES_FILE=/ruta/RELEASE_NOTES.md" >&2; exit 1; }
+	@test -n "$(RELEASE_VERSION)" || { echo "Define RELEASE_VERSION=X.Y.Z" >&2; exit 1; }
 	scripts/release.sh --version "$(RELEASE_VERSION)" \
 		--signing-json "$(SIGNING_JSON)" \
 		$(if $(PUBLIC_KEY),--public-key "$(PUBLIC_KEY)",) \
