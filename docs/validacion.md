@@ -513,3 +513,11 @@ Comprobaciones:
 - Dos ejecuciones con `--out` distinto producen árboles idénticos (`diff -r` sin salida).
 
 Sin envíos reales. F41 sigue bloqueado por credenciales SRP y release correctiva; este borrador no crea obligaciones legales ni cierra el ensayo humano de 7 días. Sin tag ni release.
+
+### Lote 4: F64 — expediente de decisión comercial (19/11/2026)
+
+Nuevo `docs/decision-comercial.md`, borrador para firma. Recoge la métrica ya decidida (`s<siteID>:<identity>` en 30 días sin `guest`/`excluded`), las bandas propuestas sin aprobar, la regla que prohíbe cobrar por informe, alerta, escaneo, usuario, host detectado, sonda o sede, y el criterio de piloto de 30 días. F55, F65 y F66 quedan como campos vacíos con fecha y firmante pendientes.
+
+El documento registra F42 en 0/3, 0/2 y 0/1, declara que no hay cobro activo ni release comercial, y deja constancia de que AGPL, funcionamiento offline y ausencia de telemetría no cambian por una firma. No modifica `docs/comercializacion.md` ni publica importes. Sin tag ni release.
+
+Con F64 queda cerrado el Lote 4: F61, F62, F63 y F64 están en `master`. F42, F41 real y las decisiones escritas siguen bloqueadas por motivos ajenos al código.
