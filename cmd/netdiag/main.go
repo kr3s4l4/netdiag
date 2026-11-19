@@ -53,7 +53,7 @@ import (
 
 // Injected with -ldflags at build time.
 var (
-	version   = "1.5.0"
+	version   = "1.5.2-dev"
 	commit    = "dev"
 	buildDate = ""
 )
