@@ -521,3 +521,9 @@ Nuevo `docs/decision-comercial.md`, borrador para firma. Recoge la métrica ya d
 El documento registra F42 en 0/3, 0/2 y 0/1, declara que no hay cobro activo ni release comercial, y deja constancia de que AGPL, funcionamiento offline y ausencia de telemetría no cambian por una firma. No modifica `docs/comercializacion.md` ni publica importes. Sin tag ni release.
 
 Con F64 queda cerrado el Lote 4: F61, F62, F63 y F64 están en `master`. F42, F41 real y las decisiones escritas siguen bloqueadas por motivos ajenos al código.
+
+### Captura de disposición a pagar (19/11/2026)
+
+Nuevas plantillas `docs/plantillas/formulario-disposicion-pago.html` y `.md`. La página es estática: genera `netdiag.intent/v1` en el navegador y abre un correo con el texto; no hay `fetch`, cookies, analítica ni terceros. Recoge correo, despliegue, permanencia a 7 días, interés, banda estimada opcional y consentimiento explícito. No recoge IPs, MACs ni datos de red.
+
+El correo de contacto está publicado con autorización expresa de su propietario, que lo usa públicamente en su CV. La plantilla **no está desplegada**: publicarla en GitHub Pages requiere OK explícito. Tampoco cuenta como evidencia hasta que una persona real envíe el manifiesto y se registre. F42 sigue en 0/3, 0/2 y 0/1. Sin tag ni release.

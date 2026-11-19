@@ -20,6 +20,8 @@ Plantillas listas para copiar y pegar. Sustituye los campos entre corchetes `[..
 | [registro-responsabilidad.md](registro-responsabilidad.md) | Cadena de custodia y decisión de reportar | Desde el minuto 0 |
 | [REVOCATION.md](REVOCATION.md) | Revocación firmada de un artefacto | Compromiso de clave o versión insegura |
 | [encuesta-5-preguntas.md](encuesta-5-preguntas.md) | Encuesta voluntaria sin telemetría | F42 |
+| [formulario-disposicion-pago.html](formulario-disposicion-pago.html) | Manifiesto estático de interés, sin backend ni envío automático | F42 |
+| [formulario-disposicion-pago.md](formulario-disposicion-pago.md) | Datos recogidos, consentimiento y cómputo para F42 | F42 |
 | [correo-piloto.md](correo-piloto.md) | Invitación al piloto de 30 días | F42 |
 | [correo-entrega.md](correo-entrega.md) | Entrega de binarios y licencia firmada | Venta |
 | [license-unsigned-ejemplo.json](license-unsigned-ejemplo.json) | Datos ficticios para generar una licencia | Venta |
