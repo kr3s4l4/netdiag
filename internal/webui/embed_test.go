@@ -76,7 +76,7 @@ func TestHandlerVersionsEmbeddedAssets(t *testing.T) {
 		t.Fatalf("app.js no aparece versionado en el índice: %q", body)
 	}
 	version := match[1]
-	for _, asset := range []string{"styles.css", "i18n.js", "views.js", "app.js", "views-saved.js"} {
+	for _, asset := range []string{"styles.css", "i18n.js", "views.js", "app.js", "views-saved.js", "health.js", "notifications.js", "onboarding.js"} {
 		if !strings.Contains(body, "/"+asset+"?v="+version) {
 			t.Errorf("%s no usa la versión %s", asset, version)
 		}

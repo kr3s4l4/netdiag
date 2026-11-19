@@ -104,7 +104,7 @@ func assetVersion(dist fs.FS) string {
 }
 
 func versionAssets(index []byte, version string) []byte {
-	for _, asset := range []string{"styles.css", "i18n.js", "views.js", "app.js", "views-saved.js"} {
+	for _, asset := range []string{"styles.css", "i18n.js", "views.js", "app.js", "views-saved.js", "health.js", "notifications.js", "onboarding.js"} {
 		for _, attr := range []string{"href", "src"} {
 			old := []byte(attr + `="/` + asset + `"`)
 			newValue := []byte(attr + `="/` + asset + `?v=` + version + `"`)

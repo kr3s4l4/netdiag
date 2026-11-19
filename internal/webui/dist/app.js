@@ -374,6 +374,10 @@ async function submitAuth(form) {
     state.me = res.user;
     state.csrf = res.csrf || '';
     state.auth = Object.assign({}, state.auth, { authenticated: true, user: res.user, csrf: res.csrf, setup_required: false });
+    if (mode === 'setup' && window.NetDiagOnboarding && typeof window.NetDiagOnboarding.startSetupWizard === 'function') {
+      window.NetDiagOnboarding.startSetupWizard();
+      return;
+    }
     enterApp();
   } catch (e) {
     errorBox.textContent = e.message;
@@ -382,7 +386,7 @@ async function submitAuth(form) {
   }
 }
 
-async function enterApp() {
+async function enterApp(opts = {}) {
   $('#boot').classList.add('hidden');
   try { state.siteId = Number(localStorage.getItem('netdiag-site') || 0) || 0; } catch {}
   renderShell();
@@ -394,11 +398,13 @@ async function enterApp() {
   if (!current) location.hash = '#/dashboard';
   else route();
   startClock();
-  setTimeout(() => {
-    try {
-      if (!localStorage.getItem('netdiag-tour-done')) startTour();
-    } catch {}
-  }, 900);
+  if (!opts.skipTour) {
+    setTimeout(() => {
+      try {
+        if (!localStorage.getItem('netdiag-tour-done')) startTour();
+      } catch {}
+    }, 900);
+  }
 }
 
 function logout() {
@@ -659,6 +665,9 @@ function handleEvent(ev) {
       break;
     case 'scan.progress': {
       state.scanActive[data.scan_id] = data;
+      if (window.NetDiagOnboarding && typeof window.NetDiagOnboarding.onProgress === 'function') {
+        window.NetDiagOnboarding.onProgress(data);
+      }
       const bar = $(`[data-scan-progress="${data.scan_id}"]`);
       if (bar) {
         bar.querySelector('i').style.width = `${Math.min(100, data.percent || 0)}%`;
@@ -668,6 +677,9 @@ function handleEvent(ev) {
       break;
     }
     case 'scan.finished':
+      if (window.NetDiagOnboarding && typeof window.NetDiagOnboarding.onFinished === 'function') {
+        window.NetDiagOnboarding.onFinished(data);
+      }
       toast(`${data.cidr || ''}: ${SCAN_LABELS[data.status] || data.status}, ${data.hosts_found || 0} dispositivos`, {
         title: 'Escaneo finalizado', type: data.status === 'error' ? 'err' : 'ok',
       });

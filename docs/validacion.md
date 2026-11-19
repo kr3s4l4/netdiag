@@ -401,3 +401,15 @@ Se validó con Chromium headless sobre CDP y descarga real, contra un binario `1
 - Con `NetDiagI18n.setLang('en')` el botón pasó a «Executive report (1 page)».
 
 F32 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.
+
+### F27: asistente de primer arranque (19/11/2026)
+
+Se validó con Chromium headless sobre CDP, contra un binario construido desde `master` y un servicio fresco en `127.0.0.1:18084` con directorio de datos nuevo. `go test ./...` pasa y los tres ficheros JavaScript implicados se analizaron también en Chromium sin errores de sintaxis.
+
+- `POST /auth/setup` entregó la sesión y la SPA mostró el asistente en lugar de entrar directamente al panel. El auto-tour de 900 ms quedó inhibido.
+- `/networks/suggest` propuso `192.168.0.105/24`. El asistente reutilizó la red sugerida, lanzó el escaneo con `profile=common` y mostró progreso mientras duró.
+- Al terminar el escaneo se creó exactamente un snapshot de auditoría llamado `Línea base inicial`. El panel se abrió con 2 hosts reales en el inventario.
+- Al pulsar «Ver panel sin recorrido», apareció la shell y el centro de notificaciones quedó conectado. No se inició el tour automáticamente; el recorrido queda como acción explícita al final del asistente.
+- No se registraron errores de JavaScript ni promesas rechazadas.
+
+F27 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.

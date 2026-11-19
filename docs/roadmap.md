@@ -17,12 +17,13 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F38 | Documentación y plantillas de confianza empresarial listas y publicadas |
 | F39 | Implementado y verificado: demo sintética aislada, marcada en UI e informes |
 | F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
+| F27 | Implementado y validado con CDP: red sugerida, primer escaneo y línea base automáticos; pendiente de release |
 | F28 | Implementado y verificado con CDP: puntuación 0–100 explicable, desglose 40/20/20/20 y acceso a la evidencia; pendiente de release |
 | F29 | Implementado y verificado con CDP: `Ctrl+K` busca hosts, alertas y redes; pendiente de release |
 | F31 | Implementado y verificado con CDP: «Ver host», «Copiar comando» y «Crear regla» desde cada hallazgo; pendiente de release |
 | F32 | Implementado y verificado con CDP y descarga real: PDF ejecutivo de una página desde un botón; pendiente de release |
 | F30 | Implementado y verificado con CDP: campana, historial por sede y eventos persistentes; pendiente de release |
-| F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
+| F41 | Parte técnica implementada y ensayo documentado; quedan credenciales SRP reales y release correctiva para el cierre legal |
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
 | F43 | Implementado y verificado: histórico IP→MAC, anomalías ARP y regla `anomaly` |
 | F45 | Implementado: reglas de alerta de seguridad dedicadas con precedencia |
@@ -39,6 +40,8 @@ Estaban previstas para 1.5.1, pero esa versión se publicó con el código de `m
 ### F27 — Asistente de primer arranque
 
 **Objetivo:** que un usuario nuevo llegue a ver datos útiles en menos de dos minutos.
+
+**Estado:** implementado y validado con CDP en `master`. Tras el alta del administrador se encadena `/networks/suggest`, creación o reutilización de la red, escaneo con perfil `common` y snapshot de auditoría. El tour se lanza al final sobre datos reales y puede omitirse. Pendiente de publicación en `v1.5.2`.
 
 Al crear la cuenta de administrador:
 
