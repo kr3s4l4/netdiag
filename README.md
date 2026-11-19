@@ -1,6 +1,6 @@
 # NetDiag
 
-> **English:** [README.en.md](README.en.md). La interfaz web también cambia a inglés con un clic en **Ajustes**.
+[🇬🇧 English](README.en.md) · [🇪🇸 Español](README.md) — La interfaz web cambia de idioma en **Ajustes → Idioma**.
 
 **Escáner de red y monitor de inventario self-hosted.** Un único binario Go con interfaz web bilingüe (español/inglés), descubrimiento activo/pasivo, SNMP, topología L2/L3, alertas cifradas, copias de seguridad y generación de informes. Sin dependencias externas en tiempo de ejecución, sin telemetría y sin servicios en la nube.
 

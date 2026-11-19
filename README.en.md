@@ -2,7 +2,7 @@
 
 **Self-hosted network scanner and inventory monitor.** A single Go binary with an embedded web UI, active and passive discovery, SNMP, L2/L3 topology, encrypted alerts, backups and reporting. No runtime dependencies, no telemetry, no cloud accounts.
 
-> Spanish version: [README.md](README.md). The web UI itself switches between Spanish and English with one click in **Settings**.
+[🇬🇧 English](README.en.md) · [🇪🇸 Español](README.md) — The web UI switches language in **Settings → Language**.
 
 ```
 Discover → identify → store → monitor → alert → report
@@ -139,7 +139,12 @@ Community is AGPL-3.0 and free. Pro and Enterprise are commercial, offline-licen
 
 ## Documentation
 
-- [Roadmap](docs/roadmap.md)
+- [Quick start](docs/quickstart.en.md)
+- [Security policy](SECURITY.en.md)
+- [Report a real use case](.github/ISSUE_TEMPLATE/real-use-case.en.md)
+- [Roadmap](docs/roadmap.md) (Spanish; roadmap only, no operational docs)
 - [API reference](docs/api.md)
 - [Validation notes](docs/validacion.md) (Spanish)
 - [Distribution and licensing alternatives](docs/alternativas-publicacion-venta.md) (Spanish)
+
+Most design and validation notes are still in Spanish. The README, quick start and security policy are the maintained English entry points; the web UI is fully bilingual.

@@ -417,6 +417,7 @@ td.mono, th.mono { font-family: var(--mono); font-size: 12px; }
 .notice { display: flex; gap: 10px; padding: 11px 13px; border-radius: 10px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text); font-size: 12.5px; }
 .notice.warn { background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 24%, transparent); }
 .notice.err { background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 24%, transparent); }
+.notice > svg { width: 18px; height: 18px; flex: none; }
 .checkbox-row { display: flex; align-items: center; gap: 8px; }
 .toggle { position: relative; width: 36px; height: 20px; border-radius: 20px; background: var(--panel-3); border: 1px solid var(--border); cursor: pointer; transition: background .15s; flex: none; }
 .toggle::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }

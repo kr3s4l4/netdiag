@@ -276,6 +276,15 @@ Cierre de la parte pendiente de F44, F46 y F47: hasta ahora había degradación 
 
 Conclusión: F44, F46 y F47 pasan de «validado con datos sintéticos» a «validado con servicios y tráfico reales». Quedan pendientes el ensayo humano del runbook CRA (F41) y la evidencia de uso externo (F42).
 
+### Correcciones de UI validadas en DOM real (19/11/2026)
+
+Dos defectos visuales reportados en la SPA embebida quedaron corregidos y comprobados con Chromium headless sobre un binario real y una copia de la base del laboratorio:
+
+- **Trazas.** El aviso «Detección automática activa» usaba un `<svg>` de `icon('network')` sin dimensiones, que el navegador interpretaba como ~300×150 px y desplazaba el formulario fuera de la vista. Se añadió `.notice > svg { width:18px; height:18px; flex:none; }` y se reordenó el DOM para que «Nueva traza» aparezca antes de «Redes vecinas detectadas». Medición en viewport 1280×800: icono 18×18, `#trace-target` en `(263, 259)`, botón «Trazar ruta» en `(765, 363)`, `scrollHeight=800` e `formBeforeNeighbors=true`. El formulario cabe completo sin scroll.
+- **Topología.** Las aristas se dibujaban como `<line>` de centro a centro y atravesaban nodos intermedios. Ahora se recortan en el borde de origen y destino según el radio real de cada nodo (14 para la red, 11 para gateway y 6–10 para hosts), y se arquean con una curva cuadrática cuando un tercer nodo cae sobre la recta. El punto de control usa el doble del desplazamiento porque la curva alcanza la mitad en su punto medio. Medición real: 4 `<path>`, 0 `<line>`, 10 nodos, 0 muestras dentro de un nodo y separación mínima de 1,95 px sobre el borde. Se conservan `local`, `traced`, `gateway`, `subnet`, LLDP/CDP/ARP, el guion de `subnet`, los `<title>` y el orden de capas.
+
+Comprobaciones: `node --check` no disponible en este equipo; `go test ./internal/webui ./internal/topology ./internal/api` y `make build` pasan. La validación visual se hizo con CDP de Chromium sin dependencias nuevas.
+
 ### Señales públicas reales a 19/11/2026
 
 - HN: <https://news.ycombinator.com/item?id=50545732>. Ahora **2 puntos** y **1 comentario real** de `bradknowles`: «This repo appears to be in Spanish. I didn't see any obvious way to switch the language to English. I don't trust online translators...». Es una queja concreta y accionable, no un caso de uso. El comentario inicial `50545733` sigue marcado `[flagged]` y no cuenta.

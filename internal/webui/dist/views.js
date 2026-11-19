@@ -43,6 +43,18 @@ function topoNodeLabel(n) {
   return n.label || n.ip || 'Dispositivo';
 }
 
+function topoNodeRadius(n, deg) {
+  if (n.kind === 'network') return 14;
+  if (n.is_gateway) return 11;
+  return Math.min(10, 6 + Math.sqrt(deg || 0));
+}
+
+function topoEdgeClearance(n, deg) {
+  return n.kind === 'network'
+    ? 14 * Math.SQRT2 + 2
+    : topoNodeRadius(n, deg) + (n.is_self ? 6 : 2);
+}
+
 function resetTopology() {
   state.topoView = { x: 0, y: 0, k: 1 };
   applyTopoTransform();
@@ -128,10 +140,35 @@ function drawTopology() {
     const a = positions.get(e.source);
     const b = positions.get(e.target);
     if (!a || !b) return '';
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return '';
+    const ux = dx / len, uy = dy / len;
+    const ra = topoEdgeClearance(a, degree.get(a.id) || 0);
+    const rb = topoEdgeClearance(b, degree.get(b.id) || 0);
+    const ta = Math.max(0, Math.min(ra, len / 2 - 1));
+    const tb = Math.max(0, Math.min(rb, len / 2 - 1));
+    const x1 = a.x + ux * ta, y1 = a.y + uy * ta;
+    const x2 = b.x - ux * tb, y2 = b.y - uy * tb;
+
+    let bow = 0;
+    for (const o of graph.nodes) {
+      if (o === a || o === b) continue;
+      const t = ((o.x - a.x) * dx + (o.y - a.y) * dy) / (len * len);
+      if (t <= 0.08 || t >= 0.92) continue;
+      const px = a.x + t * dx, py = a.y + t * dy;
+      const need = topoNodeRadius(o, degree.get(o.id) || 0) + 8;
+      if (Math.hypot(o.x - px, o.y - py) < need) bow = Math.max(bow, need + 12);
+    }
+    const start = `M${x1.toFixed(1)} ${y1.toFixed(1)}`;
+    const d = bow > 0
+      ? `${start} Q${((x1 + x2) / 2 - uy * bow * 2).toFixed(1)} ${((y1 + y2) / 2 + ux * bow * 2).toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`
+      : `${start} L${x2.toFixed(1)} ${y2.toFixed(1)}`;
+
     const cls = ['topo-edge', e.kind || 'arp'].join(' ');
     const dash = e.kind === 'subnet' ? ' stroke-dasharray="3 5"' : '';
-    return `<line class="${cls}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"${dash}>
-      <title>${esc((e.kind || '').toUpperCase())}${e.label ? ' · ' + esc(e.label) : ''} · ${e.confidence || 0}%</title></line>`;
+    return `<path class="${cls}" d="${d}" fill="none"${dash}>
+      <title>${esc((e.kind || '').toUpperCase())}${e.label ? ' · ' + esc(e.label) : ''} · ${e.confidence || 0}%</title></path>`;
   }).join('');
 
   const labelEvery = graph.nodes.length > 70 ? 0 : 1;
@@ -139,7 +176,7 @@ function drawTopology() {
     const color = topoNodeColor(n);
     const deg = degree.get(n.id) || 0;
     const isNet = n.kind === 'network';
-    const r = isNet ? 14 : n.is_gateway ? 11 : Math.min(10, 6 + Math.sqrt(deg));
+    const r = topoNodeRadius(n, deg);
     const important = isNet || n.is_self || n.is_gateway || ['router', 'switch', 'firewall'].includes(n.device_type);
     const title = esc(topoNodeLabel(n) + (n.ip ? ' · ' + n.ip : '') + (n.vendor ? ' · ' + n.vendor : ''));
     const label = n.kind === 'network' ? topoNodeLabel(n) : (n.label || n.ip || '');
@@ -350,15 +387,6 @@ async function renderTraces() {
     </div>
 
     <div class="card mb">
-      <div class="card-head"><h3>${esc(tr('Redes vecinas detectadas'))}</h3>
-        <span class="tiny muted">${nets.length} ${esc(tr('redes'))} · ${esc(fmtDate(detected.run_at))}</span></div>
-      <div class="table-wrap"><table class="table">
-        <thead><tr><th>${esc(tr('Red'))}</th><th>${esc(tr('Router'))}</th><th>${esc(tr('Evidencia'))}</th><th>${esc(tr('Confianza'))}</th><th>${esc(tr('Ruta'))}</th><th></th></tr></thead>
-        <tbody>${netRows}</tbody>
-      </table></div>
-    </div>
-
-    <div class="card mb">
       <div class="card-head"><h3>${esc(tr('Nueva traza'))}</h3></div>
       <form data-form="trace" class="form-grid">
         <label class="field grow">
@@ -371,6 +399,15 @@ async function renderTraces() {
         <label class="field check"><input name="resolve" type="checkbox" checked><span>${esc(tr('Resolver nombres'))}</span></label>
         <div class="row end"><button class="btn primary" type="submit">${icon('radar')} ${esc(tr('Trazar ruta'))}</button></div>
       </form>
+    </div>
+
+    <div class="card mb">
+      <div class="card-head"><h3>${esc(tr('Redes vecinas detectadas'))}</h3>
+        <span class="tiny muted">${nets.length} ${esc(tr('redes'))} · ${esc(fmtDate(detected.run_at))}</span></div>
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>${esc(tr('Red'))}</th><th>${esc(tr('Router'))}</th><th>${esc(tr('Evidencia'))}</th><th>${esc(tr('Confianza'))}</th><th>${esc(tr('Ruta'))}</th><th></th></tr></thead>
+        <tbody>${netRows}</tbody>
+      </table></div>
     </div>
 
     ${result ? `
