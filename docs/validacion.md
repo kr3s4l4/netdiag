@@ -571,3 +571,13 @@ Primer escaneo real, con sede 2 `Laboratorio` y red 1 `LabLAN`: 4 hosts, 1 halla
 Esto convierte F44, F46 y F47 en validación con servicios y tráfico reales dentro de un bridge aislado. No sustituye a un DHCP en producción, a un switch SNMP físico ni a SPAN/tap: esas tres limitaciones siguen abiertas. El contador `passive_dns_tunnel` aumenta mientras el generador está en bucle; no se interpreta como incidentes distintos. No hay telemetría, nube ni envíos. F42 no cambia: esto es evidencia técnica, no señal de mercado. Contenedores y servidor pueden detenerse por nombre o PID; nunca con `pkill -f`.
 
 **Revisión visual del propietario (19/11/2026):** el usuario abrió `http://127.0.0.1:18081`, entró con la cuenta creada en el laboratorio y confirmó que todo es correcto: aviso Beta en el login, inventario, diagnósticos DHCP/SNMP/pasiva, alertas críticas, filtro por sedes, informes y ajustes ES/EN. También confirmó que los paneles se pueden modificar. Se registra como declaración del usuario; desde este entorno no se puede verificar lo que muestra su navegador. No cambia el estado de F42.
+
+### Barrido funcional del laboratorio (19/11/2026)
+
+Con la sesión de administrador del laboratorio se generaron cinco informes: inventario PDF de 3 páginas, ejecutivo PDF de 1 página, alertas CSV, inventario JSON e inventario HTML. El PDF ejecutivo no contiene la comunidad SNMP ni el correo de contacto; sí muestra las IPs del inventario, que es el comportamiento previsto. `pdfinfo` confirma la página única.
+
+La copia de seguridad ZIP contiene `manifest.json`, `netdiag.db`, `config.yaml` y `secret.key`. Se crearon los usuarios `lab-operator` y `lab-viewer` con contraseñas aleatorias guardadas solo en local con permisos `0600`. Con la sesión `viewer` se comprobó lectura de `/api/v1/hosts` = 200 y escritura en `/api/v1/sites` = 403. `license show` sobre una instalación sin licencia devuelve estado Community sin bloquear el uso.
+
+Se generó una clave de firma de evidencia F58 de prueba con `netdiag-release keygen` en `/tmp`, distinta de la clave de release. `evidence usage` sobre los datos del laboratorio produjo un `.ndc` de 1107 bytes con `scans: 2`, `sites: 2` y bandas agregadas; `installed_days: 0` porque el primer usuario se creó hoy. `container verify` devolvió `Firma: válida`, `Contenido: correcto`, `Resultado: VÁLIDO`. El payload no contiene IPs, MACs ni nombres. El primer intento falló por permisos del `.ndc` creado con `sudo`; se corrigió con `chmod 0644` en el script local, sin cambios en el repositorio.
+
+Nada de esto cuenta para F42: sigue en 0/3, 0/2 y 0/1. No hay telemetría, envío automático, nube ni cambio de licencia o release.
