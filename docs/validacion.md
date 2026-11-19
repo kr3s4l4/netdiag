@@ -546,6 +546,8 @@ Reddit **no está publicado**. Yo no tengo sesión ni herramienta para publicar:
 
 ### Despliegue del manifiesto de interés (19/11/2026)
 
-Con OK explícito del propietario se activó GitHub Pages con la API: fuente `master:/docs`, `build_type: legacy`, sitio `https://kr3s4l4.github.io/netdiag/`. Se añadió `docs/.nojekyll` para evitar transformaciones. El formulario queda en `https://kr3s4l4.github.io/netdiag/formulario-disposicion-pago.html`. Sigue siendo estático: sin backend, `fetch`, cookies, analítica ni envío automático; el correo de contacto es público y autorizado.
+Con OK explícito del propietario se activó GitHub Pages con la API: fuente `master:/docs`, `build_type: legacy`, sitio `https://kr3s4l4.github.io/netdiag/`. Se añadió `docs/.nojekyll` para evitar transformaciones. El formulario queda en `https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html`. Sigue siendo estático: sin backend, `fetch`, cookies, analítica ni envío automático; el correo de contacto es público y autorizado.
 
 Se añadió el enlace en `README.md`, `README.en.md` y en un comentario del Discussion #1 (`DC_kwDOVy_LgM4BLXyS`, 20:17 UTC). No se publicó `docs/respuesta-hn.md` ni se habló en nombre del usuario en foros. No hay tag ni release; `v1.5.2` sigue intacta. F42 continúa en 0/3, 0/2 y 0/1: el despliegue solo habilita la captura, no cuenta como evidencia.
+
+**Corrección de ruta (20:18 UTC):** el primer enlace apuntaba a la raíz del sitio y devolvió 404. El HTML está en `docs/plantillas/`, así que la URL real es `https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html`. Se corrigió en ambos README, las plantillas, este registro y el comentario del Discussion. `curl` sobre la URL correcta devuelve el HTML de 6.658 bytes con el correo y `netdiag.intent/v1`, sin `fetch` ni `XMLHttpRequest`.

@@ -23,7 +23,7 @@ Plantillas listas para copiar y pegar. Sustituye los campos entre corchetes `[..
 | [formulario-disposicion-pago.html](formulario-disposicion-pago.html) | Manifiesto estático de interés, sin backend ni envío automático | F42 |
 | [formulario-disposicion-pago.md](formulario-disposicion-pago.md) | Datos recogidos, consentimiento y cómputo para F42 | F42 |
 
-**Desplegado:** el manifiesto está publicado en <https://kr3s4l4.github.io/netdiag/formulario-disposicion-pago.html> desde GitHub Pages (`master:/docs`). Sigue siendo una página estática sin backend ni envío automático.
+**Desplegado:** el manifiesto está publicado en <https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html> desde GitHub Pages (`master:/docs`). Sigue siendo una página estática sin backend ni envío automático.
 | [correo-piloto.md](correo-piloto.md) | Invitación al piloto de 30 días | F42 |
 | [correo-entrega.md](correo-entrega.md) | Entrega de binarios y licencia firmada | Venta |
 | [license-unsigned-ejemplo.json](license-unsigned-ejemplo.json) | Datos ficticios para generar una licencia | Venta |

@@ -1,6 +1,6 @@
 # Manifiesto voluntario de interés — F42
 
-**Plantilla desplegada en <https://kr3s4l4.github.io/netdiag/formulario-disposicion-pago.html> (19/11/2026), con autorización explícita.** El fichero
+**Plantilla desplegada en <https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html> (19/11/2026), con autorización explícita.** El fichero
 [formulario-disposicion-pago.html](formulario-disposicion-pago.html) es una
 página estática: no tiene backend, no hace `fetch`, no usa cookies ni carga
 recursos externos. La persona rellena el formulario, genera un JSON
