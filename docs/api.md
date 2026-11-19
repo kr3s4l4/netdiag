@@ -179,9 +179,9 @@ curl -b cookies.txt -H 'X-CSRF-Token: <csrf>' -F 'file=@sede.json' \
 | PUT/DELETE | `/alerts/channels/{id}` | |
 | POST | `/alerts/channels/{id}/test` | Envía una notificación de prueba |
 
-Reglas: `host_down`, `host_new`, `latency_high`, `port_opened`, `port_closed`, `service_changed`, `device_changed`, `subnet_usage`, `scan_failed`, `anomaly`, `dhcp_rogue`.
+Reglas: `host_down`, `host_new`, `latency_high`, `port_opened`, `port_closed`, `service_changed`, `device_changed`, `subnet_usage`, `scan_failed`, más las de seguridad `anomaly`, `arp_spoofing`, `dhcp_rogue`, `snmp_anomaly` y `passive_anomaly`.
 
-La regla `anomaly` dispara alertas para los hallazgos de diagnóstico. Su configuración admite `min_confidence` (75 por defecto) y `category` (vacía = todas; por ejemplo `arp`). El campo `dhcp_rogue` queda reservado para la detección de servidores DHCP no autorizados. El historial IP→MAC y sus anomalías se consultan en `GET /diagnostics/arp` (ver "Diagnósticos empresariales").
+Las reglas de seguridad disparan alertas para los hallazgos de diagnóstico. todas admiten `min_confidence` (75 por defecto) y `category` (vacía = todas). Las reglas dedicadas fijan su categoría (`arp_spoofing`→`arp`, `dhcp_rogue`→`dhcp`, `snmp_anomaly`→`snmp`, `passive_anomaly`→`capture`) y tienen precedencia sobre la genérica `anomaly`, que actúa como comodín para las demás familias. El dedupe es por hallazgo, así que un mismo hallazgo nunca genera dos alertas. El historial IP→MAC y sus anomalías se consultan en `GET /diagnostics/arp` (ver "Diagnósticos empresariales").
 
 Canales: `webhook`, `slack`, `discord`, `telegram`, `pagerduty`, `smtp`, `syslog`. Los campos secretos se devuelven como `********`; enviar ese valor conserva el secreto.
 

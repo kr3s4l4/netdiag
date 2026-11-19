@@ -306,25 +306,60 @@ func (m *Manager) EvaluateScanFailure(scan model.Scan) {
 	}
 }
 
+// securityRuleCategories maps a dedicated security rule to the anomaly
+// category it owns. A dedicated rule takes precedence over the generic
+// "anomaly" rule for that category, so an operator never gets two alerts for
+// the same finding.
+var securityRuleCategories = map[string]string{
+	"arp_spoofing":    "arp",
+	"dhcp_rogue":      "dhcp",
+	"snmp_anomaly":    "snmp",
+	"passive_anomaly": "capture",
+}
+
 // EvaluateAnomalies raises alerts for heuristic findings such as ARP conflicts.
-// It returns the number of rules that fired; dedupe and cooldown are handled by
-// raise, so repeated scans do not flood the operator.
+// It handles both the generic "anomaly" rule and the dedicated security rules.
+// It returns the number of matching rule/finding pairs; dedupe and cooldown are
+// handled by raise, so repeated scans do not flood the operator.
 func (m *Manager) EvaluateAnomalies(findings []model.DiagnosticAnomaly) int {
 	if !m.enabled() || len(findings) == 0 {
 		return 0
 	}
+	rules := m.Rules()
+	dedicated := map[string]bool{}
+	for _, rule := range rules {
+		if !rule.Enabled {
+			continue
+		}
+		if category, ok := securityRuleCategories[rule.Type]; ok {
+			dedicated[category] = true
+		}
+	}
+
 	raised := 0
-	for _, rule := range m.Rules() {
-		if !rule.Enabled || rule.Type != "anomaly" {
+	for _, rule := range rules {
+		if !rule.Enabled {
+			continue
+		}
+		category := stringConfig(rule.Config, "category", "")
+		generic := rule.Type == "anomaly"
+		switch rule.Type {
+		case "anomaly":
+			// Generic fallback: skip families with a dedicated rule.
+		case "arp_spoofing", "dhcp_rogue", "snmp_anomaly", "passive_anomaly":
+			category = securityRuleCategories[rule.Type]
+		default:
 			continue
 		}
 		minConf := int(floatConfig(rule.Config, "min_confidence", 75))
-		category := stringConfig(rule.Config, "category", "")
 		for _, a := range findings {
 			if a.Confidence < minConf {
 				continue
 			}
 			if category != "" && a.Category != category {
+				continue
+			}
+			if generic && dedicated[a.Category] {
 				continue
 			}
 			ip := firstAnomalyIP(a.HostIPs)

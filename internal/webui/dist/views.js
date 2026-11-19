@@ -1224,6 +1224,10 @@ const RULE_TYPE_OPTIONS = [
   ['subnet_usage', 'Uso de subred'],
   ['scan_failed', 'Escaneo fallido'],
   ['anomaly', 'Anomalía de red'],
+  ['arp_spoofing', 'Suplantación ARP'],
+  ['dhcp_rogue', 'Servidor DHCP no autorizado'],
+  ['snmp_anomaly', 'Anomalía SNMP'],
+  ['passive_anomaly', 'Captura pasiva'],
 ];
 
 function ruleConfigFieldsHTML(type, cfg) {
@@ -1246,6 +1250,10 @@ function ruleConfigFieldsHTML(type, cfg) {
     case 'subnet_usage':
       return num('percent', 'Porcentaje de ocupación', cfg.percent !== undefined ? cfg.percent : 90, 'Alerta cuando la subred supera este uso.');
     case 'anomaly':
+    case 'arp_spoofing':
+    case 'dhcp_rogue':
+    case 'snmp_anomaly':
+    case 'passive_anomaly':
       return `<div class="form-grid">
         ${num('min_confidence', 'Confianza mínima', cfg.min_confidence !== undefined ? cfg.min_confidence : 75, 'Solo dispara hallazgos con esta confianza o superior.')}
         <div class="field"><label>Categoría</label>
@@ -1323,7 +1331,7 @@ async function submitRule(form) {
     else delete cfg[key];
   });
   if (type === 'port_opened') cfg.ignore_ephemeral = fd.get('cfg_ignore_ephemeral') === 'on';
-  if (type === 'anomaly') {
+  if (['anomaly', 'arp_spoofing', 'dhcp_rogue', 'snmp_anomaly', 'passive_anomaly'].includes(type)) {
     const category = String(fd.get('cfg_category') || '');
     if (category) cfg.category = category;
     else delete cfg.category;
