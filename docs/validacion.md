@@ -323,10 +323,10 @@ Comprobaciones: `node --check` no disponible en este equipo; `go test ./internal
 ### Señales públicas reales a 19/11/2026
 
 - HN: <https://news.ycombinator.com/item?id=50545732>. Ahora **2 puntos** y **1 comentario real** de `bradknowles`: «This repo appears to be in Spanish. I didn't see any obvious way to switch the language to English. I don't trust online translators...». Es una queja concreta y accionable, no un caso de uso. El comentario inicial `50545733` sigue marcado `[flagged]` y no cuenta.
-- GitHub: Discussion #1 abierto el 18/11, 0 respuestas, 1 reacción 👍 y **sigue sin fijar** (hay que hacerlo a mano: ⋯ → *Pin discussion*). 0 visitas, 0 clones, 0 stars, 0 forks, 0 issues y 0 watchers.
-- Descargas: 2 por binario en la release `v1.5.0`. No sabemos si se ejecutaron.
+- GitHub: 120 visitas (58 únicas) y 28 clones (18 únicos) en la ventana de 14 días de la API, concentrados el 18/11. 0 stars, 0 forks, 0 issues y 0 watchers. Discussion #1 abierto el 18/11: 1 comentario, publicado por el propio autor con la encuesta; **0 respuestas de terceros**. Sigue sin fijar (hay que hacerlo a mano: ⋯ → *Pin discussion*).
+- Descargas: 51 descargas de assets de GitHub Release (`v1.5.0`: 8, `v1.5.1`: 16, `v1.5.2`: 27). De ellas, 5 binarios amd64 y 5 arm64. Se alcanza el umbral orientativo de 50 assets, pero en circa 1 día y sin evidencia de ejecución: es curiosidad, no aceptación.
 - Reddit: la publicación no ha podido localizarse. Falta el enlace exacto y el subreddit; desde esta máquina da HTTP 403.
-- Conclusión: **primera respuesta pública real, todavía sin evidencia de uso**. Se registra como señal de interés y motiva F48. No abre la puerta de gasto F42.
+- Conclusión: **más tráfico, todavía sin evidencia de uso**. El único comentario de la Discussion es nuestro. No abre la puerta de gasto F42: siguen faltando 3 instalaciones con 7 días, 2 casos reales y 1 disposición a pagar.
 
 ## Evidencia escrita y puerta de gasto F42
 
