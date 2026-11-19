@@ -4,7 +4,7 @@
 
 Clave de prueba usada: `RWRORFRFU1QwMcNMfMVU641azSiiWbkjkUmhj74oUbY6CIaMn/qBGLTt`. La clave pública oficial es `RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY` y **no** coincide con estos artefactos.
 
-Commit de origen: `17c5e34`. Época reproducible: `1795090003` (`2026-11-19T12:06:43Z`). Cualquier regeneración desde otro commit cambiará los hashes.
+Commit de origen: `9bc0da3`. Toolchain: Go 1.27.4. Época reproducible: `1795090003` (`2026-11-19T12:06:43Z`). Cualquier regeneración desde otro commit cambiará los hashes.
 
 ## Interfaz y uso
 
@@ -28,22 +28,22 @@ Commit de origen: `17c5e34`. Época reproducible: `1795090003` (`2026-11-19T12:0
 
 ## Verificación local
 
-`scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2` devolvió **VÁLIDO**: firmas, hashes, manifiesto F23, contenedor `.ndc`, checksum del binario, versión mínima `1.5.2` y versión `1.5.2`. Sin conexión y sin ejecutar el binario.
+`scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2` devolvió **VÁLIDO**: firmas, hashes, manifiesto F23, contenedor `.ndc`, checksum del binario, versión mínima `1.5.2` y versión `1.5.2`. Sin conexión y sin ejecutar el binario. `govulncheck` con Go 1.27.4 devolvió `No vulnerabilities found`.
 
 | Artefacto | SHA256 |
 |---|---|
-| `netdiag-linux-amd64` | `1de69bf56ce97866c847d2b45828fbe57f8b173a7bee96f1742ed06b22562c3c` |
-| `netdiag-linux-arm64` | `519777f52a7f7fad5d442264a36cbe1dce31d8c011ab3b47e4b403282aa9703c` |
-| `manifest.json` | `8873bad7279d427c4d7940052036793ac4b9b6f906fe3cbab814b7f3d21b1fe0` |
-| `sbom.cdx.json` | `b253111d0e98911f98de228b089c0b8d655c3a7430bec39cee56750fd1474393` |
-| `provenance.intoto.jsonl` | `b90b5441378c4b98a7a8776bc529c392386ec07b3315e9187d36d06638388b07` |
+| `netdiag-linux-amd64` | `e0e58bce594e413e3df7a8fe5c8eeee823301f860eefb9112e73a8c8e64cc7c2` |
+| `netdiag-linux-arm64` | `57d9aa92fb3ed07d9fc6411f07d6707fa03c91b85b9270219bacdeeb9a46d865` |
+| `manifest.json` | `b9f3bcb59ab338d1e18cd5a4cead3750e3c7c2d17d2d5a04c801931410fa791b` |
+| `sbom.cdx.json` | `765ab2b3a2c626a3a82e601293c121ccc9b2d94e5783d36337995465eee6b66d` |
+| `provenance.intoto.jsonl` | `a149d7a5e1d677c7209339d6d52b05b8ecc5c121774856988b0c9c3707480295` |
 
 El hash de `RELEASE_NOTES.md`, del contenedor `.ndc` y de `SHA256SUMS` se recalcula al regenerar el paquete. La fuente de verdad es `SHA256SUMS`, firmado con la clave que figura en `release.pub` de este directorio.
 
 ## Comando de regeneración con clave oficial
 
 ```bash
-SOURCE_DATE_EPOCH=1795090003 \
+GOTOOLCHAIN=go1.27.4 SOURCE_DATE_EPOCH=1795090003 \
 bash scripts/release.sh --version 1.5.2 \
   --signing-json RUTA_PRIVADA/signing.json \
   --public-key RUTA_PRIVADA/release.pub \
