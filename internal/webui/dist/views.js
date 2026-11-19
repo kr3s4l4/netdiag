@@ -618,18 +618,26 @@ async function renderDiagnostics() {
   setPageTitle('diagnostics');
   const content = document.getElementById('content');
   content.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-  const [report, arp, dhcp, snmp, passive] = await Promise.all([
+  const [report, arp, dhcp, snmp, passive, hostRes] = await Promise.all([
     api('/diagnostics/enterprise'),
     api('/diagnostics/arp').catch(() => ({ observations: [] })),
     api('/diagnostics/dhcp').catch(() => ({ observations: [] })),
     api('/diagnostics/snmp').catch(() => ({ ip_addresses: [], arp: [], vlans: [], fdb: [], communities: {} })),
     api('/diagnostics/passive').catch(() => ({ observations: [], available: false, enabled: false })),
+    api('/hosts?limit=500').catch(() => ({ items: [] })),
   ]);
+  const ipToHost = {};
+  ((hostRes && hostRes.items) || []).forEach((h) => { if (h.ip) ipToHost[h.ip] = h.id; });
+  state.diagnosticsReport = report;
   const anomalies = report.anomalies || [];
   const counts = report.counts || {};
   const windowLabel = `${fmtDate(report.from)} — ${fmtDate(report.to)}`;
 
-  const rows = anomalies.length ? anomalies.map((a) => `
+  const rows = anomalies.length ? anomalies.map((a) => {
+    const diagIp = (a.host_ips || [])[0] || '';
+    const diagHost = (a.host_ids || [])[0] || ipToHost[diagIp] || '';
+    const diagCmd = diagIp ? 'netdiag scan ' + diagIp + '/32' : '';
+    return `
     <tr>
       <td><span class="badge ${esc(a.severity)}">${esc(tr(SEV_LABELS[a.severity] || a.severity))}</span></td>
       <td><div class="name-cell"><b>${esc(tr(DIAG_TYPE_LABELS[a.type] || a.type))}</b><span>${esc(a.detail)}</span></div></td>
@@ -639,8 +647,14 @@ async function renderDiagnostics() {
       <td class="right nowrap"><details class="diag-details" data-finding="${esc(a.id || '')}"><summary>${esc(tr('Evidencia'))}</summary>
         <div class="diag-evidence">${(a.evidence || []).map((e) => `<div>· ${esc(e)}</div>`).join('')}
         ${a.recommendation ? `<div class="mt"><b>${esc(tr('Recomendación'))}:</b> ${esc(a.recommendation)}</div>` : ''}</div>
-      </details></td>
-    </tr>`).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
+      </details>
+      <div class="diag-actions">
+        ${diagHost ? `<a class="tiny" href="#/hosts/${encodeURIComponent(diagHost)}">${esc(tr('Ver host'))}</a>` : ''}
+        ${diagCmd ? `<button class="btn sm ghost" data-action="copy-text" data-text="${esc(diagCmd)}">${icon('copy')} ${esc(tr('Copiar comando'))}</button>` : ''}
+        <button class="btn sm ghost" data-action="diag-create-rule" data-id="${esc(a.id || '')}">${icon('plus')} ${esc(tr('Crear regla'))}</button>
+      </div></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6"><div class="empty">${icon('check')}<div><b>${esc(tr('Sin anomalías detectadas'))}</b>
       <div class="tiny">${esc(tr('Las heurísticas no encontraron señales suficientes en la ventana analizada.'))}</div></div></div></td></tr>`;
 
   const categoryCounts = ['arp', 'dhcp', 'snmp', 'capture', 'stp', 'vlan', 'duplex', 'performance', 'wireless', 'sla']
@@ -1502,18 +1516,19 @@ function ruleConfigFieldsHTML(type, cfg) {
   }
 }
 
-function openRuleModal(id) {
+function openRuleModal(id, preset) {
   const rule = id ? state.rules.find((r) => r.id === id) : null;
+  const base = rule || preset || {};
   const channels = state.channels || [];
   const selected = new Set(rule ? (rule.channel_ids || []) : []);
-  const type = rule ? rule.type : 'host_down';
-  state.ruleEditingConfig = rule ? Object.assign({}, rule.config || {}) : {};
+  const type = base.type || 'host_down';
+  state.ruleEditingConfig = Object.assign({}, base.config || {});
   const body = `
     <form data-form="rule" data-id="${rule ? rule.id : ''}">
       <input type="hidden" name="builtin" value="${rule && rule.builtin ? '1' : '0'}">
       <div class="form-grid">
         <div class="field full"><label>Nombre</label>
-          <input class="input" name="name" required maxlength="80" value="${esc(rule ? rule.name : '')}" placeholder="Ej.: Latencia alta en oficina"></div>
+          <input class="input" name="name" required maxlength="80" value="${esc(base.name || '')}" placeholder="Ej.: Latencia alta en oficina"></div>
         <div class="field"><label>Tipo de regla</label>
           <select class="select" name="type" id="rule-type">
             ${RULE_TYPE_OPTIONS.map(([v, l]) => `<option value="${v}" ${type === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -1521,16 +1536,16 @@ function openRuleModal(id) {
         <div class="field"><label>Severidad</label>
           <select class="select" name="severity">
             ${[['info', 'Info'], ['warning', 'Aviso'], ['critical', 'Crítica']].map(([v, l]) =>
-              `<option value="${v}" ${rule && rule.severity === v ? 'selected' : ''}>${l}</option>`).join('')}
+              `<option value="${v}" ${base.severity === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select></div>
         <div class="field"><label>Cooldown (segundos)</label>
-          <input class="input" name="cooldown_sec" type="number" min="0" max="604800" value="${rule ? rule.cooldown_sec : 900}">
+          <input class="input" name="cooldown_sec" type="number" min="0" max="604800" value="${base.cooldown_sec === undefined ? 900 : base.cooldown_sec}">
           <span class="help">Tiempo mínimo entre alertas idénticas.</span></div>
         <div class="field"><label>Estado</label>
           <label class="check"><input type="checkbox" name="enabled" ${!rule || rule.enabled ? 'checked' : ''}> Regla activa</label></div>
       </div>
       <div class="divider"></div>
-      <div id="rule-config">${ruleConfigFieldsHTML(type, rule ? rule.config : {})}</div>
+      <div id="rule-config">${ruleConfigFieldsHTML(type, base.config || {})}</div>
       <div class="divider"></div>
       <div class="field"><label>Canales de notificación</label>
         ${channels.length ? `<div class="row wrap">${channels.map((c) => `
@@ -1551,6 +1566,41 @@ function openRuleModal(id) {
       if (box) box.innerHTML = ruleConfigFieldsHTML(sel.value, {});
     });
   }
+}
+
+// F31: abre el modal de reglas ya rellenado desde un hallazgo, sin salir de
+// diagnósticos. Solo usa tipos monitorizables y mapea severidad y confianza.
+const DIAG_RULE_CATEGORIES = ['arp', 'stp', 'vlan', 'wireless', 'performance', 'sla'];
+
+function diagRulePreset(a) {
+  const category = String(a.category || '');
+  let type = 'anomaly';
+  if (category === 'arp' || /arp/i.test(a.type || '')) type = 'arp_spoofing';
+  else if (category === 'dhcp' || /dhcp/i.test(a.type || '')) type = 'dhcp_rogue';
+  else if (category === 'snmp' || /snmp/i.test(a.type || '')) type = 'snmp_anomaly';
+  else if (category === 'capture' || category === 'passive' || /passive/i.test(a.type || '')) type = 'passive_anomaly';
+  const config = { min_confidence: Number(a.confidence) || 60 };
+  if (DIAG_RULE_CATEGORIES.includes(category)) config.category = category;
+  const title = String(a.title || a.detail || a.type || 'hallazgo').slice(0, 50);
+  return {
+    name: ('Desde hallazgo: ' + title).slice(0, 80),
+    type,
+    severity: a.severity === 'critical' || a.severity === 'warning' ? a.severity : 'info',
+    cooldown_sec: 900,
+    config,
+  };
+}
+
+async function openRuleFromFinding(id) {
+  const a = (state.diagnosticsReport && state.diagnosticsReport.anomalies || [])
+    .find((x) => String(x.id) === String(id));
+  if (!a) { toast(tr('No se encontró el hallazgo'), { type: 'err' }); return; }
+  try {
+    if (!state.channels || !state.channels.length) {
+      state.channels = ((await api('/alerts/channels')).items || []);
+    }
+  } catch {}
+  openRuleModal(null, diagRulePreset(a));
 }
 
 async function submitRule(form) {
@@ -1585,6 +1635,9 @@ async function submitRule(form) {
   else await api('/alerts/rules', { method: 'POST', body: payload });
   closeModal();
   toast(id ? 'Regla actualizada' : 'Regla creada', { type: 'ok' });
+  if (location.hash.indexOf('#/alerts') !== 0) {
+    try { history.replaceState(null, '', '#/alerts'); } catch {}
+  }
   await renderAlerts('reglas');
 }
 

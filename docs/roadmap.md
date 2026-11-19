@@ -19,6 +19,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F40 | Implementado y verificado: vistas guardadas por usuario y enlaces compartidos |
 | F28 | Implementado y verificado con CDP: puntuación 0–100 explicable, desglose 40/20/20/20 y acceso a la evidencia; pendiente de release |
 | F29 | Implementado y verificado con CDP: `Ctrl+K` busca hosts, alertas y redes; pendiente de release |
+| F31 | Implementado y verificado con CDP: «Ver host», «Copiar comando» y «Crear regla» desde cada hallazgo; pendiente de release |
 | F30 | Implementado y verificado con CDP: campana, historial por sede y eventos persistentes; pendiente de release |
 | F41 | Parte técnica implementada: `min_version` firmado; queda el ensayo humano del runbook CRA |
 | F42 | Plantillas y plan listos; sin evidencia de uso real todavía |
@@ -97,7 +98,9 @@ La puntuación debe ser explicable: disponibilidad 40 %, latencia 20 %, cambios 
 
 **Esfuerzo:** 3–4 h.
 
-### F31 — Diagnósticos accionables
+### F31 — Diagnósticos accionables — implementado en `master`
+
+**Estado:** cada hallazgo de `/diagnostics` muestra «Ver host» (resuelve el ID por `host_ids` o buscando la IP en el inventario), «Copiar comando» con `netdiag scan <ip>/32` para refrescar la evidencia y «Crear regla de alerta». El botón de regla abre el modal ya rellenado sin salir de la vista: tipo derivado de la categoría (`arp_spoofing`, `dhcp_rogue`, `snmp_anomaly`, `passive_anomaly` o `anomaly`), severidad y confianza del hallazgo. Al guardar, la URL pasa a `#/alerts`. Evidencia y confianza se mantienen. Validado con CDP. Pendiente de publicación en `v1.5.2`.
 
 **Objetivo:** convertir cada hallazgo en una gestión concreta.
 
@@ -339,7 +342,8 @@ El primer comentario público real en HN señaló que el repo parecía estar sol
 | F28 | `/dashboard`, `/history/compare`, `/diagnostics/enterprise` | Alta: implementada en `master`, entrega 1.5.2 |
 | F29 | F40 | Alta: implementada en `master`, entrega 1.5.2 |
 | F30 | Ninguna | Alta: implementada en `master`, entrega 1.5.2 |
-| F31, F32 | F28 para el panel y F21/F22 para datos | Alta, entrega 1.5.2 |
+| F31 | F28 y modal de reglas de alertas | Alta: implementada en `master`, entrega 1.5.2 |
+| F32 | F28 para el panel y F21/F22 para datos | Alta, entrega 1.5.2 |
 | F33, F34 | Ninguna | Cerradas en 1.5.0 |
 | F35 | F33, F34 | Alta: habilita prueba y venta |
 | F36 | F23 | Media: reutiliza minisign y canonicalización |

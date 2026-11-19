@@ -1393,6 +1393,7 @@ document.addEventListener('click', async (e) => {
       case 'alert-resolve': await setAlertStatus(Number(target.dataset.id), 'resolve'); break;
       case 'rule-new': openRuleModal(); break;
       case 'rule-edit': openRuleModal(Number(target.dataset.id)); break;
+      case 'diag-create-rule': await openRuleFromFinding(target.dataset.id); break;
       case 'rule-save': await saveRuleFromModal(Number(target.dataset.id) || 0); break;
       case 'rule-delete': await deleteRule(Number(target.dataset.id)); break;
       case 'rule-toggle': await toggleRule(Number(target.dataset.id), target.dataset.enabled !== 'true'); break;

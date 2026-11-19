@@ -1032,6 +1032,11 @@
     'Ver evidencia': 'View evidence',
     'Ver todas': 'View all',
 
+    // ---- F31 diagnósticos accionables ----
+    'Copiar comando': 'Copy command',
+    'Crear regla': 'Create rule',
+    'No se encontró el hallazgo': 'Finding not found',
+
     // ---- document title ----
     'NetDiag · Inventario y monitoreo de red': 'NetDiag · Network inventory and monitoring',
   };

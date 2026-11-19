@@ -377,3 +377,14 @@ Se validó con Chromium headless sobre CDP, contra un binario `1.5.1` construido
 - No se registraron errores de JavaScript.
 
 F28 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.
+
+### F31: diagnósticos accionables (19/11/2026)
+
+Se validó con Chromium headless sobre CDP, contra un binario `1.5.1` construido desde `master` y un servicio real en `127.0.0.1:18083` con la base del laboratorio Docker y la sede `Laboratorio` activa. `go test ./...` y `make build` pasan.
+
+- El panel de diagnósticos mostró 132 hallazgos con acciones. 130 tenían «Ver host»: los hallazgos del laboratorio no incluían `host_ids`, así que el enlace se resolvió buscando su IP en el inventario (`/hosts?limit=500`). El primero apuntaba a `#/hosts/2`.
+- Los 132 hallazgos ofrecieron «Copiar comando». Al pulsarlo se escribió en el portapapeles `netdiag scan 172.20.50.53/32`, verificado interceptando `navigator.clipboard.writeText`.
+- Al pulsar «Crear regla» en el hallazgo «El servidor DHCP cambió de MAC», el modal se abrió rellenado con nombre `Desde hallazgo: El servidor DHCP cambió de MAC`, tipo `dhcp_rogue`, severidad `critical`, cooldown `900` y confianza mínima `90`, sin salir de `#/diagnostics`.
+- Al guardar, apareció el aviso «Regla creada», el número de reglas pasó de 11 a 13 en dos pruebas y la URL quedó coherente en `#/alerts`. No hubo promesas rechazadas ni errores de JavaScript.
+
+F31 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.
