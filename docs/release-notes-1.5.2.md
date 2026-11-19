@@ -1,6 +1,10 @@
-# NetDiag 1.5.2
+# NetDiag 1.5.2 — NO PUBLICABLE
 
-Release pendiente de publicación. Incluye los commits locales `3d561a7`, `35377e4`, `8f15b49` y `b6accb6`, más F27 y detección de dependencias. Los tags `v1.5.0` y `v1.5.1` no se mueven.
+> **NO PUBLICABLE.** Estos artefactos se han firmado con una clave de prueba (`NDTEST01`), no con la clave oficial `netdiag-release`. Sirven solo para validar el proceso de empaquetado. No subir a GitHub, no publicar en la release, no distribuir. Hay que regenerarlos con la clave oficial antes de cualquier publicación.
+
+Clave de prueba usada: `RWRORFRFU1QwMcNMfMVU641azSiiWbkjkUmhj74oUbY6CIaMn/qBGLTt`. La clave pública oficial es `RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY` y **no** coincide con estos artefactos.
+
+Commit de origen: `17c5e34`. Época reproducible: `1795090003` (`2026-11-19T12:06:43Z`). Cualquier regeneración desde otro commit cambiará los hashes.
 
 ## Interfaz y uso
 
@@ -20,8 +24,33 @@ Release pendiente de publicación. Incluye los commits locales `3d561a7`, `35377
 
 - Sin telemetría, llamadas de licencia online ni DRM.
 - Descubrimiento y escaneo ilimitados.
-- La firma se comprueba con la clave pública `netdiag-release` de `docs/public_keys.md`.
+- Cobranza por banda de hosts gestionados, nunca por informe, alerta, escaneo, usuario o host detectado.
 
-## Verificación
+## Verificación local
 
-Los hashes y el resultado de `scripts/verify-release.sh` se completarán al generar los artefactos de `1.5.2` en local.
+`scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2` devolvió **VÁLIDO**: firmas, hashes, manifiesto F23, contenedor `.ndc`, checksum del binario, versión mínima `1.5.2` y versión `1.5.2`. Sin conexión y sin ejecutar el binario.
+
+| Artefacto | SHA256 |
+|---|---|
+| `netdiag-linux-amd64` | `1de69bf56ce97866c847d2b45828fbe57f8b173a7bee96f1742ed06b22562c3c` |
+| `netdiag-linux-arm64` | `519777f52a7f7fad5d442264a36cbe1dce31d8c011ab3b47e4b403282aa9703c` |
+| `manifest.json` | `8873bad7279d427c4d7940052036793ac4b9b6f906fe3cbab814b7f3d21b1fe0` |
+| `sbom.cdx.json` | `b253111d0e98911f98de228b089c0b8d655c3a7430bec39cee56750fd1474393` |
+| `provenance.intoto.jsonl` | `b90b5441378c4b98a7a8776bc529c392386ec07b3315e9187d36d06638388b07` |
+
+El hash de `RELEASE_NOTES.md`, del contenedor `.ndc` y de `SHA256SUMS` se recalcula al regenerar el paquete. La fuente de verdad es `SHA256SUMS`, firmado con la clave que figura en `release.pub` de este directorio.
+
+## Comando de regeneración con clave oficial
+
+```bash
+SOURCE_DATE_EPOCH=1795090003 \
+bash scripts/release.sh --version 1.5.2 \
+  --signing-json RUTA_PRIVADA/signing.json \
+  --public-key RUTA_PRIVADA/release.pub \
+  --notes-file docs/release-notes-1.5.2.md \
+  --base-url https://github.com/kr3s4l4/netdiag/releases/download/v1.5.2 \
+  --min-version 1.5.2
+bash scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2
+```
+
+La ruta privada debe contener el material desencriptado de `netdiag-release.key`. La contraseña se introduce en local; nunca se pega en el chat ni se guarda en el repo.
