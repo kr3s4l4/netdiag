@@ -1,6 +1,6 @@
 # Manifiesto voluntario de interés — F42
 
-**Plantilla lista. No desplegada todavía.** El fichero
+**Plantilla desplegada en <https://kr3s4l4.github.io/netdiag/formulario-disposicion-pago.html> (19/11/2026), con autorización explícita.** El fichero
 [formulario-disposicion-pago.html](formulario-disposicion-pago.html) es una
 página estática: no tiene backend, no hace `fetch`, no usa cookies ni carga
 recursos externos. La persona rellena el formulario, genera un JSON
@@ -46,7 +46,8 @@ El umbral sigue siendo 3 instalaciones reales con 7 días, 2 casos concretos y
 
 ## Publicación
 
-Publicar en GitHub Pages desde `/docs` es una decisión separada y requiere OK
-explícito. Hasta entonces el fichero es solo una plantilla del repositorio. Si
-se publica, añadir el enlace al README y al Discussion fijado, sin tocar
-`docs/respuesta-hn.md` ni publicar en Reddit sin su autorización específica.
+Publicado con OK explícito del propietario el 19/11/2026. GitHub Pages sirve
+`master:/docs` en <https://kr3s4l4.github.io/netdiag/>; el formulario está en
+`/formulario-disposicion-pago.html`. El enlace se añadió a ambos README y al
+Discussion #1. No se ha tocado `docs/respuesta-hn.md` ni se han publicado textos
+en Reddit sin su autorización específica.

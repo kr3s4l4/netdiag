@@ -48,7 +48,9 @@ La versión 1.5 ya cubre el núcleo: descubrimiento, inventario, topología, dia
 | F39–F40 | Modo demo con datos sintéticos y vistas guardadas | Planificado |
 | F41–F42 | Cumplimiento CRA por dependencias de terceros y validación de mercado sin telemetría | Documentado, en ejecución |
 
-Las decisiones ya cerradas —AGPL para Community, licencia comercial para Pro/Enterprise, cobro por banda de hosts gestionados, sin telemetría y sin guardia 24/7 que no se pueda cumplir—están en el propio roadmap. Si quieres influir en el orden, cuenta tu caso de uso en el Discussion fijado o abre un issue con la plantilla **Caso de uso real**.
+Las decisiones ya cerradas —AGPL para Community, licencia comercial para Pro/Enterprise, cobro por banda de hosts gestionados, sin telemetría y sin guardia 24/7 que no se pueda cumplir—están en el propio roadmap. Si quieres influir en el orden, cuenta tu caso de uso en el Discussion o abre un issue con la plantilla **Caso de uso real**.
+
+**¿Ya usas NetDiag?** Déjate oír con el [manifiesto voluntario de interés](https://kr3s4l4.github.io/netdiag/formulario-disposicion-pago.html): se genera en tu navegador y tú decides si lo envías. No recoge IPs, MACs ni datos de tu red, y no activa cobro ni publica precios.
 
 ## Inicio rápido
 

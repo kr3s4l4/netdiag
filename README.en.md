@@ -163,6 +163,8 @@ The SSRF guard blocks private destinations by default; set `integrations.allow_p
 
 Community is AGPL-3.0 and free. Pro and Enterprise are commercial, offline-licensed editions. Billing is by **managed-host band**, never per report, alert, scan, user or detected host. A managed host is `s<siteID>:<identity>` seen in the last 30 days, excluding `guest`/`excluded` tags. There is no telemetry, online licence check or intrusive DRM.
 
+**Already using NetDiag?** Leave a [voluntary interest note](https://kr3s4l4.github.io/netdiag/formulario-disposicion-pago.html). It is generated in your browser and you decide whether to send it. No IPs, MACs or network data are collected. No billing, prices or automatic submission.
+
 ## Documentation
 
 - [Quick start](docs/quickstart.en.md)
