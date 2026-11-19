@@ -1,10 +1,10 @@
-# NetDiag 1.5.2 — NO PUBLICABLE
+# NetDiag 1.5.2
 
-> **NO PUBLICABLE.** Estos artefactos se han firmado con una clave de prueba (`NDTEST01`), no con la clave oficial `netdiag-release`. Sirven solo para validar el proceso de empaquetado. No subir a GitHub, no publicar en la release, no distribuir. Hay que regenerarlos con la clave oficial antes de cualquier publicación.
+Release pendiente de publicación. Incluye los 8 commits locales posteriores a `v1.5.1`. Los tags `v1.5.0` y `v1.5.1` no se mueven.
 
-Clave de prueba usada: `RWRORFRFU1QwMcNMfMVU641azSiiWbkjkUmhj74oUbY6CIaMn/qBGLTt`. La clave pública oficial es `RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY` y **no** coincide con estos artefactos.
+Firmada con la clave oficial `netdiag-release`: `RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY` (key_id `c98b13d8c8f73259`). Sin telemetría, licencia online ni DRM.
 
-Commit de origen: `9bc0da3`. Toolchain: Go 1.27.4. Época reproducible: `1795090003` (`2026-11-19T12:06:43Z`). Cualquier regeneración desde otro commit cambiará los hashes.
+Commit de build: `4fb0968`. Toolchain: Go 1.27.4. Época reproducible: `1795090003` (`2026-11-19T12:06:43Z`). Cualquier regeneración desde otro commit cambiará los hashes.
 
 ## Interfaz y uso
 
@@ -19,28 +19,29 @@ Commit de origen: `9bc0da3`. Toolchain: Go 1.27.4. Época reproducible: `1795090
 
 - F41: `min_version` firmado en el manifiesto. Runbook ensayado y cerrado como documentación fuera del repo. Sin envíos automáticos a ENISA ni al CSIRT.
 - Dependabot semanal para el módulo Go y script local `scripts/govulncheck.sh`. Sin telemetría ni reporting automático.
+- Toolchain mínima Go 1.27.4: corrige `GO-2026-6859` en `net/http`.
 
 ## Distribución y licencias
 
-- Sin telemetría, llamadas de licencia online ni DRM.
 - Descubrimiento y escaneo ilimitados.
 - Cobranza por banda de hosts gestionados, nunca por informe, alerta, escaneo, usuario o host detectado.
+- La firma se comprueba con la clave pública `netdiag-release` de `docs/public_keys.md`.
 
 ## Verificación local
 
-`scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2` devolvió **VÁLIDO**: firmas, hashes, manifiesto F23, contenedor `.ndc`, checksum del binario, versión mínima `1.5.2` y versión `1.5.2`. Sin conexión y sin ejecutar el binario. `govulncheck` con Go 1.27.4 devolvió `No vulnerabilities found`.
+`scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2` devolvió **VÁLIDO** con la clave oficial: firmas, hashes, manifiesto F23, contenedor `.ndc`, checksum del binario, versión mínima `1.5.2` y versión `1.5.2`. Sin conexión y sin ejecutar el binario. `govulncheck` con Go 1.27.4 devolvió `No vulnerabilities found`.
 
 | Artefacto | SHA256 |
 |---|---|
-| `netdiag-linux-amd64` | `e0e58bce594e413e3df7a8fe5c8eeee823301f860eefb9112e73a8c8e64cc7c2` |
-| `netdiag-linux-arm64` | `57d9aa92fb3ed07d9fc6411f07d6707fa03c91b85b9270219bacdeeb9a46d865` |
-| `manifest.json` | `b9f3bcb59ab338d1e18cd5a4cead3750e3c7c2d17d2d5a04c801931410fa791b` |
+| `netdiag-linux-amd64` | `516ccd5310b3d0b9c73347bbc8ed9846a2e28872130925584399e20ee21d1626` |
+| `netdiag-linux-arm64` | `1e8a25ac24ba06bc0cd28e9edc582ec749f0b649cc9f00a5157544cd0cab1214` |
+| `manifest.json` | `bdb27c7c92ae8aeef962ba053268aa546a80191bc5f1321028c7138d53a7d417` |
 | `sbom.cdx.json` | `765ab2b3a2c626a3a82e601293c121ccc9b2d94e5783d36337995465eee6b66d` |
-| `provenance.intoto.jsonl` | `a149d7a5e1d677c7209339d6d52b05b8ecc5c121774856988b0c9c3707480295` |
+| `provenance.intoto.jsonl` | `3cb5850685d4bc7f968d232ed615b424eb9dbe0a390645686cfeed9c51910511` |
 
-El hash de `RELEASE_NOTES.md`, del contenedor `.ndc` y de `SHA256SUMS` se recalcula al regenerar el paquete. La fuente de verdad es `SHA256SUMS`, firmado con la clave que figura en `release.pub` de este directorio.
+El hash de `RELEASE_NOTES.md`, del contenedor `.ndc` y de `SHA256SUMS` se recalcula al regenerar el paquete. La fuente de verdad es `SHA256SUMS`, firmado con la clave oficial incluida como `release.pub` en este directorio.
 
-## Comando de regeneración con clave oficial
+## Regeneración
 
 ```bash
 GOTOOLCHAIN=go1.27.4 SOURCE_DATE_EPOCH=1795090003 \
@@ -53,4 +54,4 @@ bash scripts/release.sh --version 1.5.2 \
 bash scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2
 ```
 
-La ruta privada debe contener el material desencriptado de `netdiag-release.key`. La contraseña se introduce en local; nunca se pega en el chat ni se guarda en el repo.
+La ruta privada contiene el material desencriptado de `netdiag-release.key`. La contraseña se introduce en local; nunca se pega en el chat ni se guarda en el repo.
