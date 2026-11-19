@@ -123,6 +123,41 @@ If you give it a spin, I'd love to know where you deployed it, what you tried fi
 | Can I scan any network? | `Only networks you own or are authorised to assess. The Beta notice now says so at first run.` |
 | Where is the feedback form? | `There's a pinned discussion in the repo. That's enough for now; I'm reading every reply.` |
 
+## Error «Your repost includes a link that isn't working»
+
+Aparece al usar **Crosspost / Repost** desde un post de tipo **Text** que contiene URLs en el cuerpo. Reddit intenta validar ese enlace como destino del repost y lo rechaza. No significa que el enlace esté roto: ambas URLs del borrador responden correctamente.
+
+Comprobado el 19/11/2026:
+
+- `https://github.com/kr3s4l4/netdiag` → carga el repo público.
+- `https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.2` → carga la release con sus 16 assets.
+
+### Solución recomendada
+
+1. Publica en `r/selfhosted` como **Link**, no como Text.
+2. URL: `https://github.com/kr3s4l4/netdiag`.
+3. Título: el de la versión en castellano.
+4. Pega el cuerpo en castellano como **primer comentario**, sin la línea de la URL de release.
+5. Después usa Crosspost sobre ese post de tipo Link. Ahí Reddit ya tiene una URL válida.
+
+### Cuerpo adaptado para el primer comentario
+
+```text
+Soy el autor, desarrollo en solitario. Esto es una preview de validación, no un producto terminado.
+
+NetDiag corre en una máquina de tu LAN y te dice qué hay conectado: descubrimiento ARP/ICMP, barrido TCP, enriquecimiento DNS, banners, SNMP y LLDP, topología L2/L3, diagnósticos heurísticos (lazos STP, fugas de VLAN, desajustes de dúplex, AP no autorizados) con evidencia y confianza, alertas, informes y multisede. Todo vive en un SQLite local. Un único binario Go, interfaz web embebida (español/inglés), sin cgo, sin agentes, sin nube, sin npm y sin telemetría.
+
+La contrapartida es la visibilidad: solo ve lo que un host puede observar. La documentación lo dice explícitamente. Los diagnósticos son heurísticos y siempre llevan evidencia, confianza y limitaciones.
+
+La release v1.5.2 está firmada con minisign; los binarios Linux amd64 y arm64 están en la página de releases del repo y la clave pública está en docs/public_keys.md.
+
+Si lo pruebas, me encantaría saber dónde lo desplegaste, qué intentaste primero y qué te faltó. Eso decide qué construyo después.
+```
+
+### Alternativa sin Crosspost
+
+Publicar directamente en cada comunidad evita el validador. No cruces el mismo texto el mismo día: espacia publicaciones y cambia el título según el sitio. Si un mod objeta, retira el post sin discutir.
+
 ## Qué NO decir
 
 - No «production-ready» ni «enterprise-grade» sin matiz.
