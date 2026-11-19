@@ -527,3 +527,9 @@ Con F64 queda cerrado el Lote 4: F61, F62, F63 y F64 están en `master`. F42, F4
 Nuevas plantillas `docs/plantillas/formulario-disposicion-pago.html` y `.md`. La página es estática: genera `netdiag.intent/v1` en el navegador y abre un correo con el texto; no hay `fetch`, cookies, analítica ni terceros. Recoge correo, despliegue, permanencia a 7 días, interés, banda estimada opcional y consentimiento explícito. No recoge IPs, MACs ni datos de red.
 
 El correo de contacto está publicado con autorización expresa de su propietario, que lo usa públicamente en su CV. La plantilla **no está desplegada**: publicarla en GitHub Pages requiere OK explícito. Tampoco cuenta como evidencia hasta que una persona real envíe el manifiesto y se registre. F42 sigue en 0/3, 0/2 y 0/1. Sin tag ni release.
+
+### Borrador de Reddit (19/11/2026)
+
+Nuevo `docs/publicacion-reddit.md` con título, cuerpo, primer comentario, respuestas listas y reglas de publicación para `v1.5.2`. Se conserva el texto antiguo de `v1.5.0` en `docs/divulgacion.md` como registro histórico y se añade un puntero al documento actual.
+
+Reddit **no está publicado**. Yo no tengo sesión ni herramienta para publicar: el texto queda listo para copiar y pegar desde la cuenta del usuario. Sigue vigente el OK explícito de F48, tanto para Reddit como para `docs/respuesta-hn.md`. Las reglas de autopromoción de los subreddits no se han podido consultar en este entorno, así que el documento obliga a leer la barra lateral y preguntar a mods antes de publicar. HN fue el día 0 y Reddit corresponde al día 1. Sin tag ni release.

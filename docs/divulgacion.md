@@ -31,6 +31,8 @@ Enlaces:
 
 ### Reddit
 
+**Para v1.5.2 usa [docs/publicacion-reddit.md](publicacion-reddit.md).** El texto de abajo corresponde a la release `v1.5.0` y se conserva como registro histórico. Reddit sigue pendiente y requiere OK explícito.
+
 1. Verifica el correo y lee la barra lateral de `r/selfhosted` (reglas y flairs).
 2. Abre <https://www.reddit.com/r/selfhosted/submit/>.
 3. **Título:** el de la sección r/selfhosted de abajo.
