@@ -413,3 +413,11 @@ Se validó con Chromium headless sobre CDP, contra un binario construido desde `
 - No se registraron errores de JavaScript ni promesas rechazadas.
 
 F27 está en `master` y no forma parte de la release `v1.5.1`; requiere `v1.5.2`.
+
+### Artefactos `1.5.2` y dependencias (19/11/2026)
+
+- `go test ./...` pasa; `gofmt -l` no lista cambios; `git diff --check` limpio.
+- `govulncheck` con Go 1.27.3 detectó `GO-2026-6859` en `net/http` (corregida en 1.27.4). Con `GOTOOLCHAIN=go1.27.4` devolvió `No vulnerabilities found`. La toolchain mínima para publicar es 1.27.4.
+- `scripts/release.sh` generó 14 artefactos en `dist/release/1.5.2` sin variante `pcap`, con `min_version=1.5.2` y base URL de GitHub. `scripts/verify-release.sh --dir dist/release/1.5.2 --version 1.5.2` devolvió `VÁLIDO`: firmas, hashes, manifiesto F23, contenedor `.ndc`, checksum del binario y versión.
+- Dos generaciones con la misma época reproducible produjeron hashes idénticos para binarios, SBOM, procedencia y manifiesto. Solo cambian las notas, el contenedor que las incluye y `SHA256SUMS`.
+- La clave oficial `netdiag-release` está cifrada con contraseña y el material disponible no permite derivar la semilla sin introducirla en local. Por eso los artefactos actuales usan una clave de prueba `NDTEST01` y las notas llevan el aviso **NO PUBLICABLE**. Queda regenerar con la clave oficial antes de cualquier publicación.

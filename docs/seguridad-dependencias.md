@@ -18,6 +18,16 @@ Si la herramienta no está instalada:
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
+El script encuentra `govulncheck` en `PATH` o en `$(go env GOPATH)/bin`. Solo consulta la base de datos de vulnerabilidades; no envía datos del proyecto a ningún servicio.
+
+## Toolchain
+
+Usar **Go 1.27.4 o superior**. Go 1.27.3 arrastra `GO-2026-6859` (`net/http`, corregida en 1.27.4). El 19/11/2026 el escaneo con 1.27.4 devolvió `No vulnerabilities found`.
+
+```bash
+GOTOOLCHAIN=go1.27.4 bash scripts/govulncheck.sh
+```
+
 ## Triaje
 
 1. Confirmar la versión afectada contra el SBOM de la release.

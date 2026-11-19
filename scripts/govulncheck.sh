@@ -6,7 +6,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if ! command -v govulncheck >/dev/null 2>&1; then
+GOVULNCHECK="$(command -v govulncheck || true)"
+if [[ -z "$GOVULNCHECK" ]]; then
+  GOBIN="$(go env GOPATH)/bin/govulncheck"
+  [[ -x "$GOBIN" ]] && GOVULNCHECK="$GOBIN"
+fi
+if [[ -z "$GOVULNCHECK" ]]; then
   echo "govulncheck no está instalado." >&2
   echo "Instálalo en local con:" >&2
   echo "  go install golang.org/x/vuln/cmd/govulncheck@latest" >&2
@@ -14,4 +19,4 @@ if ! command -v govulncheck >/dev/null 2>&1; then
 fi
 
 echo "== govulncheck ./... =="
-govulncheck ./...
+"$GOVULNCHECK" ./...
