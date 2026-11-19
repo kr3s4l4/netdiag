@@ -9,8 +9,59 @@
 - Verifica el correo de la cuenta y revisa la barra lateral y las reglas **actuales** del subreddit. Las reglas de autopromoción cambian y no las he podido consultar en este entorno. Si hay duda, pregunta a los mods por modmail antes de publicar.
 - Si hay flair de proyecto, `Project` o `Self-Hosted`, úsalo. Si no sabes cuál, déjalo vacío antes que elegir uno mal.
 - No pidas upvotes, estrellas ni votos. Pide historias de uso.
+- Reddit no traduce los posts de forma fiable. La versión elegida va en castellano. El resumen en inglés va como primer comentario opcional, no sustituye al texto principal.
 
-## Opción A: enlace (recomendada)
+## Versión en castellano (elegida)
+
+**Título**
+
+```text
+NetDiag v1.5.2 — inventario y diagnósticos de red autocontendidos en un único binario Go (sin agentes ni telemetría)
+```
+
+**URL**
+
+```text
+https://github.com/kr3s4l4/netdiag
+```
+
+**Cuerpo** (si eliges tipo Text; si eliges Link, va como primer comentario)
+
+```text
+Soy el autor, desarrollo en solitario. Esto es una preview de validación, no un producto terminado.
+
+NetDiag corre en una máquina de tu LAN y te dice qué hay conectado: descubrimiento ARP/ICMP, barrido TCP, enriquecimiento DNS, banners, SNMP y LLDP, topología L2/L3, diagnósticos heurísticos (lazos STP, fugas de VLAN, desajustes de dúplex, AP no autorizados) con evidencia y confianza, alertas, informes y multisede. Todo vive en un SQLite local. Un único binario Go, interfaz web embebida (español/inglés), sin cgo, sin agentes, sin nube, sin npm y sin telemetría.
+
+La contrapartida es la visibilidad: solo ve lo que un host puede observar. La documentación lo dice explícitamente. Los diagnósticos son heurísticos y siempre llevan evidencia, confianza y limitaciones.
+
+v1.5.2 es una release firmada: SHA256SUMS está firmado con minisign y la clave pública está en el repo. Los binarios Linux amd64 y arm64 están aquí:
+https://github.com/kr3s4l4/netdiag/releases/tag/v1.5.2
+
+Si lo pruebas, me encantaría saber dónde lo desplegaste, qué intentaste primero y qué te faltó. Eso decide qué construyo después.
+```
+
+**Primer comentario**
+
+```text
+Soy el autor. Busco casos de uso reales, no estrellas.
+
+Si lo pruebas, dime tres cosas:
+1. ¿Dónde lo desplegaste (casa, laboratorio, oficina, planta, datacenter)?
+2. ¿Qué intentaste hacer primero?
+3. ¿Qué te faltó o te confundió?
+
+Hay un Discussion fijado en el repo para eso. Leo todas las respuestas. Gracias por mirarlo.
+```
+
+**Primer comentario opcional en inglés** (para ampliar alcance; añadir tras el castellano)
+
+```text
+English summary: one Go binary, local SQLite, no agents, no cloud, no telemetry. Signed v1.5.2 release. I'm looking for real deployments: where you deployed it, what you tried first, and what was missing.
+```
+
+Las secciones «Opción A», «Opción B» y «Respuestas listas» están en inglés y se conservan como material de referencia. **La versión elegida es la de castellano de arriba.** Si necesitas responder en inglés a un comentario, usa la tabla y dime si quieres adaptarla.
+
+## Opción A: enlace (recomendada, en inglés)
 
 **Título**
 
@@ -37,7 +88,7 @@ If you give it a try, I'd love to know three things:
 There's a pinned discussion in the repo for that. Feedback decides what I build next. Thanks for looking.
 ```
 
-## Opción B: texto
+## Opción B: texto (en inglés)
 
 Si el subreddit no permite enlaces directos o te sale elegir tipo **Text**, pega esto:
 
