@@ -8,7 +8,7 @@
 | 1.4.x | Hasta la siguiente minor, solo correcciones críticas |
 | < 1.4 | No |
 
-**Sin ventana contractual:** NetDiag es software libre. La tabla anterior describe el soporte de seguridad ofrecido. No hay SLA ni soporte formal: los errores se atienden por GitHub Issues.
+**Soporte de seguridad:** NetDiag es software libre. La tabla anterior describe el soporte de seguridad ofrecido. No hay SLA ni soporte formal: los errores se atienden por GitHub Issues.
 
 ## Cómo reportar una vulnerabilidad
 

@@ -56,7 +56,7 @@ type payload struct {
 	SupportLevel    string   `json:"support_level"`
 }
 
-// Limits summarises the contracted band. Zero means "no limit" for hosts and
+// Limits summarises the local limits. Zero means "no limit" for hosts and
 // sites; retention is always expressed in days.
 type Limits struct {
 	MaxManagedHosts int `json:"max_managed_hosts"`

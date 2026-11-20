@@ -10,7 +10,7 @@
 | 1.4.x | Until the next minor, critical fixes only |
 | < 1.4 | No |
 
-**No contractual window:** NetDiag is free software. The table above describes the security support offered. There is no SLA or formal support: issues are handled through GitHub Issues.
+**Security support:** NetDiag is free software. The table above describes the security support offered. There is no SLA or formal support: issues are handled through GitHub Issues.
 
 ## Reporting a vulnerability
 
@@ -72,7 +72,7 @@ Steps:
 6. Publish a public notice, show it in the UI and publish a signed [REVOCATION.md](docs/plantillas/REVOCATION.md) when applicable. In air-gapped environments deliver a signed `.ndc` with the notice.
 7. Send the final report and close both records.
 
-**Dependency monitoring:** every release ships a CycloneDX SBOM (`sbom.cdx.json`) and provenance attestation. Review advisories periodically. A relevant CVE is treated as an internal incident even without known exploitation. The producer is responsible for the finished product; upstream claims follow afterwards if a contract exists. **Never sign a third-party binary without rebuilding or verifying it.** See `docs/publicacion-segura.md`.
+**Dependency monitoring:** every release ships a CycloneDX SBOM (`sbom.cdx.json`) and provenance attestation. Review advisories periodically. A relevant CVE is treated as an internal incident even without known exploitation. The producer is responsible for the finished product; upstream reports follow afterwards where applicable. **Never sign a third-party binary without rebuilding or verifying it.** See `docs/publicacion-segura.md`.
 
 **Scan authorisation:** whoever runs NetDiag declares they are authorised to analyse those networks. Scanning third parties is prohibited.
 
@@ -85,7 +85,7 @@ Since **11 September 2026**, NetDiag as a product with digital elements is subje
 - **14 days after the patch:** final report for actively exploited vulnerabilities.
 - **1 month after the 72 h notification:** final report for serious incidents.
 
-This also applies to versions placed on the market before 11 December 2027. The remaining CRA obligations — technical documentation, conformity assessment, instructions for use, support period and marking where applicable — start on **11 December 2027**.
+This also applies to versions made available before 11 December 2027. The remaining CRA obligations — technical documentation, conformity assessment, instructions for use, support period and marking where applicable — start on **11 December 2027**.
 
 Responsibility lies with the **manufacturer**, i.e. whoever distributes NetDiag under their name or brand. A vulnerability in a third-party dependency does not transfer that responsibility to whoever deploys it: it is handled in our product and reported upstream where applicable.
 
