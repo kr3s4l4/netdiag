@@ -10,7 +10,7 @@
 | 1.4.x | Until the next minor, critical fixes only |
 | < 1.4 | No |
 
-**Contractual window:** the licensed version receives security support during the subscription and for **12 additional months**. This is stated in `SECURITY.md`, the purchase order and the EULA (`docs/plantillas/orden-compra.md`, `docs/plantillas/eula.md`). The table above describes Community support; the contract prevails for paid editions.
+**No contractual window:** NetDiag is free. There are no paid editions, contracts or EULA. The table above describes the security support offered. There is no SLA or formal support: issues are handled through GitHub Issues.
 
 ## Reporting a vulnerability
 
@@ -74,7 +74,7 @@ Steps:
 
 **Dependency monitoring:** every release ships a CycloneDX SBOM (`sbom.cdx.json`) and provenance attestation. Review advisories periodically. A relevant CVE is treated as an internal incident even without known exploitation. The producer is responsible for the finished product; upstream claims follow afterwards if a contract exists. **Never sign a third-party binary without rebuilding or verifying it.** See `docs/publicacion-segura.md`.
 
-**Strengthened EULA:** the customer declares they are authorised to scan those networks. Scanning third parties is prohibited. Liability is limited with mandatory legal exceptions. Template in `docs/plantillas/eula.md`.
+**Scan authorisation:** whoever runs NetDiag declares they are authorised to analyse those networks. Scanning third parties is prohibited. There is no EULA or paid contract.
 
 ## CRA obligations in the EU
 

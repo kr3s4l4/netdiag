@@ -2,7 +2,7 @@
 
 ## Estado vigente (20/11/2026)
 
-NetDiag es **software libre bajo AGPL-3.0** (`LICENSE`) y **gratuito**. No hay ediciones de pago, precios activos ni checkout. La antigua propuesta de ediciones Pro y Enterprise queda como documento histórico, sin vigor: `docs/comercializacion.md` y `docs/decision-comercial.md`.
+NetDiag es **software libre bajo AGPL-3.0** (`LICENSE`) y **gratuito**. No hay ediciones de pago, precios activos ni checkout. La antigua propuesta de ediciones Pro y Enterprise se retiró y sus documentos se eliminaron el 20/11/2026.
 
 La release publicada `v1.5.2` se construyó el 19/11/2026 e incluye texto comercial en sus notas. Esa release no se modifica: sus tags, hashes y claves de firma siguen intactos. Esta aclaración afecta a `master` y a la documentación.
 

@@ -46,7 +46,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F61 | Implementado: versión única en `internal/buildinfo` y smoke test de binario, API y UI |
 | F62 | Implementado: `netdiag evidence usage`, `.ndc` firmado con contadores agregados y sin red |
 | F63 | Implementado: `security runbook --dry-run` genera borradores 24/72 h sin red |
-| F64 | Borrador listo para firma: `docs/decision-comercial.md`, sin publicar precios |
+| F64 | Cerrado sin vigor el 20/11/2026; borrador eliminado |
 | Pruebas | `gofmt`, `go build`, `go test ./...`, `git diff --check`, smoke con binario real y laboratorio Docker `scripts/lab/` para F44/F46/F47 |
 
 ## Mejoras de 1.5.2 y trabajo posterior
@@ -243,7 +243,7 @@ Herramientas: `cmd/netdiag-release`, `scripts/release.sh`, `scripts/verify-relea
 
 ### F38 — Paquete de confianza empresarial — **documentación y plantillas listas**
 
-Paquete en `docs/confianza-empresarial.md`, `docs/comercializacion.md` y `docs/plantillas/`. La demo con datos sintéticos depende de F39.
+Documentación de confianza retirada el 20/11/2026. Quedan las plantillas técnicas y de seguridad en `docs/plantillas/`. La demo con datos sintéticos depende de F39.
 
 - Documentos: whitepaper de seguridad, modelo de amenazas, flujo de datos, DPA/EULA, matriz SLA, guía de endurecimiento y política de vulnerabilidades.
 - Proceso: prueba de 30 días, PoC guiado, presupuesto con SKU, orden de compra, factura anual, licencia firmada y alta en soporte.
@@ -438,7 +438,7 @@ Tests: `internal/buildinfo` compara el valor por defecto con `VERSION` del Makef
 
 ### F64 — Expediente de decisión comercial — **borrador listo para firma**
 
-`docs/decision-comercial.md` recoge la métrica `s<siteID>:<identity>` sobre los últimos 30 días excluyendo `guest`/`excluded`, las bandas propuestas sin aprobar, el criterio de piloto de 30 días y campos vacíos para F55, F65 y F66. Deja explícito que F42 está en 0/3, 0/2 y 0/1, que no hay cobro activo y que AGPL, offline y sin telemetría no cambian por una firma.
+El expediente F64 se eliminó el 20/11/2026. Recogía la métrica `s<siteID>:<identity>` sobre los últimos 30 días excluyendo `guest`/`excluded`, las bandas propuestas sin aprobar y campos vacíos para F55, F65 y F66. Nunca se firmó.
 
 **Criterio de cierre (cumplido):** borrador listo para firma, sin precios activos, sin cobro y sin abrir F42.
 

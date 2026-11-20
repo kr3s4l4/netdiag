@@ -349,7 +349,7 @@ Estas decisiones no borran las ideas del roadmap: quedan como extensiones condic
 - La activación offline de licencia es una capacidad del binario, no una oferta comercial: [docs/licenciamiento.md](docs/licenciamiento.md).
 - Los artefactos oficiales se construyen de forma reproducible, se firman con minisign y se publican con SBOM y atestación: [docs/publicacion-segura.md](docs/publicacion-segura.md).
 - La evidencia local se firma aparte, con otra clave, en [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
-- Los antiguos documentos comerciales son históricos y están sin vigor: [docs/comercializacion.md](docs/comercializacion.md) y [docs/confianza-empresarial.md](docs/confianza-empresarial.md).
+- No hay documentos de venta: se retiraron y eliminaron el 20/11/2026.
 - Las dudas legales se resuelven en [docs/licenciamiento.md](docs/licenciamiento.md); las vulnerabilidades se reportan por [SECURITY.md](SECURITY.md).
 
 ## Compilación

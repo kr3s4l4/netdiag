@@ -28,7 +28,7 @@ Gracias por probar NetDiag. Nos gustaría proponerte un piloto de 30 días en un
 - No hay coste ni compromiso de pago.
 - No hay telemetría: el binario no informa de nada. Solo nos dices tú lo que quieras contar.
 
-Si al final decidís comprar, el precio de lista está publicado en `docs/comercializacion.md`. Sin descuentos ocultos.
+No hay nada que comprar: NetDiag es gratuito y no hay soporte formal.
 
 ¿Te encaja empezar el `[AAAA-MM-DD]`?
 

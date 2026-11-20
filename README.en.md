@@ -175,6 +175,5 @@ NetDiag is free software under AGPL-3.0. There are no paid editions, prices or c
 - [Signed evidence](docs/evidencia-firmada.md) (Spanish)
 - [Remote scanning over SSH](docs/escaneo-remoto.md) (Spanish)
 - [Validation notes](docs/validacion.md) (Spanish)
-- [Distribution and licensing alternatives](docs/alternativas-publicacion-venta.md) (Spanish)
 
 Most design and validation notes are still in Spanish. The README, quick start and security policy are the maintained English entry points; the web UI is fully bilingual.

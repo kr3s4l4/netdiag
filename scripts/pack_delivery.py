@@ -43,9 +43,7 @@ DOCS = [
     "docs/publicacion-segura.md",
     "docs/licenciamiento.md",
     "docs/despliegue.md",
-    "docs/plantillas/eula.md",
     "docs/plantillas/guia-endurecimiento.md",
-    "docs/plantillas/correo-entrega.md",
 ]
 
 
