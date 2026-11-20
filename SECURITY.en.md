@@ -87,7 +87,7 @@ Since **11 September 2026**, NetDiag as a product with digital elements is subje
 
 This also applies to versions placed on the market before 11 December 2027. The remaining CRA obligations — technical documentation, conformity assessment, instructions for use, support period and marking where applicable — start on **11 December 2027**.
 
-Responsibility lies with the **manufacturer**, i.e. whoever markets NetDiag under their name or brand. A vulnerability in a third-party dependency does not transfer that responsibility to the customer: it is handled in our product and claimed upstream if a contract exists.
+Responsibility lies with the **manufacturer**, i.e. whoever distributes NetDiag under their name or brand. A vulnerability in a third-party dependency does not transfer that responsibility to whoever deploys it: it is handled in our product and reported upstream where applicable.
 
 ## Disclosure
 

@@ -1,6 +1,6 @@
 # NetDiag 1.5.2
 
-**Nota del 20/11/2026:** el texto de estas notas se actualizó. La release, sus hashes y su clave no se modifican.
+**Nota del 20/11/2026:** el texto de estas notas se actualizó. La release, sus hashes y su clave no se modifican. El fichero `RELEASE_NOTES.md` firmado en los assets de `v1.5.2` conserva una frase histórica sobre bandas de hosts gestionados. No se edita para preservar la firma; esa frase quedó sin vigor el 20/11/2026.
 
 Release publicada y verificada. Incluye los 8 commits locales posteriores a `v1.5.1`. Los tags `v1.5.0` y `v1.5.1` no se mueven.
 
@@ -26,7 +26,7 @@ Commit de build: `4fb0968`. Toolchain: Go 1.27.4. Época reproducible: `17950900
 ## Distribución y licencias
 
 - Descubrimiento y escaneo ilimitados.
-- Cobranza por banda de hosts gestionados, nunca por informe, alerta, escaneo, usuario o host detectado.
+- NetDiag es software libre bajo AGPL-3.0. Funciona en local, sin servicios externos ni licencia online. El descubrimiento y el escaneo son ilimitados.
 - La firma se comprueba con la clave pública `netdiag-release` de `docs/public_keys.md`.
 
 ## Verificación local
