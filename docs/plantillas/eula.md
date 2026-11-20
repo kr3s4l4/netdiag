@@ -1,4 +1,6 @@
-# EULA — NetDiag (reforzado)
+# EULA — NetDiag — PLANTILLA HISTÓRICA, SIN USO
+
+**Aviso (20/11/2026):** NetDiag es gratuito y no hay contratos de licencia de pago. Esta plantilla se conserva solo como registro; no se ofrece ni se firma.
 
 Plantilla orientativa. Revisar con asesoría jurídica antes de firmar.
 

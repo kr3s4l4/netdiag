@@ -1,8 +1,8 @@
 # Validación de mercado sin telemetría
 
-Objetivo: comprobar si NetDiag resuelve un problema real antes de invertir en licencias, SLA, espejo privado, demo completa o estructura comercial.
+Objetivo: comprobar si NetDiag resuelve un problema real. Desde el 20/11/2026 no hay estructura comercial: el programa es gratuito y no se ofrece soporte formal.
 
-**Regla de oro:** las descargas son curiosidad; la aceptación es **uso repetido en una red real**; la viabilidad comercial es **alguien dispuesto a pagar o a firmar un piloto**.
+**Regla de oro vigente:** las descargas son curiosidad; la aceptación es **uso repetido en una red real** con un caso concreto. El antiguo criterio de disposición a pagar quedó sin vigor el 20/11/2026.
 
 No se añade telemetría al binario. La promesa de “sin telemetría” es parte del producto y no se negocia para medir vanidad.
 
@@ -332,15 +332,14 @@ Comprobaciones: `node --check` no disponible en este equipo; `go test ./internal
 
 Volcar cada señal en [docs/plantillas/registro-evidencia-f42.md](plantillas/registro-evidencia-f42.md). Una fila por organización, con cita textual y enlace público cuando exista.
 
-Antes de contratar seguro, espejo privado, SLA o demo completa:
+Antes de invertir más tiempo en funcionalidad:
 
 - [ ] 3 instalaciones reales con 7 días de uso.
 - [ ] 2 casos de uso concretos escritos por usuarios.
-- [ ] 1 disposición a pagar o carta de intención.
 
-Sin esos tres puntos no se activa estructura comercial. Si faltan, se sigue observando y se revisa el mensaje y el primer escaneo.
+El antiguo tercer punto —1 disposición a pagar— quedó sin vigor el 20/11/2026. No hay estructura comercial que activar. Si faltan los dos puntos vigentes, se sigue observando y se revisa el mensaje y el primer escaneo.
 
-**Criterio F42:** existe evidencia escrita de uso real y de disposición a pagar antes de asumir esos costes. Plantillas en [docs/plantillas/README.md](plantillas/README.md).
+**Criterio F42 vigente:** existe evidencia escrita de uso real. Plantillas en [docs/plantillas/README.md](plantillas/README.md).
 
 ### Topología estable y anclada en DHCP real (19/11/2026)
 
@@ -588,4 +587,10 @@ El propietario pidió cerrar todo. Se detuvo la instancia visual de `127.0.0.1:1
 
 ### Recordatorio F42 preparado (19/11/2026)
 
-A petición del propietario se amplió `docs/plan-seguimiento-f42.md` con dos variantes de recordatorio a D+7: una para quien ya respondió, por el mismo canal, y otra para el Discussion si nadie ha respondido. Se añadió una checklist previa a la publicación. Todo sigue marcado como **NO PUBLICADO**: requiere OK explícito y publicación desde la cuenta del propietario. F42 permanece en 0/3, 0/2 y 0/1.
+A petición del propietario se amplió `docs/plan-seguimiento-f42.md` con dos variantes de recordatorio a D+7: una para quien ya respondió, por el mismo canal, y otra para el Discussion si nadie ha respondido. Se añadió una checklist previa a la publicación. Todo sigue marcado como **NO PUBLICADO**: requiere OK explícito y publicación desde la cuenta del propietario. F42 permanece en 0/3, 0/2 y 0/1 (el 0/1 era el criterio de pago, hoy retirado).
+
+### Retirada de la venta (20/11/2026)
+
+El propietario decidió eliminar la parte de venta: NetDiag queda como software libre y gratuito, sin precios, checkout ni soporte formal. Se mantiene `LICENSE` con AGPL-3.0 y no se toca `v1.5.2`, sus hashes ni la clave `c98b13d8c8f73259`.
+
+Cambios documentales: `README.md`, `README.en.md`, `NOTICE` y `docs/licenciamiento.md` dicen que el programa es gratis; `docs/comercializacion.md`, `docs/decision-comercial.md`, `docs/confianza-empresarial.md`, `docs/roadmap.md` y `docs/plantillas/eula.md` quedan marcados como históricos sin vigor. El formulario público conserva su URL, pero ya no pregunta por suscripción ni banda; genera `netdiag.usecase/v1`. El umbral F42 queda en 3 instalaciones con 7 días y 2 casos concretos; se retira el criterio de pago. F55/F65/F66 no se activan: cualquier servicio futuro exigiría decisión escrita con fecha y firmante. El recordatorio F42 y `docs/respuesta-hn.md` siguen **sin publicar**; requieren OK explícito. Sin tag ni release nuevos.

@@ -8,7 +8,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NetDiag — manifiesto voluntario de interés</title>
+  <title>NetDiag — manifiesto de caso de uso</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; }
     body { max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; }
@@ -27,11 +27,12 @@
   </style>
 </head>
 <body>
-  <h1>NetDiag — manifiesto voluntario de interés</h1>
+  <h1>NetDiag — manifiesto de caso de uso</h1>
 
   <p class="aviso">
-    <strong>Sin envío automático.</strong> Esta página solo genera un texto en
-    tu navegador. Tú decides si lo envías. Contacto:
+    <strong>NetDiag es gratuito.</strong> No hay precios, suscripción ni pago.
+    Esta página solo recoge tu caso de uso para mejorar el proyecto. Genera un
+    texto en tu navegador y tú decides si lo envías. Contacto:
     <a href="mailto:kr3s4l4@protonmail.com">kr3s4l4@protonmail.com</a>
     (público en mi CV, autorizado por su propietario). Sin telemetría, sin
     servidor y sin terceros.
@@ -66,24 +67,6 @@
       <option value="aun-no">todavía no</option>
     </select>
 
-    <label for="intencion">¿Te interesaría una suscripción por banda de hosts gestionados?</label>
-    <select id="intencion" name="intencion" required>
-      <option value="">Selecciona una opción</option>
-      <option value="si">sí</option>
-      <option value="quizá">quizá</option>
-      <option value="no">no</option>
-    </select>
-
-    <label for="banda">Banda aproximada de hosts gestionados (opcional)</label>
-    <select id="banda" name="banda">
-      <option value="">No lo sé</option>
-      <option>1-5</option>
-      <option>6-10</option>
-      <option>11-50</option>
-      <option>51-200</option>
-      <option>201+</option>
-    </select>
-
     <label for="uso">¿Para qué usas NetDiag? (opcional, muy útil)</label>
     <textarea id="uso" name="uso" maxlength="1000" placeholder="Ej.: inventario de la oficina, detectar equipos nuevos, documentar cambios antes de un corte"></textarea>
 
@@ -111,8 +94,8 @@
 
   <p class="pie">
     No pedimos IPs, MACs, nombres de host, credenciales ni datos de tu red.
-    Este manifiesto no es una factura, un pedido ni un contrato. No activa
-    ningún cobro ni publica precios.
+    Este manifiesto no es una factura, un pedido ni un contrato. No hay pago
+    ni precios: NetDiag es gratuito.
   </p>
 
   <script>
@@ -131,15 +114,13 @@
 
       function manifiesto() {
         return {
-          schema: 'netdiag.intent/v1',
+          schema: 'netdiag.usecase/v1',
           created_at: new Date().toISOString(),
           contacto: valor('email'),
           organizacion: valor('org'),
           pais: valor('pais'),
           despliegue: valor('despliegue'),
           sigue_tras_7_dias: valor('dias'),
-          intencion: valor('intencion'),
-          banda_estimada: valor('banda'),
           caso_de_uso: valor('uso'),
           que_falto: valor('faltó'),
           cita_anonima: document.getElementById('anonimo').checked
@@ -154,9 +135,9 @@
         }
         var texto = JSON.stringify(manifiesto(), null, 2) + '\n';
         salida.value = texto;
-        var asunto = '[NetDiag] Manifiesto voluntario de interés';
-        var cuerpo = 'He rellenado el manifiesto voluntario de NetDiag.\n\n' + texto +
-          '\nEste envío es manual. No es un pedido ni una factura.\n';
+        var asunto = '[NetDiag] Manifiesto de caso de uso';
+        var cuerpo = 'He rellenado el manifiesto de caso de uso de NetDiag.\n\n' + texto +
+          '\nEste envío es manual. NetDiag es gratuito: no es un pedido ni una factura.\n';
         enlace.href = 'mailto:' + contacto +
           '?subject=' + encodeURIComponent(asunto) +
           '&body=' + encodeURIComponent(cuerpo);

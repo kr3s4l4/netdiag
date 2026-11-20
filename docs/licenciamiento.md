@@ -1,36 +1,25 @@
 # Licenciamiento de NetDiag
 
-NetDiag se distribuye bajo un modelo de **doble licencia**. Esta página explica qué significa para usuarios, contribuidores y compradores.
+## Estado vigente (20/11/2026)
 
-## Community: AGPL-3.0
+NetDiag es **software libre bajo AGPL-3.0** (`LICENSE`) y **gratuito**. No hay ediciones de pago, precios activos ni checkout. La antigua propuesta de ediciones Pro y Enterprise queda como documento histórico, sin vigor: `docs/comercializacion.md` y `docs/decision-comercial.md`.
 
-La edición Community es software libre bajo **GNU Affero General Public License v3.0** (`LICENSE`). Puedes usarla, estudiarla, modificarla y redistribuirla cumpliendo la AGPL.
+La release publicada `v1.5.2` se construyó el 19/11/2026 e incluye texto comercial en sus notas. Esa release no se modifica: sus tags, hashes y claves de firma siguen intactos. Esta aclaración afecta a `master` y a la documentación.
 
-Puntos importantes:
+## Uso y redistribución
 
-- Si distribyes NetDiag (o una versión modificada), debes conservar avisos de copyright y entregar la AGPL junto con el programa.
+Puedes usar NetDiag, estudiarlo, modificarlo y redistribuirlo cumpliendo la AGPL. Puntos importantes:
+
+- Al distribuir NetDiag o una versión modificada, conserva los avisos de copyright y entrega la AGPL junto con el programa.
 - Si ejecutas una versión modificada y la ofreces a usuarios a través de una red, la sección 13 de AGPL exige ofrecerles el **código fuente correspondiente**.
-- No hay cláusula de telemetría ni restricción de uso competitivo en Community.
+- No hay cláusula de telemetría ni restricción de uso competitivo.
 - Los avisos de dependencias están en `NOTICE` y `THIRD_PARTY_LICENSES.md`.
 
-La AGPL protege que las mejoras a NetDiag sigan siendo libres cuando se ofrecen como servicio. No impide usar NetDiag dentro de una organización sin distribuirlo.
-
-## Pro y Enterprise: licencia comercial
-
-Las ediciones Pro y Enterprise se entregan bajo **licencia comercial anual**, no bajo AGPL. La licencia concede:
-
-- Uso del binario y capacidades de la edición contratada por el plazo de la suscripción.
-- Derecho a mantener modificaciones privadas sin obligación de publicarlas.
-- Acceso a actualizaciones firmadas, soporte, SLA (Enterprise) y paquete de confianza.
-- Uso de la licencia offline firmada en las sedes y banda de hosts contratadas.
-
-La licencia comercial **no** transfiere propiedad del código, **no** incluye fuente cerrada por defecto (la base sigue siendo AGPL salvo acuerdo específico) y **no** limita el número de informes o escaneos.
-
-La diferencia de derechos es contractual; el binario funciona sin llamar a un servidor. Ver `docs/comercializacion.md` para SKU, precios y bandas.
+La AGPL permite usar NetDiag dentro de una organización sin distribuirlo, y no exige pago ni licencia online.
 
 ## Activación offline (F35)
 
-La licencia es un fichero JSON firmado con **Ed25519** que se guarda en `<data_dir>/license.json`. La verificación es **local**: NetDiag no contacta con ningún servidor de licencias, no envía el ID de licencia ni consulta caducidades en remoto. El derecho real se apoya en el contrato, las actualizaciones firmadas y el soporte.
+El binario sabe leer un fichero JSON firmado con **Ed25519** guardado en `<data_dir>/license.json`. La verificación es **local**: NetDiag no contacta con ningún servidor, no envía el ID de licencia ni consulta caducidades en remoto. Es una capacidad técnica del programa, no una oferta comercial. No activa funciones premium ni bloquea el uso.
 
 Formato (`schema` = `netdiag-license/v1`):
 
@@ -38,19 +27,19 @@ Formato (`schema` = `netdiag-license/v1`):
 {
   "schema": "netdiag-license/v1",
   "license_id": "ND-2026-0001",
-  "customer": "Nombre del cliente",
-  "edition": "pro",
+  "customer": "Nombre de la organización",
+  "edition": "community",
   "max_managed_hosts": 25,
   "max_sites": 3,
   "retention_days": 30,
   "expires_at": "2027-12-31T00:00:00Z",
   "capabilities": ["reports", "alerts"],
-  "support_level": "business",
+  "support_level": "community",
   "signature": "base64(Ed25519)..."
 }
 ```
 
-La firma cubre todos los campos **excepto** `signature`, serializados en un orden fijo. Cambiar cualquier valor (incluido el nombre del cliente) invalida la firma. `0` en `max_managed_hosts` o `max_sites` significa «sin límite».
+La firma cubre todos los campos **excepto** `signature`, serializados en un orden fijo. Cambiar cualquier valor invalida la firma. `0` en `max_managed_hosts` o `max_sites` significa «sin límite». Los valores `pro` y `enterprise` siguen siendo compatibles con el formato por motivos históricos; hoy no representan ningún producto.
 
 Clave pública del emisor (base64, 32 bytes), separada de la clave minisign de los artefactos de release:
 
@@ -58,7 +47,7 @@ Clave pública del emisor (base64, 32 bytes), separada de la clave minisign de l
 pNc3VNWpOKBid1TQsm6rF52MqvBxyNdvPJxvqSNha/s=
 ```
 
-La semilla privada del emisor vive **fuera del repositorio**, en `~/.config/netdiag/license-signing.seed` con permisos `0600`. No se sube a Git, no se incluye en el binario y no se comparte. Si se pierde, se genera un par nuevo y se documenta la rotación en `docs/public_keys.md`.
+La semilla privada vive **fuera del repositorio**, en `~/.config/netdiag/license-signing.seed` con permisos `0600`. No se sube a Git, no se incluye en el binario y no se comparte. Si se pierde, se genera un par nuevo y se documenta la rotación en `docs/public_keys.md`.
 
 ### Comandos
 
@@ -66,14 +55,14 @@ La semilla privada del emisor vive **fuera del repositorio**, en `~/.config/netd
 # Emitir (solo quien tiene la semilla): rellena el JSON y guárdalo con 0600
 netdiag license sign licencia.json --out licencia-firmada.json
 
-# Instalar en el equipo del cliente
+# Instalar en el equipo
 netdiag license activate licencia-firmada.json
 
 # Consultar estado (texto o JSON)
 netdiag license show
 netdiag license show --json
 
-# Volver a Community sin borrar datos
+# Volver al estado sin licencia, sin borrar datos
 netdiag license clear
 ```
 
@@ -86,12 +75,12 @@ netdiag license clear
 ```json
 {
   "status": "active",
-  "edition": "pro",
+  "edition": "community",
   "license_id": "ND-2026-0001",
   "expires_at": "2027-12-31T00:00:00Z",
   "limits": { "max_managed_hosts": 25, "max_sites": 3, "retention_days": 30 },
   "capabilities": ["reports", "alerts"],
-  "support_level": "business",
+  "support_level": "community",
   "managed_hosts": 12,
   "sites": 2,
   "warnings": []
@@ -100,7 +89,7 @@ netdiag license clear
 
 La respuesta **nunca** incluye `signature`, el nombre del cliente ni datos de otro cliente. `managed_hosts` cuenta las identidades `s<siteID>:<identity>` vistas en los últimos 30 días, excluyendo etiquetas `guest` y `excluded`.
 
-Caducidad, banda excedida o firma inválida se traducen en entradas de `warnings`; el estado pasa a `expired`, `invalid` o mantiene `active`. En ningún caso se bloquean lecturas, escaneos ni informes, y jamás se borran datos. Ante una licencia inválida se aplican los límites Community (`retention_days: 7`, hosts y sedes sin límite) y se sigue usando el producto.
+Caducidad, banda excedida o firma inválida se traducen en entradas de `warnings`; el estado pasa a `expired`, `invalid` o mantiene `active`. En ningún caso se bloquean lecturas, escaneos ni informes, y jamás se borran datos. Ante una licencia inválida se aplican los límites por defecto (`retention_days: 7`, hosts y sedes sin límite) y se sigue usando el producto.
 
 El estado también aparece en **Ajustes → Sistema → Licencia** de la interfaz web, con los avisos en un recuadro no bloqueante.
 
@@ -111,17 +100,13 @@ El estado también aparece en **Ajustes → Sistema → Licencia** de la interfa
 1. Restaurar la base de datos y la configuración según `docs/api.md`.
 2. Extraer `license.json` del ZIP y copiarlo en `<data_dir>/license.json` con permisos `0600`, **o** volver a ejecutar `netdiag license activate licencia-firmada.json`.
 
-Como la licencia está firmada, una copia manipulada se detecta al arrancar: se degrade a Community con un aviso, sin impedir el acceso a los datos.
-
-## ¿Por qué AGPL y no MIT/BSD?
-
-Porque el riesgo comercial de NetDiag no es que alguien lo use, sino que un tercero lo reempaquete como servicio propietario sin devolver mejoras. AGPL cierra esa vía; la licencia comercial ofrece una alternativa clara a quien necesita mantener cambios privados o exige garantías contractuales.
+Como la licencia está firmada, una copia manipulada se detecta al arrancar: se degrada al estado sin licencia con un aviso, sin impedir el acceso a los datos.
 
 ## Contribuciones
 
-- Las contribuciones a Community se aceptan bajo **DCO** (`Signed-off-by`). No exigimos CLA.
+- Las contribuciones se aceptan bajo **DCO** (`Signed-off-by`). No exigimos CLA.
 - Al enviar un parche declaras que tienes derecho a aportarlo bajo AGPL-3.0.
-- No se incorporan dependencias con licencias copyleft incompatibles con distribución de binario sin revisión legal.
+- No se incorporan dependencias con licencias incompatibles con distribución de binario sin revisión legal.
 - El inventario `THIRD_PARTY_LICENSES.md` se regenera cuando cambia `go.mod`.
 
 ## Terceros
@@ -132,10 +117,11 @@ Si una dependencia cambia de licencia o aparece una incompatibilidad, se bloquea
 
 ## Marcas
 
-NetDiag es una marca del proyecto. El uso del nombre para forks o productos derivados debe evitar sugerir respaldo oficial. La licencia AGPL no concede permiso para usar el nombre en publicidad del fork.
+NetDiag es el nombre del proyecto. El uso de ese nombre en forks o productos derivados debe evitar sugerir respaldo oficial.
 
 ## Contacto
 
 - Errores y preguntas técnicas: GitHub Issues del repositorio.
+- Preguntas generales: GitHub Discussions. No hay soporte formal ni SLA.
 - Vulnerabilidades: canal privado descrito en `SECURITY.md`.
-- Licencias comerciales y presupuestos: flujo descrito en `docs/comercializacion.md`.
+- Cualquier propuesta comercial: quedaría sin vigor salvo decisión escrita con fecha y firmante. Hoy no hay oferta comercial.

@@ -153,13 +153,13 @@ Generar un PDF de una página con:
 
 **Esfuerzo:** 4–6 h.
 
-## Decisiones de producto cerradas
+## Decisiones de producto — registro histórico
 
-Estas decisiones ya no están pendientes: definen la licencia, el cobro y el canal de publicación. Los documentos ejecutivos están en `docs/licenciamiento.md`, `docs/comercializacion.md`, `docs/publicacion-segura.md` y `docs/confianza-empresarial.md`.
+**Corrección del 20/11/2026:** el propietario retiró la venta. La decisión vigente es una sola licencia AGPL-3.0, gratuita, sin precios ni checkout. F33 y F34 se conservan como registro de lo que se escribió el 18/11/2026; no están vigentes. Los documentos ejecutivos vigentes son `docs/licenciamiento.md` y `docs/publicacion-segura.md`.
 
-### F33 — Licenciamiento
+### F33 — Licenciamiento (histórico, sin vigor)
 
-**Decisión:** doble licencia.
+**Decisión anterior:** doble licencia.
 
 - **Community:** `AGPL-3.0`. Archivo `LICENSE` en la raíz; `NOTICE` y `THIRD_PARTY_LICENSES.md` con los avisos de terceros.
 - **Enterprise/Pro:** licencia comercial de pago, sin obligación de publicar modificaciones, con derechos de uso, soporte y actualizaciones definidos en contrato.
@@ -168,9 +168,9 @@ Estas decisiones ya no están pendientes: definen la licencia, el cobro y el can
 
 **Criterio de cierre:** toda versión utilizable incluye `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md` y `SECURITY.md`, y la oferta comercial queda descrita sin ambigüedad.
 
-### F34 — Modelo comercial
+### F34 — Modelo comercial (histórico, sin vigor)
 
-**Decisión:** suscripción anual por banda de hosts gestionados; no se cobra por informe ni por host detectado.
+**Decisión anterior:** suscripción anual por banda de hosts gestionados; no se cobra por informe ni por host detectado. Retirada el 20/11/2026. Hoy no hay venta, precios ni soporte de pago.
 
 | SKU | Precio anual | Hosts gestionados | Sedes | Retención | Incluye |
 | --- | ---: | ---: | ---: | --- | --- |
@@ -305,10 +305,10 @@ Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantilla
 - Discussion #1 con tres preguntas: dónde se desplegó, qué se intentó hacer, qué faltó. Fijarlo es un paso manual opcional; la API de GitHub no lo expone.
 - Encuesta voluntaria de 5 preguntas; **nunca instrumentar el binario**.
 - Piloto de 30 días con 3–5 organizaciones, sin SLA y con una llamada semanal de 20 minutos.
-- Umbral para pasar a F35/F37/F38: 3 instalaciones reales con 7 días de uso, 2 casos de uso concretos y 1 disposición a pagar o carta de intención.
+- Umbral vigente para seguir invirtiendo: 3 instalaciones reales con 7 días de uso y 2 casos de uso concretos. El antiguo criterio de pago quedó sin vigor el 20/11/2026.
 - Plan completo y plantillas en `docs/validacion.md`.
 
-**Criterio de cierre:** existe evidencia escrita de uso real y disposición a pagar antes de contratar seguros, espejo privado, SLA o demo completa.
+**Criterio de cierre vigente:** existe evidencia escrita de uso real antes de seguir invirtiendo tiempo. No hay estructura comercial que activar.
 
 **Aviso Beta añadido (19/11/2026):** descargo en ambos README, aviso en la pantalla de acceso y confirmación local en el asistente de primer arranque antes del primer escaneo. `serve --accept-terms` o `terms.accepted: true` registran la confirmación del operador. No bloquea el CLI, no hay red y no sustituye la autorización del propietario de la red. No cambia la licencia AGPL ni el modelo de negocio.
 
@@ -485,9 +485,11 @@ Tests: `internal/buildinfo` compara el valor por defecto con `VERSION` del Makef
 
 Orden cerrado: Lote 1 F51–F54; Lote 2 F50, F56, F57, F58, F60; Lote 3 F59, F49, F68; Lote 4 F61–F64.
 
-## Cierre de salida al mercado
+## Cierre de salida al mercado — HISTÓRICO, SIN VIGOR
 
-NetDiag se considera listo para vender cuando:
+La venta se retiró el 20/11/2026. NetDiag queda publicado como software libre y gratuito. Esta sección se conserva como registro; los puntos siguientes no se activan.
+
+Antes se consideraba listo para vender cuando:
 
 1. F42 ha mostrado uso real y al menos una disposición a pagar antes de invertir en estructura comercial.
 2. Los documentos legales y de precios están publicados y revisados.

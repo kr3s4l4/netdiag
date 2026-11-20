@@ -58,4 +58,4 @@ Answer in whichever language you prefer. Responde en el idioma que prefieras.
 
 ---
 
-**Uso interno:** volcar cada respuesta en `registro-evidencia-f42.md`. No promediar: buscar casos concretos y disposición a pagar.
+**Uso interno:** volcar cada respuesta en `registro-evidencia-f42.md`. No promediar: buscar casos concretos. La antigua disposición a pagar quedó sin vigor el 20/11/2026.

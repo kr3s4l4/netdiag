@@ -1,6 +1,8 @@
-# Paquete de confianza empresarial
+# Paquete de confianza empresarial — DOCUMENTO HISTÓRICO, SIN VIGOR
 
-Un cliente no compra un escáner: compra la capacidad de defender una decisión ante seguridad, compras y auditoría. Este documento define qué se entrega para que NetDiag sea defendible en ese proceso.
+**Aviso (20/11/2026):** no hay venta, clientes ni contratos. NetDiag es gratuito. Este documento se conserva solo como registro de la propuesta anterior; no describe una oferta activa. El estado vigente está en `docs/licenciamiento.md`.
+
+Antes se planteaba que un cliente comprara la capacidad de defender una decisión ante seguridad, compras y auditoría. Este documento definía qué se entregaba para que NetDiag fuera defendible en ese proceso.
 
 ## Qué recibe el comprador
 

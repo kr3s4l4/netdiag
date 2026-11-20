@@ -1,6 +1,8 @@
-# Modelo comercial de NetDiag
+# Modelo comercial de NetDiag — DOCUMENTO HISTÓRICO, SIN VIGOR
 
-Este documento es la fuente de verdad de precios, métricas de facturación y flujo de compra. Las decisiones están alineadas con `docs/roadmap.md` (F33–F38).
+**Aviso (20/11/2026):** el propietario decidió retirar la venta. NetDiag es gratuito y no hay precios, checkout ni soporte de pago. Lo que sigue se conserva solo como registro de la propuesta anterior; no es oferta, no fija precios vigentes y no debe citarse como modelo activo. El estado vigente está en `docs/licenciamiento.md`.
+
+Este documento fue la fuente de verdad propuesta de precios, métricas de facturación y flujo de compra. Las decisiones estaban alineadas con `docs/roadmap.md` (F33–F38).
 
 ## Principios
 

@@ -161,9 +161,9 @@ The SSRF guard blocks private destinations by default; set `integrations.allow_p
 
 ## Licensing
 
-Community is AGPL-3.0 and free. Pro and Enterprise are commercial, offline-licensed editions. Billing is by **managed-host band**, never per report, alert, scan, user or detected host. A managed host is `s<siteID>:<identity>` seen in the last 30 days, excluding `guest`/`excluded` tags. There is no telemetry, online licence check or intrusive DRM.
+NetDiag is free software under AGPL-3.0. There are no paid editions, prices or checkout. If you use it, tell us where you deployed it, what you tried and what was missing. There is no telemetry, online licence check or intrusive DRM. The published v1.5.2 release carried older commercial text; its hashes are unchanged.
 
-**Already using NetDiag?** Leave a [voluntary interest note](https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html). It is generated in your browser and you decide whether to send it. No IPs, MACs or network data are collected. No billing, prices or automatic submission.
+**Already using NetDiag?** Leave a [use-case note](https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html). It is generated in your browser and you decide whether to send it. No IPs, MACs or network data are collected. No billing, prices or automatic submission.
 
 ## Documentation
 

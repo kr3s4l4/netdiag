@@ -48,9 +48,9 @@ La versión 1.5 ya cubre el núcleo: descubrimiento, inventario, topología, dia
 | F39–F40 | Modo demo con datos sintéticos y vistas guardadas | Planificado |
 | F41–F42 | Cumplimiento CRA por dependencias de terceros y validación de mercado sin telemetría | Documentado, en ejecución |
 
-Las decisiones ya cerradas —AGPL para Community, licencia comercial para Pro/Enterprise, cobro por banda de hosts gestionados, sin telemetría y sin guardia 24/7 que no se pueda cumplir—están en el propio roadmap. Si quieres influir en el orden, cuenta tu caso de uso en el Discussion o abre un issue con la plantilla **Caso de uso real**.
+Las decisiones vigentes —software libre AGPL-3.0 y gratuito, sin telemetría y sin guardia 24/7 que no se pueda cumplir— están en el propio roadmap. No hay planes de pago, precios ni venta. Si quieres influir en el orden, cuenta tu caso de uso en el Discussion o abre un issue con la plantilla **Caso de uso real**.
 
-**¿Ya usas NetDiag?** Déjate oír con el [manifiesto voluntario de interés](https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html): se genera en tu navegador y tú decides si lo envías. No recoge IPs, MACs ni datos de tu red, y no activa cobro ni publica precios.
+**¿Ya usas NetDiag?** Cuéntanos dónde lo desplegaste, qué probaste y qué te faltó en el [manifiesto de caso de uso](https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html): se genera en tu navegador y tú decides si lo envías. No recoge IPs, MACs ni datos de tu red, y no activa cobro ni publica precios.
 
 ## Inicio rápido
 
@@ -341,15 +341,15 @@ El roadmap clasifica F13, F14, F15, F16, F17 y F26 como opcionales/de baja prior
 
 Estas decisiones no borran las ideas del roadmap: quedan como extensiones condicionadas a un modelo SaaS o a una necesidad operativa explícita, y no bloquean el cierre de la versión 1.5. Las mejoras propuestas para 1.5.1, las decisiones cerradas F33–F34 y la implementación pendiente F35–F40 están en [docs/roadmap.md](docs/roadmap.md).
 
-## Licenciamiento, compra y publicación
+## Licencia y publicación
 
-- Antes de montar estructura comercial, el plan de [validación sin telemetría](docs/validacion.md) mide uso real y disposición a pagar.
-- **Community** es software libre bajo [AGPL-3.0](LICENSE), con avisos de terceros en [NOTICE](NOTICE) y [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
-- **Pro y Enterprise** se venden con licencia comercial anual. El cobro es por banda de **hosts gestionados**, nunca por informe, alerta o host detectado.
-- La licencia se activa localmente, sin telemetría ni servidor online; el espejo de actualizaciones es opcional o puede ser interno.
+- NetDiag es software libre bajo [AGPL-3.0](LICENSE) y **gratuito**. No hay planes de pago, precios ni checkout.
+- Los avisos de terceros están en [NOTICE](NOTICE) y [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+- El plan de [validación sin telemetría](docs/validacion.md) mide uso real con manifiestos voluntarios.
+- La activación offline de licencia es una capacidad del binario, no una oferta comercial: [docs/licenciamiento.md](docs/licenciamiento.md).
 - Los artefactos oficiales se construyen de forma reproducible, se firman con minisign y se publican con SBOM y atestación: [docs/publicacion-segura.md](docs/publicacion-segura.md).
 - La evidencia local se firma aparte, con otra clave, en [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
-- Los precios, SKU y flujo de compra están en [docs/comercializacion.md](docs/comercializacion.md); el paquete que recibe un comprador corporativo, en [docs/confianza-empresarial.md](docs/confianza-empresarial.md).
+- Los antiguos documentos comerciales son históricos y están sin vigor: [docs/comercializacion.md](docs/comercializacion.md) y [docs/confianza-empresarial.md](docs/confianza-empresarial.md).
 - Las dudas legales se resuelven en [docs/licenciamiento.md](docs/licenciamiento.md); las vulnerabilidades se reportan por [SECURITY.md](SECURITY.md).
 
 ## Compilación
@@ -565,4 +565,4 @@ El instalador crea el usuario `netdiag`, instala el binario en `/usr/local/bin`,
 
 ## Estado
 
-Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal, modo auditoría y auto-actualización firmada con rollback. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia, líneas base auditables, manifiestos manipulados, instalación atómica, confirmación y reversión. F13, F14, F15, F16, F17 y F26 quedan documentados como opcionales diferidos. La licencia AGPL, los avisos de terceros, el modelo comercial, el pipeline de publicación firmada y el paquete de confianza empresarial están documentados y enlazados desde esta página. Las mejoras F27–F40 están priorizadas en [docs/roadmap.md](docs/roadmap.md). El trabajo posterior en `master` añade F49 (sonda portable), F59 (triaje local) y F68 (dossier firmado); no cambia la release publicada `v1.5.2`. Las contribuciones y los informes de errores son bienvenidos.
+Versión **1.5**: inventario, escaneos, topología, diagnósticos empresariales heurísticos, integraciones externas, alertas, informes, multi-sede con exportación/importación, RBAC de tres roles, i18n es/en, guía interactiva, OpenAPI 3.1, Prometheus, copias de seguridad, comparativa temporal, modo auditoría y auto-actualización firmada con rollback. La suite cubre configuración, persistencia, identidad de hosts por sede, cifrado de secretos, clasificación, utilidades de red, topología, diagnósticos, proveedores de integración, política de contraseñas, roles, copias, endpoints públicos, aislamiento entre sedes, diffs con evidencia, líneas base auditables, manifiestos manipulados, instalación atómica, confirmación y reversión. F13, F14, F15, F16, F17 y F26 quedan documentados como opcionales diferidos. La licencia AGPL, los avisos de terceros y el pipeline de publicación firmada están documentados y enlazados desde esta página. La release `v1.5.2` se publicó con texto comercial que hoy está retirado; sus hashes no se modifican. Las mejoras F27–F40 están priorizadas en [docs/roadmap.md](docs/roadmap.md). El trabajo posterior en `master` añade F49 (sonda portable), F59 (triaje local) y F68 (dossier firmado); no cambia la release publicada `v1.5.2`. Las contribuciones y los informes de errores son bienvenidos.

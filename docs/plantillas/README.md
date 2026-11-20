@@ -1,5 +1,7 @@
 # Plantillas de NetDiag
 
+**Aviso (20/11/2026):** las plantillas de venta, presupuesto, orden de compra, EULA, ROI y entrega quedan **históricas y sin uso**. NetDiag es gratuito, sin precios ni soporte de pago. Siguen vigentes las plantillas técnicas, de seguridad, CRA y las de caso de uso (`formulario-disposicion-pago.*` y `registro-evidencia-f42.md`).
+
 Plantillas listas para copiar y pegar. Sustituye los campos entre corchetes `[...]`.
 
 **Aviso:** los textos legales son orientativos. Revisar con asesoría jurídica antes de firmar.
@@ -20,13 +22,13 @@ Plantillas listas para copiar y pegar. Sustituye los campos entre corchetes `[..
 | [registro-responsabilidad.md](registro-responsabilidad.md) | Cadena de custodia y decisión de reportar | Desde el minuto 0 |
 | [REVOCATION.md](REVOCATION.md) | Revocación firmada de un artefacto | Compromiso de clave o versión insegura |
 | [encuesta-5-preguntas.md](encuesta-5-preguntas.md) | Encuesta voluntaria sin telemetría | F42 |
-| [formulario-disposicion-pago.html](formulario-disposicion-pago.html) | Manifiesto estático de interés, sin backend ni envío automático | F42 |
+| [formulario-disposicion-pago.html](formulario-disposicion-pago.html) | Manifiesto estático de caso de uso, sin backend ni envío automático | F42 |
 | [formulario-disposicion-pago.md](formulario-disposicion-pago.md) | Datos recogidos, consentimiento y cómputo para F42 | F42 |
 
 **Desplegado:** el manifiesto está publicado en <https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html> desde GitHub Pages (`master:/docs`). Sigue siendo una página estática sin backend ni envío automático.
 | [correo-piloto.md](correo-piloto.md) | Invitación al piloto de 30 días | F42 |
 | [correo-entrega.md](correo-entrega.md) | Entrega de binarios y licencia firmada | Venta |
 | [license-unsigned-ejemplo.json](license-unsigned-ejemplo.json) | Datos ficticios para generar una licencia | Venta |
-| [registro-evidencia-f42.md](registro-evidencia-f42.md) | Evidencia escrita de uso y pago | F42 |
+| [registro-evidencia-f42.md](registro-evidencia-f42.md) | Evidencia escrita de uso | F42 |
 
-La fuente de verdad de precios es `docs/comercializacion.md`. La política de seguridad es `SECURITY.md`.
+No hay fuente de verdad de precios: no hay precios. La antigua `docs/comercializacion.md` es histórica y está sin vigor. La política de seguridad es `SECURITY.md`.

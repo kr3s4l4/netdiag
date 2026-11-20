@@ -2,12 +2,12 @@ NetDiag
 Copyright (c) 2026 kr3s4l4 and NetDiag contributors
 
 This product includes software developed by the NetDiag contributors.
-The Community edition is licensed under the GNU Affero General Public License,
-version 3 or (at your option) any later version. See the LICENSE file.
+It is licensed under the GNU Affero General Public License, version 3 or
+(at your option) any later version. See the LICENSE file.
 
-Pro and Enterprise editions are offered under a separate commercial license.
-See docs/licenciamiento.md and docs/comercializacion.md for the rights and
-limits of each edition.
+NetDiag is free of charge. There are no paid editions, prices or checkout.
+Old commercial documents are historical and no longer in force. See
+docs/licenciamiento.md.
 
 Third-party components are included under their own licenses. Their copyright
 notices and full license texts are reproduced in THIRD_PARTY_LICENSES.md and in

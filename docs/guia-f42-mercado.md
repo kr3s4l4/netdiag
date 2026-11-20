@@ -1,8 +1,10 @@
-# Guía de ejecución de F42 — validación sin telemetría
+# Guía de ejecución de F42 — validación sin telemetría — HISTÓRICA, SIN VIGOR
 
-Objetivo: reunir evidencia escrita de uso real antes de contratar seguro, espejo, SLA o demo completa.
+**Aviso (20/11/2026):** el propietario retiró la venta. Hoy no hay seguro, espejo, SLA ni estructura comercial que activar. El umbral vigente es **3 instalaciones reales con 7 días** y **2 casos de uso concretos**. Este documento se conserva como registro.
 
-Umbral: **3 instalaciones reales con 7 días**, **2 casos de uso concretos** y **1 disposición a pagar**. Sin telemetría. Nada de datos de red, credenciales ni identificadores de host.
+Objetivo original: reunir evidencia escrita de uso real antes de invertir más tiempo.
+
+Umbral original: **3 instalaciones reales con 7 días**, **2 casos de uso concretos** y **1 disposición a pagar**, este último retirado el 20/11/2026. Sin telemetría. Nada de datos de red, credenciales ni identificadores de host.
 
 Tiempo estimado: 1 h de preparación + 7 días de espera + 1 h de cierre.
 

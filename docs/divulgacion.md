@@ -104,7 +104,7 @@ Llevo tiempo construyendo NetDiag y hoy lo he publicado como preview de validaci
 
 Es un escáner de red autocontendido: un único binario Go, interfaz web embebida en español, SQLite local, sin telemetría y sin servicios en la nube. Descubre dispositivos, inventaría puertos y servicios, dibuja topología L2/L3, señala problemas con evidencia y confianza, alerta y genera informes. También permite varias sedes en una sola base y guarda líneas base para comparar cambios.
 
-No cobro por informes, alertas ni hosts detectados. La edición Community es AGPL-3.0 y el modelo comercial, cuando llegue, será por banda de hosts gestionados.
+NetDiag es gratuito y está bajo AGPL-3.0. No hay precios, checkout ni venta. No cobro por informes, alertas ni hosts detectados.
 
 Ahora mismo no busco ventas: busco casos de uso reales. Si lo pruebas, dime dónde lo desplegaste, qué intentaste hacer y qué te faltó. El enlace está en el primer comentario / en mi perfil.
 
@@ -124,7 +124,7 @@ He publicado NetDiag 1.5.0: escáner de red self-hosted, un binario Go, SQLite l
 | ¿Telemetría? | Ninguna. El binario no llama a ningún servicio. Puedes leer el código. |
 | ¿Por qué no Docker? | Prioricé binario único y sin cgo. Hay unidad systemd e instalador. Si hay demanda, se añade. |
 | ¿Necesita agentes? | No. Observa desde un host: ARP/ICMP, banners, SNMP y vecinos. No instala nada en los equipos. |
-| ¿Licencia? | Community es AGPL-3.0. Habrá licencia comercial para soporte y garantías. No se cobra por informes ni por hosts detectados. |
+| ¿Licencia? | AGPL-3.0 y gratuito. No hay licencia comercial, precios ni checkout. No se cobra por informes ni por hosts detectados. |
 | ¿Es «enterprise-ready»? | Tiene RBAC, auditoría, multi-sede y actualizaciones firmadas. Pero no vendo SLA de 1 h ni guardia 24/7: aún estoy validando y soy una persona sola. |
 | ¿Cómo sé que el binario es tuyo? | `SHA256SUMS` está firmado con minisign; la clave pública y el comando de verificación están en `docs/public_keys.md`. |
 | ¿Windows o macOS? | Ahora mismo solo Linux amd64/arm64. Dime si lo necesitas y lo valoro según demanda. |
@@ -147,7 +147,7 @@ Thanks for looking at it. My English is basic, so I'll keep it short. Happy to a
 | Agents? | `No agents. It observes from one host: ARP/ICMP, banners, SNMP and LLDP/CDP neighbours. Nothing is installed on the monitored devices.` |
 | Why a single binary? | `I wanted something you can copy to a machine and run. One Go binary, embedded UI and SQLite, no cgo, no npm, no external services.` |
 | What are the limits? | `The tradeoff is visibility: it only sees what one host can observe. The docs say so explicitly. Diagnostics are heuristic and always carry evidence, confidence and limitations.` |
-| License / pricing? | `Community is AGPL-3.0. I don't charge per report, alert or discovered host. If I sell anything later, it will be a commercial licence for support and guarantees.` |
+| License / pricing? | `AGPL-3.0 and free. No commercial licence, no prices, no checkout. I don't charge per report, alert or discovered host.` |
 | Is it enterprise-ready? | `It has RBAC, audit and multi-site, but I'm not selling an SLA yet. I'm one person and this is a validation preview. I'd rather say that than promise something I can't keep.` |
 | How do I trust the binary? | `SHA256SUMS is signed with minisign. The public key and a one-line verification command are in docs/public_keys.md.` |
 | Docker? | `No Docker image yet. I prioritised a single binary and a systemd unit. If people ask for it, I'll build it.` |
@@ -168,7 +168,7 @@ Reglas para tus respuestas:
 
 - No «production-ready» ni «enterprise-grade» sin matiz.
 - No prometer SLA de 1 h ni soporte 24/7.
-- No «gratis para siempre»: Community es AGPL y Pro será comercial.
+- No prometer «gratis para siempre»: hoy es gratuito y no hay venta; la licencia es AGPL-3.0.
 - No pedir votos, estrellas ni upvotes. Pide historias de uso.
 - No publicar el mismo texto en cinco sitios el mismo día. Espacia los mensajes y adapta el tono.
 - No responder a un comentario hostil con argumentos de marketing. Responde con datos o no respondas.
@@ -179,6 +179,6 @@ Reglas para tus respuestas:
 2. **Día 1:** r/selfhosted. Si un mod te pide el título con `[Self-Hosted]`, cámbialo sin discutir.
 3. **Día 2:** Mastodon/LinkedIn y un grupo de redes o ciberseguridad en español.
 4. **Durante:** mira descargas, comentarios con caso concreto, issues con la plantilla y respuestas en el Discussion. Ignora las estrellas como métrica.
-5. **Si alguien pregunta por precio:** di que aún no hay checkout, que estás validando y que el precio de lista está publicado en `docs/comercializacion.md`. No improvises descuentos.
+5. **Si alguien pregunta por precio:** di que NetDiag es gratuito, que no hay checkout ni precios y que no ofreces soporte formal. No improvises descuentos ni promesas de pago.
 
 El objetivo de esta semana no es vender. Es conseguir tres frases como «me sirvió para encontrar el switch que causaba los cortes». Con eso se decide qué se construye después.

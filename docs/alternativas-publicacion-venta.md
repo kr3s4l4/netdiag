@@ -1,6 +1,8 @@
-# Alternativas para publicar y vender NetDiag
+# Alternativas para publicar y vender NetDiag — DOCUMENTO HISTÓRICO, SIN VIGOR
 
-Estado: 18/11/2026. Los commits siguen **en local**. Esto es un plan listo para ejecutar, no una publicación hecha.
+**Aviso (20/11/2026):** la venta quedó retirada. No hay gestores de pago, checkout ni envío a gestores. Este plan nunca se ejecutó y no debe ejecutarse. Se conserva solo como registro. Estado vigente: `docs/licenciamiento.md`.
+
+Estado original: 18/11/2026. Los commits seguían **en local**. Era un plan listo para ejecutar, no una publicación hecha.
 
 ## Principio
 

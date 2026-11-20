@@ -156,8 +156,9 @@ No sustituye al control de acceso del servidor donde se generó el informe.
 No envía nada a terceros.
 ```
 
-## Regla comercial intacta
+## Sin coste
 
-La firma de evidencia **no es un producto facturable aparte**. No se cobra por
-informe, alerta, escaneo, usuario, host detectado, sonda ni sede. La factura
-sigue dependiendo solo de la banda de hosts gestionados.
+La firma de evidencia **no es un producto facturable**. NetDiag es gratuito y
+no hay factura. Nunca se cobró por informe, alerta, escaneo, usuario, host
+detectado, sonda ni sede. La antigua regla de banda de hosts gestionados quedó
+sin vigor el 20/11/2026.

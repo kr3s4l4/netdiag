@@ -1,6 +1,6 @@
-# Expediente de decisión comercial — F64
+# Expediente de decisión comercial — F64 — CERRADO SIN VIGOR
 
-**BORRADOR PARA FIRMA. NO ACTIVO. NO PUBLICAR COMO OFERTA.**
+**Cerrado el 20/11/2026.** El propietario decidió retirar la venta: NetDiag es gratuito, sin precios ni checkout. F55, F65 y F66 quedan sin vigor sin firma. El registro se conserva como historial; no es oferta ni modelo activo. Estado vigente: `docs/licenciamiento.md`.
 
 Este expediente deja constancia de lo que ya está decidido y de lo que sigue pendiente. No fija precios, no abre cobro y no modifica `docs/comercializacion.md`. Las cifras de ese documento y del roadmap son **propuestas sin aprobar** mientras F55, F65 y F66 no tengan decisión escrita.
 

@@ -1,5 +1,7 @@
 # NetDiag 1.5.2
 
+**Nota del 20/11/2026:** el texto comercial de estas notas refleja la propuesta del 19/11 y quedó sin vigor. NetDiag es gratuito y no hay venta. La release, sus hashes y su clave no se modifican.
+
 Release publicada y verificada. Incluye los 8 commits locales posteriores a `v1.5.1`. Los tags `v1.5.0` y `v1.5.1` no se mueven.
 
 Firmada con la clave oficial `netdiag-release`: `RWTJixPYyPcyWf0VEHdzn6lRYxgrPS3z+EbRBKlI9E+hX0lj1227yrZY` (key_id `c98b13d8c8f73259`). Sin telemetría, licencia online ni DRM.
