@@ -37,6 +37,24 @@
 - **Seguridad por defecto**: Argon2id, sesiones en servidor, CSRF, límite de intentos, cabeceras CSP/HSTS, auditoría, secretos cifrados con AES-256-GCM y token opcional para `/metrics`.
 - **Un solo binario**: SPA embebida, SQLite embebido (modernc) y configuración YAML. Funciona offline.
 
+## Capturas
+
+Imágenes de la interfaz con datos de ejemplo.
+
+![Panel principal](docs/capturas/panel.webp)
+
+![Inventario de dispositivos](docs/capturas/dispositivos.webp)
+
+![Topología L2/L3](docs/capturas/topologia.webp)
+
+![Diagnósticos](docs/capturas/diagnostico.webp)
+
+![Alertas](docs/capturas/alertas.webp)
+
+![Informes](docs/capturas/informes.webp)
+
+![Vista de detalle](docs/capturas/explicacion.webp)
+
 ## Hacia dónde va NetDiag
 
 La versión 1.5 ya cubre el núcleo: descubrimiento, inventario, topología, diagnósticos, alertas, informes, multi-sede, auditoría y actualización firmada. El [roadmap](docs/roadmap.md) describe el estado de las mejoras cerradas y las que siguen pendientes:

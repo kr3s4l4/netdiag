@@ -36,6 +36,24 @@ Discover → identify → store → monitor → alert → report
 - **Secure defaults**: Argon2id, server-side sessions, CSRF, rate limiting, CSP/HSTS headers, auditing, AES-256-GCM secrets and an optional token for `/metrics`.
 - **One binary**: embedded SPA, embedded SQLite (modernc) and YAML configuration. Works offline.
 
+## Screenshots
+
+Screenshots with sample data.
+
+![Main dashboard](docs/capturas/panel.webp)
+
+![Device inventory](docs/capturas/dispositivos.webp)
+
+![L2/L3 topology](docs/capturas/topologia.webp)
+
+![Diagnostics](docs/capturas/diagnostico.webp)
+
+![Alerts](docs/capturas/alertas.webp)
+
+![Reports](docs/capturas/informes.webp)
+
+![Detail view](docs/capturas/explicacion.webp)
+
 ## Quick start
 
 Requirements: Go 1.27+. For active ARP, also `libpcap-dev` and gcc.
