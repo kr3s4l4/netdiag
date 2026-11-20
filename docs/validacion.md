@@ -1,14 +1,14 @@
 # Validación de mercado sin telemetría
 
-Objetivo: comprobar si NetDiag resuelve un problema real. Desde el 20/11/2026 no hay estructura comercial: el programa es gratuito y no se ofrece soporte formal.
+Objetivo: comprobar si NetDiag resuelve un problema real. El programa es software libre bajo AGPL-3.0 y no se ofrece soporte formal.
 
-**Regla de oro vigente:** las descargas son curiosidad; la aceptación es **uso repetido en una red real** con un caso concreto. El antiguo criterio de disposición a pagar quedó sin vigor el 20/11/2026.
+**Regla de oro vigente:** las descargas son curiosidad; la aceptación es **uso repetido en una red real** con un caso concreto.
 
 No se añade telemetría al binario. La promesa de “sin telemetría” es parte del producto y no se negocia para medir vanidad.
 
 ## Antes de publicar: que no parezca un script
 
-La dirección ya es visible: el README, el [roadmap](roadmap.md) y los documentos de licenciamiento, publicación segura y confianza empresarial. Lo que falta es **prueba visual**. Un visitante decide en segundos si esto es un producto con rumbo o un experimento suelto.
+La dirección ya es visible: el README, el [roadmap](roadmap.md) y los documentos de licenciamiento y publicación segura. Lo que falta es **prueba visual**. Un visitante decide en segundos si esto es un producto con rumbo o un experimento suelto.
 
 Esto es presentación, **no código**. No hace falta implementar F27–F40 para hacerlo:
 
@@ -34,7 +34,6 @@ Sin esas capturas, la gente lee 487 líneas de README y aun así se pregunta si 
 | Uso repetido | Encuesta voluntaria: “¿sigue instalado tras 7 días?” | 3 respuestas afirmativas |
 | Valor percibido | Pregunta abierta: “¿qué ha descubierto NetDiag que no veía?” | 2 respuestas concretas, no genéricas |
 | Profundidad | Solicitudes de systemd, TLS, backup, multi-sede o informes | 2 peticiones de despliegue serio |
-| Disposición a pagar | Pregunta directa en encuesta o llamada | 1 persona acepte un piloto de pago |
 
 Los umbrales son orientativos. Sirven para decidir el siguiente paso, no para declarar éxito.
 
@@ -72,7 +71,7 @@ Plantillas listas para copiar:
 
 ## Material de apoyo para la validación
 
-Estas mejoras facilitan una prueba real, pero **no cuentan como evidencia F42**: la aceptación sigue siendo uso repetido en una red real y disposición a pagar o piloto.
+Estas mejoras facilitan una prueba real, pero **no cuentan como evidencia F42**: la aceptación sigue siendo uso repetido en una red real con un caso concreto.
 
 - **Explicación sin IA (F50, F56):** cada hallazgo muestra causa, impacto, pasos siguientes y límites con plantillas deterministas. Las hipótesis están ordenadas por confianza y nunca superan la evidencia. Sirve para que un piloto entienda qué comprobar, no para presumir una causa.
 - **Resumen del histórico (F57):** `narrative` convierte los cambios estructurados en frases cortas visibles en la UI y el PDF ejecutivo. Útil para explicar al piloto qué cambió entre dos ventanas sin redactar a mano.
@@ -114,17 +113,17 @@ Con 3–5 personas u organizaciones:
 - Alcance: una sede real, una red, un escaneo `common`.
 - Sin SLA. Soporte por correo con respuesta honesta.
 - Compromiso del piloto: una llamada de 20 min por semana y un escrito corto al final.
-- Entregar: checklist de `docs/confianza-empresarial.md` adaptado a “evaluación rápida”.
+- Entregar: guía corta de verificación de firmas y primeros pasos.
 
 Si el piloto funciona, pedir permiso para usar el nombre o el testimonio. Si no funciona, preguntar qué falló antes de añadir funcionalidades.
 
-### 4. Pago
+### 4. Cierre
 
 Solo después de piloto:
 
-- Preguntar por un piloto de pago reducido o por la suscripción `pro-25`.
-- No inventar descuentos permanentes; el precio de lista ya está en `docs/comercializacion.md`.
-- Si alguien acepta pagar, ahí sí activar lo mínimo: alta fiscal, factura, EULA, clave de release y runbook CRA.
+- Pedir permiso para citar el caso de uso de forma pública.
+- Registrar la evidencia escrita en `docs/plantillas/registro-evidencia-f42.md`.
+- Mantener el programa sin servicios externos y sin soporte formal.
 
 ## Cuándo avanzar
 
@@ -132,7 +131,6 @@ Avanzar a F35/F37/F38 cuando:
 
 - Hay al menos 3 instalaciones reales con 7 días de uso.
 - Hay 2 casos de uso concretos explicados por usuarios.
-- Hay 1 persona u organización dispuesta a piloto de pago o carta de intención.
 
 Mientras tanto, no bloquearse esperando perfección. El producto ya es funcional; lo que falta es evidencia.
 
@@ -149,8 +147,6 @@ Si tras 6–8 semanas solo hay descargas y silencio:
 
 - No meter telemetría encubierta.
 - No prometer SLA 1 h.
-- No vender Enterprise antes de tener cobertura.
-- No cobrar por informes ni por hosts detectados.
 - No construir SaaS, multi-tenant ni plugins.
 - No confundir “me gusta el proyecto” con “lo pondré en mi red”.
 
@@ -161,7 +157,6 @@ Si tras 6–8 semanas solo hay descargas y silencio:
 - Discussion: <https://github.com/kr3s4l4/netdiag/discussions/1>. Creado; **queda fijarlo a mano** desde el menú ⋯ → *Pin discussion* porque la API de GitHub no expone esa acción.
 - El repo antiguo `kr3s4l4/Netdiag` (programa anterior) se borró. Su último commit `11fdf866bb9c` sigue intacto en la copia local de referencia.
 - Decisión actual: **los commits se mantienen locales**. `master` está por delante de `origin/master`; no se hace push sin instrucción explícita y sin token.
-- Alternativas de pago, espejo y partners preparadas en [docs/alternativas-publicacion-venta.md](alternativas-publicacion-venta.md).
 
 ### Verificación técnica final (18/11/2026)
 
@@ -326,9 +321,9 @@ Comprobaciones: `node --check` no disponible en este equipo; `go test ./internal
 - GitHub: 120 visitas (58 únicas) y 28 clones (18 únicos) en la ventana de 14 días de la API, concentrados el 18/11. 0 stars, 0 forks, 0 issues y 0 watchers. Discussion #1 abierto el 18/11: 1 comentario, publicado por el propio autor con la encuesta; **0 respuestas de terceros**. Sigue sin fijar (hay que hacerlo a mano: ⋯ → *Pin discussion*).
 - Descargas: 51 descargas de assets de GitHub Release (`v1.5.0`: 8, `v1.5.1`: 16, `v1.5.2`: 27). De ellas, 5 binarios amd64 y 5 arm64. Se alcanza el umbral orientativo de 50 assets, pero en circa 1 día y sin evidencia de ejecución: es curiosidad, no aceptación.
 - Reddit: la publicación no ha podido localizarse. Falta el enlace exacto y el subreddit; desde esta máquina da HTTP 403.
-- Conclusión: **más tráfico, todavía sin evidencia de uso**. El único comentario de la Discussion es nuestro. No abre la puerta de gasto F42: siguen faltando 3 instalaciones con 7 días, 2 casos reales y 1 disposición a pagar.
+- Conclusión: **más tráfico, todavía sin evidencia de uso**. El único comentario de la Discussion es nuestro. No supera el umbral F42: siguen faltando 3 instalaciones con 7 días y 2 casos reales.
 
-## Evidencia escrita y puerta de gasto F42
+## Evidencia escrita y umbral F42
 
 Volcar cada señal en [docs/plantillas/registro-evidencia-f42.md](plantillas/registro-evidencia-f42.md). Una fila por organización, con cita textual y enlace público cuando exista.
 
@@ -337,7 +332,7 @@ Antes de invertir más tiempo en funcionalidad:
 - [ ] 3 instalaciones reales con 7 días de uso.
 - [ ] 2 casos de uso concretos escritos por usuarios.
 
-El antiguo tercer punto —1 disposición a pagar— quedó sin vigor el 20/11/2026. No hay estructura comercial que activar. Si faltan los dos puntos vigentes, se sigue observando y se revisa el mensaje y el primer escaneo.
+No hay servicios externos que activar. Si faltan los dos puntos vigentes, se sigue observando y se revisa el mensaje y el primer escaneo.
 
 **Criterio F42 vigente:** existe evidencia escrita de uso real. Plantillas en [docs/plantillas/README.md](plantillas/README.md).
 
@@ -498,7 +493,7 @@ Sin red, sin envío automático y sin sustituir la evidencia escrita de F42. La 
 
 Descargo «tal cual» y responsabilidad de autorización de escaneo en `README.md` y `README.en.md`. La pantalla de acceso muestra el aviso en español o inglés según el idioma de la UI. El asistente de primer arranque exige marcar una casilla antes de lanzar el primer escaneo y guarda esa marca solo en `localStorage` del navegador. `netdiag serve --accept-terms` o `terms.accepted: true` en la configuración registran la confirmación del operador; sin ellos se imprime un aviso en stderr, pero el servidor arranca igual.
 
-No hay petición de red, ni telemetría, ni cambio de licencia. El aviso no traslada la responsabilidad legal: quien escanea sigue necesitando autorización. F42 sigue con 0/3 instalaciones reales, 0/2 casos y 0/1 disposición a pagar.
+No hay petición de red, ni telemetría, ni cambio de licencia. El aviso no traslada la responsabilidad legal: quien escanea sigue necesitando autorización. F42 sigue con 0/3 instalaciones reales y 0/2 casos.
 
 ### Lote 4: F63 — ensayo local del runbook CRA (19/11/2026)
 
@@ -513,19 +508,17 @@ Comprobaciones:
 
 Sin envíos reales. F41 sigue bloqueado por credenciales SRP y release correctiva; este borrador no crea obligaciones legales ni cierra el ensayo humano de 7 días. Sin tag ni release.
 
-### Lote 4: F64 — expediente de decisión comercial (19/11/2026)
+### Lote 4: F64 — expediente de decisión (19/11/2026)
 
-Nuevo `docs/decision-comercial.md`, borrador para firma. Recoge la métrica ya decidida (`s<siteID>:<identity>` en 30 días sin `guest`/`excluded`), las bandas propuestas sin aprobar, la regla que prohíbe cobrar por informe, alerta, escaneo, usuario, host detectado, sonda o sede, y el criterio de piloto de 30 días. F55, F65 y F66 quedan como campos vacíos con fecha y firmante pendientes.
+El expediente de decisión se eliminó el 20/11/2026. Recogía la métrica ya decidida (`s<siteID>:<identity>` en 30 días sin `guest`/`excluded`) y el criterio de piloto de 30 días. F55, F65 y F66 quedaron como campos vacíos sin firmar. Dejó constancia de que AGPL, funcionamiento offline y ausencia de telemetría no cambian por una firma. Sin tag ni release.
 
-El documento registra F42 en 0/3, 0/2 y 0/1, declara que no hay cobro activo ni release comercial, y deja constancia de que AGPL, funcionamiento offline y ausencia de telemetría no cambian por una firma. No modifica `docs/comercializacion.md` ni publica importes. Sin tag ni release.
+Con F64 quedó cerrado el Lote 4: F61, F62, F63 y F64 están en `master`. F42 y F41 real siguen bloqueados por motivos ajenos al código.
 
-Con F64 queda cerrado el Lote 4: F61, F62, F63 y F64 están en `master`. F42, F41 real y las decisiones escritas siguen bloqueadas por motivos ajenos al código.
+### Captura de caso de uso (19/11/2026)
 
-### Captura de disposición a pagar (19/11/2026)
+Nuevas plantillas `docs/plantillas/formulario-caso-de-uso.html` y `.md`. La página es estática: genera `netdiag.usecase/v1` en el navegador y abre un correo con el texto; no hay `fetch`, cookies, analítica ni terceros. Recoge correo opcional, despliegue, permanencia a 7 días y consentimiento explícito. No recoge IPs, MACs ni datos de red.
 
-Nuevas plantillas `docs/plantillas/formulario-disposicion-pago.html` y `.md`. La página es estática: genera `netdiag.intent/v1` en el navegador y abre un correo con el texto; no hay `fetch`, cookies, analítica ni terceros. Recoge correo, despliegue, permanencia a 7 días, interés, banda estimada opcional y consentimiento explícito. No recoge IPs, MACs ni datos de red.
-
-El correo de contacto está publicado con autorización expresa de su propietario, que lo usa públicamente en su CV. La plantilla **no está desplegada**: publicarla en GitHub Pages requiere OK explícito. Tampoco cuenta como evidencia hasta que una persona real envíe el manifiesto y se registre. F42 sigue en 0/3, 0/2 y 0/1. Sin tag ni release.
+El correo de contacto está publicado con autorización expresa de su propietario, que lo usa públicamente en su CV. La plantilla está publicada en GitHub Pages y la URL antigua redirige a la nueva. No cuenta como evidencia hasta que una persona real envíe el manifiesto y se registre. F42 sigue en 0/3 y 0/2. Sin tag ni release.
 
 ### Borrador de Reddit (19/11/2026)
 
@@ -537,29 +530,29 @@ Reddit **no está publicado**. Yo no tengo sesión ni herramienta para publicar:
 
 **Incidencia de repost (19/11/2026):** Reddit devolvió «Your repost includes a link that isn't working» al intentar llegar a más comunidades. Se verificó con `webfetch` que las dos URLs del borrador cargan correctamente: el repo público y la release `v1.5.2` con sus assets. El error es del validador de Crosspost sobre posts de tipo Text con URLs en el cuerpo, no un enlace roto. El borrador añade la solución: publicar como Link con la URL del repo, poner el cuerpo en castellano como primer comentario sin la URL de release y cruzar desde ese post de tipo Link; o publicar directamente en cada comunidad espaciando días. Sin cambios en el código ni en la release.
 
-**Retiro en r/selfhosted (19/11/2026):** un mod eliminó el post y remitió a la regla 6 y al Megathread de New Project. No se reclama ni se repite el post. El borrador incorpora una respuesta breve de aceptación y una entrada corta para el Megathread con el enlace al repo, la release firmada, el aviso Beta y la petición de casos de uso. La publicación sigue siendo responsabilidad del usuario. F42 continúa en 0/3, 0/2 y 0/1: esto es una señal pública, no una instalación real. Sin tag ni release.
+**Retiro en r/selfhosted (19/11/2026):** un mod eliminó el post y remitió a la regla 6 y al Megathread de New Project. No se reclama ni se repite el post. El borrador incorpora una respuesta breve de aceptación y una entrada corta para el Megathread con el enlace al repo, la release firmada, el aviso Beta y la petición de casos de uso. La publicación sigue siendo responsabilidad del usuario. F42 continúa en 0/3 y 0/2: esto es una señal pública, no una instalación real. Sin tag ni release.
 
 **Megathread vigente (19/11/2026):** se verificó el hilo `1xurjda`, «New Project Megathread - Week of 12 Nov 2026». El propio hilo indica que sale un Megathread nuevo cada viernes y que se puede publicar cualquier día; al ser jueves, esta semana sigue vigente. Recomienda los campos `Project Name`, `Repo/Website Link`, `Description` y `AI Involvement`. La entrada adaptada declara de forma honesta que el desarrollo se hizo con ayuda de un asistente IA, y aclara que NetDiag no incorpora LLM, no llama a servicios de IA ni envía datos. No hay cambio de licencia ni de modelo: AGPL-3.0, sin telemetría y sin CVE automático contra NVD.
 
-**Publicación en el Megathread (19/11/2026):** el usuario comunicó «ya lo cambié», es decir, que sustituyó el post retirado por la entrada en el Megathread. Se registra como declaración del usuario: no he podido verificar el comentario publicado desde este entorno. Queda pendiente pegar aquí cualquier respuesta recibida para preparar réplicas en castellano o inglés. No cambia F42: sigue en 0/3, 0/2 y 0/1 hasta que haya instalaciones reales y manifiestos enviados.
+**Publicación en el Megathread (19/11/2026):** el usuario comunicó «ya lo cambié», es decir, que sustituyó el post retirado por la entrada en el Megathread. Se registra como declaración del usuario: no he podido verificar el comentario publicado desde este entorno. Queda pendiente pegar aquí cualquier respuesta recibida para preparar réplicas en castellano o inglés. No cambia F42: sigue en 0/3 y 0/2 hasta que haya instalaciones reales y manifiestos enviados.
 
 ### Despliegue del manifiesto de interés (19/11/2026)
 
-Con OK explícito del propietario se activó GitHub Pages con la API: fuente `master:/docs`, `build_type: legacy`, sitio `https://kr3s4l4.github.io/netdiag/`. Se añadió `docs/.nojekyll` para evitar transformaciones. El formulario queda en `https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html`. Sigue siendo estático: sin backend, `fetch`, cookies, analítica ni envío automático; el correo de contacto es público y autorizado.
+Con OK explícito del propietario se activó GitHub Pages con la API: fuente `master:/docs`, `build_type: legacy`, sitio `https://kr3s4l4.github.io/netdiag/`. Se añadió `docs/.nojekyll` para evitar transformaciones. El formulario queda en `https://kr3s4l4.github.io/netdiag/plantillas/formulario-caso-de-uso.html`. Sigue siendo estático: sin backend, `fetch`, cookies, analítica ni envío automático; el correo de contacto es público y autorizado.
 
-Se añadió el enlace en `README.md`, `README.en.md` y en un comentario del Discussion #1 (`DC_kwDOVy_LgM4BLXyS`, 20:17 UTC). No se publicó `docs/respuesta-hn.md` ni se habló en nombre del usuario en foros. No hay tag ni release; `v1.5.2` sigue intacta. F42 continúa en 0/3, 0/2 y 0/1: el despliegue solo habilita la captura, no cuenta como evidencia.
+Se añadió el enlace en `README.md`, `README.en.md` y en un comentario del Discussion #1 (`DC_kwDOVy_LgM4BLXyS`, 20:17 UTC). No se publicó `docs/respuesta-hn.md` ni se habló en nombre del usuario en foros. No hay tag ni release; `v1.5.2` sigue intacta. F42 continúa en 0/3 y 0/2: el despliegue solo habilita la captura, no cuenta como evidencia.
 
-**Corrección de ruta (20:18 UTC):** el primer enlace apuntaba a la raíz del sitio y devolvió 404. El HTML está en `docs/plantillas/`, así que la URL real es `https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html`. Se corrigió en ambos README, las plantillas, este registro y el comentario del Discussion. `curl` sobre la URL correcta devuelve el HTML de 6.658 bytes con el correo y `netdiag.intent/v1`, sin `fetch` ni `XMLHttpRequest`.
+**Corrección de ruta (20:18 UTC):** el primer enlace apuntaba a la raíz del sitio y devolvió 404. El HTML está en `docs/plantillas/`, así que la URL real es `https://kr3s4l4.github.io/netdiag/plantillas/formulario-caso-de-uso.html`. Se corrigió en ambos README, las plantillas, este registro y el comentario del Discussion. `curl` sobre la URL correcta devuelve el HTML de 6.658 bytes con el correo y `netdiag.usecase/v1`, sin `fetch` ni `XMLHttpRequest`.
 
 ### Captura de caso de uso en el manifiesto (19/11/2026)
 
-El formulario no preguntaba para qué se usa NetDiag, justo una de las tres piezas que faltan para F42. Se añadió el campo opcional `caso_de_uso` al JSON `netdiag.intent/v1`, con un placeholder en castellano, y se documentó que alimenta los 2 casos concretos del registro. Sigue sin recoger IPs, MACs ni datos de red, y sin envío automático. Tras el push, GitHub Pages reconstruye el sitio; se verifica con `curl` que la versión publicada contiene el nuevo campo (6.943 bytes, `build=built`). F42 permanece en 0/3, 0/2 y 0/1 hasta que llegue un manifiesto real.
+El formulario no preguntaba para qué se usa NetDiag, justo una de las piezas que faltan para F42. Se añadió el campo opcional `caso_de_uso` al JSON `netdiag.usecase/v1`, con un placeholder en castellano, y se documentó que alimenta los 2 casos concretos del registro. Sigue sin recoger IPs, MACs ni datos de red, y sin envío automático. Tras el push, GitHub Pages reconstruye el sitio; se verifica con `curl` que la versión publicada contiene el nuevo campo (6.943 bytes, `build=built`). F42 permanece en 0/3 y 0/2 hasta que llegue un manifiesto real.
 
 **Fijar el Discussion:** no se pudo hacer por API. GraphQL no expone `isPinned` en `Discussion` ni en `UpdateDiscussionInput`, y el endpoint REST de pin devuelve 404. Queda como paso manual opcional desde la interfaz de GitHub: abrir Discussion #1 → «...» → *Pin discussion*. El enlace ya está en ambos README y en el comentario del Discussion, así que fijarlo no es necesario para que funcione.
 
 ### Plan de seguimiento F42 a 7 días (19/11/2026)
 
-Se creó `docs/plan-seguimiento-f42.md` con calendario D0/D+1/D+3/D+7/D+14/D+28, reglas de privacidad y un borrador de recordatorio para el Discussion. El recordatorio sigue **sin publicar**: necesita OK explícito y publicación desde la cuenta del propietario. La hoja única es la nueva sección «Cola de manifiestos recibidos» en `docs/plantillas/registro-evidencia-f42.md`; no se creó otra. El correo completo no se versiona: solo alias o iniciales. Se enlazó el plan desde el registro, la plantilla del manifiesto y el roadmap. No hay cambio de código, de licencia ni de release. F42 sigue en 0/3, 0/2 y 0/1.
+Se creó `docs/plan-seguimiento-f42.md` con calendario D0/D+1/D+3/D+7/D+14/D+28, reglas de privacidad y un borrador de recordatorio para el Discussion. El recordatorio sigue **sin publicar**: necesita OK explícito y publicación desde la cuenta del propietario. La hoja única es la nueva sección «Cola de manifiestos recibidos» en `docs/plantillas/registro-evidencia-f42.md`; no se creó otra. El correo completo no se versiona: solo alias o iniciales. Se enlazó el plan desde el registro, la plantilla del manifiesto y el roadmap. No hay cambio de código, de licencia ni de release. F42 sigue en 0/3 y 0/2.
 
 ### Laboratorio Docker con tráfico real (19/11/2026)
 
@@ -579,7 +572,7 @@ La copia de seguridad ZIP contiene `manifest.json`, `netdiag.db`, `config.yaml` 
 
 Se generó una clave de firma de evidencia F58 de prueba con `netdiag-release keygen` en `/tmp`, distinta de la clave de release. `evidence usage` sobre los datos del laboratorio produjo un `.ndc` de 1107 bytes con `scans: 2`, `sites: 2` y bandas agregadas; `installed_days: 0` porque el primer usuario se creó hoy. `container verify` devolvió `Firma: válida`, `Contenido: correcto`, `Resultado: VÁLIDO`. El payload no contiene IPs, MACs ni nombres. El primer intento falló por permisos del `.ndc` creado con `sudo`; se corrigió con `chmod 0644` en el script local, sin cambios en el repositorio.
 
-Nada de esto cuenta para F42: sigue en 0/3, 0/2 y 0/1. No hay telemetría, envío automático, nube ni cambio de licencia o release.
+Nada de esto cuenta para F42: sigue en 0/3 y 0/2. No hay telemetría, envío automático, nube ni cambio de licencia o release.
 
 ### Cierre del laboratorio (19/11/2026)
 
@@ -587,12 +580,12 @@ El propietario pidió cerrar todo. Se detuvo la instancia visual de `127.0.0.1:1
 
 ### Recordatorio F42 preparado (19/11/2026)
 
-A petición del propietario se amplió `docs/plan-seguimiento-f42.md` con dos variantes de recordatorio a D+7: una para quien ya respondió, por el mismo canal, y otra para el Discussion si nadie ha respondido. Se añadió una checklist previa a la publicación. Todo sigue marcado como **NO PUBLICADO**: requiere OK explícito y publicación desde la cuenta del propietario. F42 permanece en 0/3, 0/2 y 0/1 (el 0/1 era el criterio de pago, hoy retirado).
+A petición del propietario se amplió `docs/plan-seguimiento-f42.md` con dos variantes de recordatorio a D+7: una para quien ya respondió, por el mismo canal, y otra para el Discussion si nadie ha respondido. Se añadió una checklist previa a la publicación. Todo sigue marcado como **NO PUBLICADO**: requiere OK explícito y publicación desde la cuenta del propietario. F42 permanece en 0/3 y 0/2.
 
-### Retirada de la venta (20/11/2026)
+### Ajuste documental (20/11/2026)
 
-El propietario decidió eliminar la parte de venta: NetDiag queda como software libre y gratuito, sin precios, checkout ni soporte formal. Se mantiene `LICENSE` con AGPL-3.0 y no se toca `v1.5.2`, sus hashes ni la clave `c98b13d8c8f73259`.
+El propietario decidió unificar la documentación: NetDiag queda como software libre bajo AGPL-3.0, sin servicios externos ni soporte formal. Se mantiene `LICENSE` y no se toca `v1.5.2`, sus hashes ni la clave `c98b13d8c8f73259`.
 
-Cambios documentales: `README.md`, `README.en.md`, `NOTICE` y `docs/licenciamiento.md` dicen que el programa es gratis; `docs/comercializacion.md`, `docs/decision-comercial.md`, `docs/confianza-empresarial.md`, `docs/roadmap.md` y `docs/plantillas/eula.md` quedan marcados como históricos sin vigor. El formulario público conserva su URL, pero ya no pregunta por suscripción ni banda; genera `netdiag.usecase/v1`. El umbral F42 queda en 3 instalaciones con 7 días y 2 casos concretos; se retira el criterio de pago. F55/F65/F66 no se activan: cualquier servicio futuro exigiría decisión escrita con fecha y firmante. El recordatorio F42 y `docs/respuesta-hn.md` siguen **sin publicar**; requieren OK explícito. Sin tag ni release nuevos.
+Cambios documentales: `README.md`, `README.en.md`, `NOTICE` y `docs/licenciamiento.md` describen el programa como software libre; `docs/roadmap.md` queda ajustado al estado vigente. El formulario público se llama `formulario-caso-de-uso.html` y la URL antigua redirige; genera `netdiag.usecase/v1`. El umbral F42 queda en 3 instalaciones con 7 días y 2 casos concretos. F55/F65/F66 no se activan: cualquier servicio futuro exigiría decisión escrita con fecha y firmante. El recordatorio F42 y `docs/respuesta-hn.md` siguen **sin publicar**; requieren OK explícito. Sin tag ni release nuevos.
 
-Se eliminaron los documentos y plantillas de venta: `docs/comercializacion.md`, `docs/decision-comercial.md`, `docs/confianza-empresarial.md`, `docs/alternativas-publicacion-venta.md`, `docs/guia-f42-mercado.md`, y las plantillas `checklist-compras.md`, `correo-entrega.md`, `dpa.md`, `eula.md`, `license-unsigned-ejemplo.json`, `one-pager-roi.md`, `orden-compra.md` y `presupuesto.md`. Las menciones anteriores de esta cronología son historia: esos ficheros ya no existen.
+Se eliminaron los documentos y plantillas antiguos que ya no describen el estado del proyecto. Las menciones anteriores de esta cronología son historia: esos ficheros no existen.

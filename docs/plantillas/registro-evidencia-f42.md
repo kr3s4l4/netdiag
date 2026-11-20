@@ -18,7 +18,7 @@ Hoja de trabajo del [plan de seguimiento a 7 días](../plan-seguimiento-f42.md).
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `[AAAA-MM-DD HH:MM]` | `[correo / Discussion / HN / Megathread]` | `[alias]` | `[tipo de red, sin IPs]` | `[SÍ / NO]` | `[AAAA-MM-DD]` | `[SÍ / NO / PENDIENTE]` | `[frase concreta]` | `[qué y cuándo]` | `[ABIERTO / EVIDENCIA / CERRADO]` |
 
-Solo `Sigue D+7 = SÍ` mueve la fila a «Evidencia de uso real». Sin caso concreto, no hay segunda casilla. La columna «Intención / banda» se retiró el 20/11/2026: no hay venta.
+Solo `Sigue D+7 = SÍ` mueve la fila a «Evidencia de uso real». Sin caso concreto, no hay segunda casilla.
 
 ## Evidencia de uso real
 
@@ -32,16 +32,11 @@ Solo `Sigue D+7 = SÍ` mueve la fila a «Evidencia de uso real». Sin caso concr
 | --- | --- | --- | --- | --- |
 | 2026-11-19 | HN, comentario de `bradknowles` | «I didn't see any obvious way to switch the language to English» | F48: `README.en.md` y texto de respuesta | <https://news.ycombinator.com/item?id=50545732> |
 
-## Disposición a pagar — SIN VIGOR
-
-Sección retirada el 20/11/2026. NetDiag es gratuito; no hay precios, SKU ni pago. No se recoge esta señal.
-
 ## Umbral de salida
 
 - [ ] **3** instalaciones reales con **7 días** de uso.
 - [ ] **2** casos de uso concretos explicados por usuarios.
 
-El antiguo tercer criterio —1 disposición a pagar— quedó sin vigor el 20/11/2026.
 
 ## Puerta de gasto
 

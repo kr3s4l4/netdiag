@@ -31,7 +31,7 @@
 
 ## Qué no es
 
-No es telemetría. No hay red, ni envío automático, ni nube. No cuenta como evidencia de F42: F42 exige 3 instalaciones reales con 7 días y 2 casos escritos por usuarios. El antiguo criterio de pago quedó sin vigor el 20/11/2026. La frase se imprime al terminar el comando.
+No es telemetría. No hay red, ni envío automático, ni nube. No cuenta como evidencia de F42: F42 exige 3 instalaciones reales con 7 días y 2 casos escritos por usuarios. La frase se imprime al terminar el comando.
 
 ## Generar y verificar
 

@@ -71,7 +71,7 @@ const draft72 = `# Notificación CRA 72 h — BORRADOR DE ENSAYO — NO ENVIADO
 - Mitigación temporal recomendada al cliente: [...]
 - Parche previsto: [versión correctiva], fecha objetivo [AAAA-MM-DD]
 - Versión segura mínima (min_version): [versión]
-- Comunicación a clientes de pago: [prevista]
+- Comunicación pública del aviso: [prevista]
 - Notificación en UI y REVOCATION.md: [prevista]
 
 ## Informe final

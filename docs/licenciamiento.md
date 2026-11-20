@@ -2,9 +2,9 @@
 
 ## Estado vigente (20/11/2026)
 
-NetDiag es **software libre bajo AGPL-3.0** (`LICENSE`) y **gratuito**. No hay ediciones de pago, precios activos ni checkout. La antigua propuesta de ediciones Pro y Enterprise se retiró y sus documentos se eliminaron el 20/11/2026.
+NetDiag es **software libre bajo AGPL-3.0** (`LICENSE`). Hay una sola edición, sin servicios externos ni licencia online.
 
-La release publicada `v1.5.2` se construyó el 19/11/2026 e incluye texto comercial en sus notas. Esa release no se modifica: sus tags, hashes y claves de firma siguen intactos. Esta aclaración afecta a `master` y a la documentación.
+La release publicada `v1.5.2` no se modifica: sus tags, hashes y claves de firma siguen intactos. Esta aclaración afecta a `master` y a la documentación.
 
 ## Uso y redistribución
 
@@ -15,11 +15,11 @@ Puedes usar NetDiag, estudiarlo, modificarlo y redistribuirlo cumpliendo la AGPL
 - No hay cláusula de telemetría ni restricción de uso competitivo.
 - Los avisos de dependencias están en `NOTICE` y `THIRD_PARTY_LICENSES.md`.
 
-La AGPL permite usar NetDiag dentro de una organización sin distribuirlo, y no exige pago ni licencia online.
+La AGPL permite usar NetDiag dentro de una organización sin distribuirlo, y no exige licencia online.
 
 ## Activación offline (F35)
 
-El binario sabe leer un fichero JSON firmado con **Ed25519** guardado en `<data_dir>/license.json`. La verificación es **local**: NetDiag no contacta con ningún servidor, no envía el ID de licencia ni consulta caducidades en remoto. Es una capacidad técnica del programa, no una oferta comercial. No activa funciones premium ni bloquea el uso.
+El binario sabe leer un fichero JSON firmado con **Ed25519** guardado en `<data_dir>/license.json`. La verificación es **local**: NetDiag no contacta con ningún servidor, no envía el ID de licencia ni consulta caducidades en remoto. Es una capacidad técnica del programa. No activa funciones restringidas ni bloquea el uso.
 
 Formato (`schema` = `netdiag-license/v1`):
 
@@ -39,7 +39,7 @@ Formato (`schema` = `netdiag-license/v1`):
 }
 ```
 
-La firma cubre todos los campos **excepto** `signature`, serializados en un orden fijo. Cambiar cualquier valor invalida la firma. `0` en `max_managed_hosts` o `max_sites` significa «sin límite». Los valores `pro` y `enterprise` siguen siendo compatibles con el formato por motivos históricos; hoy no representan ningún producto.
+La firma cubre todos los campos **excepto** `signature`, serializados en un orden fijo. Cambiar cualquier valor invalida la firma. `0` en `max_managed_hosts` o `max_sites` significa «sin límite». Los valores de edición históricos solo se aceptan por compatibilidad con archivos antiguos; no activan capacidades distintas.
 
 Clave pública del emisor (base64, 32 bytes), separada de la clave minisign de los artefactos de release:
 
@@ -124,4 +124,4 @@ NetDiag es el nombre del proyecto. El uso de ese nombre en forks o productos der
 - Errores y preguntas técnicas: GitHub Issues del repositorio.
 - Preguntas generales: GitHub Discussions. No hay soporte formal ni SLA.
 - Vulnerabilidades: canal privado descrito en `SECURITY.md`.
-- Cualquier propuesta comercial: quedaría sin vigor salvo decisión escrita con fecha y firmante. Hoy no hay oferta comercial.
+- Cualquier cambio de licencia exigiría decisión escrita con fecha y firmante. Hoy no hay condiciones adicionales.

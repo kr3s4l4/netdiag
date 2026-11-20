@@ -113,8 +113,8 @@ If you give it a spin, I'd love to know where you deployed it, what you tried fi
 | Agents? | `No agents. It observes from one host: ARP/ICMP, banners, SNMP and LLDP/CDP neighbours. Nothing is installed on the monitored devices.` |
 | Why a single binary? | `I wanted something you can copy to a machine and run. One Go binary, embedded UI and SQLite, no cgo, no npm, no external services.` |
 | What are the limits? | `Visibility: one host only sees its own network vantage point. Diagnostics are heuristic, with evidence, confidence and explicit limitations.` |
-| License / pricing? | `AGPL-3.0 and free. No commercial edition, no prices, no checkout. I don't charge per report, alert or discovered host.` |
-| Is it enterprise-ready? | `It has RBAC, audit and multi-site, but I'm not selling an SLA yet. I'm one person and this is a preview. I'd rather say that than promise something I can't keep.` |
+| License? | `AGPL-3.0. One local edition, no cloud service and no online licence.` |
+| Is it enterprise-ready? | `It has RBAC, audit and multi-site, but I don't promise an SLA. I'm one person and this is a preview. I'd rather say that than promise something I can't keep.` |
 | How do I trust the binary? | `SHA256SUMS is minisign-signed. The key and a verification command are in docs/public_keys.md. The v1.5.2 SHA256SUMS hash is 4c8c1513a10abab794143be627048359115dcea6986945fb28e0e7cc31b90a39.` |
 | Docker? | `No official Docker image yet. I prioritised a single binary and a systemd unit. If people ask for it, I'll build it.` |
 | Windows/macOS? | `Linux amd64 and arm64 for now. Tell me if you need another platform and I'll consider it.` |
@@ -194,8 +194,8 @@ Publicar directamente en cada comunidad evita el validador. No cruces el mismo t
 ## Qué NO decir
 
 - No «production-ready» ni «enterprise-grade» sin matiz.
-- No prometer SLA, soporte 24/7 ni precios.
-- No decir «gratis para siempre»: Community es AGPL.
+- No prometer SLA ni soporte 24/7.
+- No decir «gratis para siempre»: la licencia es AGPL.
 - No pedir votos ni estrellas. Pide historias de uso.
 - No publicar `docs/respuesta-hn.md` ni el mismo texto en otros foros sin autorización específica.
 

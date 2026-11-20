@@ -28,7 +28,7 @@ No los pegues en el chat ni en el repositorio.
 | Nombre del responsable y del suplente | `SECURITY.md` línea 48 y `docs/plantillas/registro-responsabilidad.md` |
 | ID de organización y usuario de la SRP | Gestor de contraseñas local |
 | Contraseña de la clave de firma | Papel, como ya está |
-| Lista de contactos de clientes de pago | Fuera del repositorio |
+| Lista de contactos de despliegues reales | Fuera del repositorio |
 
 Si aún no tienes cuenta en la SRP, el ensayo sirve para medir el proceso, pero queda marcado como **pendiente de credenciales reales**. Crear la cuenta es un paso manual que solo puedes hacer tú.
 
@@ -139,4 +139,4 @@ Calcula los tres intervalos reales desde `T0`. Rellena la sección «Cierre» co
 | < 7 días | Release firmada y verificada | Versión + SHA256 + `verify-release.sh` |
 | Siempre | Sin envíos reales | Recibos marcan «NO enviado» |
 
-Si falta la cuenta SRP o el responsable, el ensayo no está cerrado: anótalo como bloqueo y resuélvelo antes del primer cliente Enterprise.
+Si falta la cuenta SRP o el responsable, el ensayo no está cerrado: anótalo como bloqueo y resuélvelo antes del primer incidente real.

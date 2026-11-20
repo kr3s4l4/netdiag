@@ -8,7 +8,7 @@
 | 1.4.x | Hasta la siguiente minor, solo correcciones críticas |
 | < 1.4 | No |
 
-**Sin ventana contractual:** NetDiag es gratuito y no hay ediciones de pago, contratos ni EULA. La tabla anterior describe el soporte de seguridad ofrecido. No hay SLA ni soporte formal: los errores se atienden por GitHub Issues.
+**Sin ventana contractual:** NetDiag es software libre. La tabla anterior describe el soporte de seguridad ofrecido. No hay SLA ni soporte formal: los errores se atienden por GitHub Issues.
 
 ## Cómo reportar una vulnerabilidad
 
@@ -35,7 +35,7 @@ Incluye, si puedes:
 | Parche para vulnerabilidad crítica explotada | objetivo 72 h–7 días |
 | Parche para severidad alta no explotada | objetivo 30 días |
 | Severidad media/baja | siguiente versión, objetivo 90 días |
-| Publicación | notas firmadas, aviso en este archivo y comunicación a clientes de pago |
+| Publicación | notas firmadas, aviso en este archivo y comunicación pública |
 
 Si hay evidencia fiable de explotación activa o de un incidente grave, se reporta aunque todavía no exista solución. El parche llega después; el aviso no puede esperar.
 
@@ -67,12 +67,12 @@ Pasos:
 3. Enviar el [aviso de 24 h](docs/plantillas/aviso-cra-24h.md) al CSIRT del Estado miembro del establecimiento principal y a la SRP de ENISA. Guardar el justificante.
 4. Enviar la [notificación de 72 h](docs/plantillas/aviso-cra-72h.md) con la evaluación inicial.
 5. Corregir en una release nueva firmada con SBOM, manifiesto y `min_version` apuntando a la primera versión segura. F23 marca esas instalaciones con `security_update: true` y emite `update.security`; el cliente ve el aviso aunque la comparación de versiones no parezca urgente.
-6. Comunicar a clientes de pago por correo, notificar en la UI y publicar [REVOCATION.md](docs/plantillas/REVOCATION.md) firmado cuando proceda. En air-gapped se entrega un `.ndc` firmado con el aviso.
+6. Comunicar el aviso de forma pública, notificar en la UI y publicar [REVOCATION.md](docs/plantillas/REVOCATION.md) firmado cuando proceda. En air-gapped se entrega un `.ndc` firmado con el aviso.
 7. Enviar el informe final y cerrar ambos registros.
 
 **Monitorización de dependencias:** cada release lleva SBOM CycloneDX (`sbom.cdx.json`) y atestación de procedencia. Revisar avisos de forma periódica. Un CVE relevante se trata como incidente interno aunque no haya explotación conocida. El productor responde por el producto terminado; después reclama aguas arriba si existe contrato. **Nunca firmar un binario de terceros sin reconstruirlo o verificarlo.** Ver `docs/publicacion-segura.md`.
 
-**Autorización de escaneo:** quien ejecuta NetDiag declara que está autorizado a analizar esas redes. Se prohíbe el escaneo de terceros. No hay EULA ni contrato de pago.
+**Autorización de escaneo:** quien ejecuta NetDiag declara que está autorizado a analizar esas redes. Se prohíbe el escaneo de terceros.
 
 ## Obligaciones CRA en la UE
 
@@ -85,7 +85,7 @@ Desde el **11 de septiembre de 2026**, NetDiag como producto con elementos digit
 
 Esto aplica también a versiones puestas en el mercado antes del 11 de diciembre de 2027. El resto de obligaciones del CRA —documentación técnica, evaluación de conformidad, instrucciones de uso, periodo de soporte y marcado cuando proceda— llegan el **11 de diciembre de 2027**.
 
-La responsabilidad es del **fabricante**, es decir, de quien comercializa NetDiag bajo su nombre o marca. Que una vulnerabilidad esté en una dependencia de terceros no traslada esa responsabilidad al cliente: se gestiona en nuestro producto y se reclama aguas arriba si existe contrato.
+La responsabilidad es del **fabricante**, es decir, de quien distribuye NetDiag bajo su nombre o marca. Que una vulnerabilidad esté en una dependencia de terceros no traslada esa responsabilidad a quien lo despliega: se gestiona en nuestro producto y se reclama aguas arriba si existe contrato.
 
 ## Divulgación
 

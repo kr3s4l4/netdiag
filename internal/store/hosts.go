@@ -826,7 +826,7 @@ func (s *Store) MarkMissingHosts(networkID int64, seen []int64) ([]model.Host, e
 
 // CountManagedHosts returns the number of distinct site-qualified identities
 // observed since "since", excluding hosts tagged "guest" or "excluded". It is
-// an aggregate used by the signed evidence report. It is not billing data.
+// an aggregate used by the signed evidence report. It is aggregate usage data.
 func (s *Store) CountManagedHosts(since time.Time) (int, error) {
 	rows, err := s.db.Query(`SELECT identity, tags FROM hosts WHERE last_seen >= ?`, since.UnixMilli())
 	if err != nil {
@@ -858,7 +858,7 @@ func (s *Store) CountManagedHosts(since time.Time) (int, error) {
 	return len(seen), rows.Err()
 }
 
-// CountManagedHostsBySiteSince returns the same billing-style count grouped by
+// CountManagedHostsBySiteSince returns the same aggregate count grouped by
 // site. Only integers leave this method: no identity, IP, MAC or hostname is
 // exposed to callers building anonymous usage evidence.
 func (s *Store) CountManagedHostsBySiteSince(since time.Time) (map[int64]int, error) {

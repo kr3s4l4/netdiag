@@ -1,0 +1,148 @@
+<!doctype html>
+<!--
+  Contacto público: kr3s4l4@protonmail.com (figura en el CV; el propietario
+  ha autorizado expresamente su publicación). Sin backend, sin fetch, sin
+  analytics y sin envío automático. La persona rellena, genera y envía.
+-->
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NetDiag — manifiesto de caso de uso</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { max-width: 46rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; }
+    h1 { font-size: 1.5rem; }
+    .aviso { border: 1px solid #a78bfa; border-radius: .6rem; padding: .8rem 1rem; background: #1b1233; }
+    label { display: block; margin: .9rem 0 .3rem; font-weight: 600; }
+    input, select, textarea { width: 100%; box-sizing: border-box; padding: .55rem; border-radius: .4rem; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; }
+    textarea { min-height: 6rem; }
+    .check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; }
+    .check input { width: auto; margin-top: .25rem; }
+    button { margin: 1.2rem .5rem 0 0; padding: .6rem 1rem; border: 0; border-radius: .4rem; background: #a78bfa; color: #061018; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #334155; color: #e2e8f0; }
+    #salida { min-height: 12rem; font-family: ui-monospace, monospace; font-size: .82rem; }
+    a { color: #c4b5fd; }
+    .pie { margin-top: 1.5rem; font-size: .85rem; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <h1>NetDiag — manifiesto de caso de uso</h1>
+
+  <p class="aviso">
+    <strong>NetDiag es software libre bajo AGPL-3.0.</strong>
+    Esta página solo recoge tu caso de uso para mejorar el proyecto. Genera un
+    texto en tu navegador y tú decides si lo envías. Contacto:
+    <a href="mailto:kr3s4l4@protonmail.com">kr3s4l4@protonmail.com</a>
+    (público en mi CV, autorizado por su propietario). Sin telemetría, sin
+    servidor y sin terceros.
+  </p>
+
+  <form id="formulario">
+    <label for="org">Organización (opcional)</label>
+    <input id="org" name="org" maxlength="120" autocomplete="organization">
+
+    <label for="pais">País (opcional)</label>
+    <input id="pais" name="pais" maxlength="60" autocomplete="country-name">
+
+    <label for="email">Tu correo para responderte</label>
+    <input id="email" name="email" type="email" maxlength="160" autocomplete="email" required>
+
+    <label for="despliegue">¿Dónde desplegaste NetDiag?</label>
+    <select id="despliegue" name="despliegue" required>
+      <option value="">Selecciona una opción</option>
+      <option>casa</option>
+      <option>laboratorio</option>
+      <option>oficina</option>
+      <option>planta</option>
+      <option>datacenter</option>
+      <option>otro</option>
+    </select>
+
+    <label for="dias">¿Sigue instalado tras 7 días?</label>
+    <select id="dias" name="dias" required>
+      <option value="">Selecciona una opción</option>
+      <option value="si">sí</option>
+      <option value="no">no</option>
+      <option value="aun-no">todavía no</option>
+    </select>
+
+    <label for="uso">¿Para qué usas NetDiag? (opcional, muy útil)</label>
+    <textarea id="uso" name="uso" maxlength="1000" placeholder="Ej.: inventario de la oficina, detectar equipos nuevos, documentar cambios antes de un corte"></textarea>
+
+    <label for="faltó">¿Qué te faltó o te confundió? (opcional)</label>
+    <textarea id="faltó" name="faltó" maxlength="1000"></textarea>
+
+    <label class="check">
+      <input id="consent" name="consent" type="checkbox" required>
+      <span>Acepto que estas respuestas se usen solo para validar NetDiag y que se guarden el tiempo necesario para responderme. Puedo pedir su borrado.</span>
+    </label>
+
+    <label class="check">
+      <input id="anonimo" name="anonimo" type="checkbox">
+      <span>Permito citar mi respuesta de forma anónima.</span>
+    </label>
+
+    <button type="submit">Generar manifiesto</button>
+    <button type="reset" class="secondary">Limpiar</button>
+  </form>
+
+  <h2>Manifiesto generado</h2>
+  <p>Cópialo y envíalo tú. NetDiag no lo recibe automáticamente.</p>
+  <textarea id="salida" readonly aria-label="Manifiesto generado"></textarea>
+  <p><a id="mailto" href="#">Abrir correo con el manifiesto</a></p>
+
+  <p class="pie">
+    No pedimos IPs, MACs, nombres de host, credenciales ni datos de tu red.
+    Este manifiesto es solo un caso de uso. No es un pedido ni un contrato.
+  </p>
+
+  <script>
+    // Sin fetch, sin XHR, sin cookies y sin recursos externos.
+    (function () {
+      'use strict';
+      var form = document.getElementById('formulario');
+      var salida = document.getElementById('salida');
+      var enlace = document.getElementById('mailto');
+      var contacto = 'kr3s4l4@protonmail.com';
+
+      function valor(id) {
+        var el = document.getElementById(id);
+        return el ? String(el.value || '').trim() : '';
+      }
+
+      function manifiesto() {
+        return {
+          schema: 'netdiag.usecase/v1',
+          created_at: new Date().toISOString(),
+          contacto: valor('email'),
+          organizacion: valor('org'),
+          pais: valor('pais'),
+          despliegue: valor('despliegue'),
+          sigue_tras_7_dias: valor('dias'),
+          caso_de_uso: valor('uso'),
+          que_falto: valor('faltó'),
+          cita_anonima: document.getElementById('anonimo').checked
+        };
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+        var texto = JSON.stringify(manifiesto(), null, 2) + '\n';
+        salida.value = texto;
+        var asunto = '[NetDiag] Manifiesto de caso de uso';
+        var cuerpo = 'He rellenado el manifiesto de caso de uso de NetDiag.\n\n' + texto +
+          '\nEste envío es manual. NetDiag es software libre.\n';
+        enlace.href = 'mailto:' + contacto +
+          '?subject=' + encodeURIComponent(asunto) +
+          '&body=' + encodeURIComponent(cuerpo);
+        enlace.focus();
+      });
+    }());
+  </script>
+</body>
+</html>

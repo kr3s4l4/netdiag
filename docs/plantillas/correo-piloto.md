@@ -1,6 +1,6 @@
 # Correo de invitación al piloto — F42
 
-**Asunto:** Piloto de 30 días de NetDiag en `[organización]` — sin coste ni SLA
+**Asunto:** Piloto de 30 días de NetDiag en `[organización]` — sin servicios externos ni SLA
 
 ---
 
@@ -25,10 +25,10 @@ Gracias por probar NetDiag. Nos gustaría proponerte un piloto de 30 días en un
 **Qué NO incluye**
 
 - No hay SLA.
-- No hay coste ni compromiso de pago.
+- No hay coste ni compromiso.
 - No hay telemetría: el binario no informa de nada. Solo nos dices tú lo que quieras contar.
 
-No hay nada que comprar: NetDiag es gratuito y no hay soporte formal.
+NetDiag es software libre y no hay soporte formal.
 
 ¿Te encaja empezar el `[AAAA-MM-DD]`?
 

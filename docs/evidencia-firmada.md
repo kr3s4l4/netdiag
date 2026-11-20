@@ -156,9 +156,8 @@ No sustituye al control de acceso del servidor donde se generó el informe.
 No envía nada a terceros.
 ```
 
-## Sin coste
+## Generación local
 
-La firma de evidencia **no es un producto facturable**. NetDiag es gratuito y
-no hay factura. Nunca se cobró por informe, alerta, escaneo, usuario, host
-detectado, sonda ni sede. La antigua regla de banda de hosts gestionados quedó
-sin vigor el 20/11/2026.
+La firma de evidencia se genera en local. NetDiag es software libre y no necesita
+servicios externos. No recoge ni envía datos de la red. La antigua métrica de
+bandas quedó sin vigor el 20/11/2026.

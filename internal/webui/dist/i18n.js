@@ -59,7 +59,7 @@
     'Días restantes': 'Days remaining',
     'Días desde la caducidad': 'Days since expiry',
     'Al caducar no se borra nada: la lectura y los datos siguen disponibles.': 'Nothing is deleted on expiry: reading and data remain available.',
-    'Cuenta las identidades s<siteID>:<identity> vistas en los últimos 30 días. Excluye hosts con tag guest o excluded. No se factura por host detectado.': 'Counts s<siteID>:<identity> identities seen in the last 30 days. Excludes hosts tagged guest or excluded. Never billed per detected host.',
+    'Cuenta las identidades s<siteID>:<identity> vistas en los últimos 30 días. Excluye hosts con tag guest o excluded.': 'Counts s<siteID>:<identity> identities seen in the last 30 days. Excludes hosts tagged guest or excluded.',
     'Panel': 'Dashboard',
     'Dispositivos': 'Devices',
     'Topología': 'Topology',

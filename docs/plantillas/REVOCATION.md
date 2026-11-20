@@ -34,7 +34,7 @@
 
 ## Comunicación realizada
 
-- [ ] Correo a clientes de pago.
+- [ ] Aviso público publicado.
 - [ ] Notificación en UI.
 - [ ] Entrada en el centro de notificaciones.
 - [ ] Aviso CRA 24 h / 72 h si procede.

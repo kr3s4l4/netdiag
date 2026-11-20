@@ -343,10 +343,10 @@ func (m *Manager) Status(now time.Time, managedHosts, sites int) Status {
 	expiry, err := time.Parse(time.RFC3339, l.ExpiresAt)
 	if err == nil && now.After(expiry) {
 		st.Status = "expired"
-		st.Warnings = append(st.Warnings, "La licencia caducó el "+expiry.Format("2006-01-02")+". Siguen disponibles la lectura y los datos; las funciones de pago requieren renovación.")
+		st.Warnings = append(st.Warnings, "La licencia caducó el "+expiry.Format("2006-01-02")+". Siguen disponibles la lectura y los datos; la licencia local debe actualizarse.")
 	}
 	if l.MaxManagedHosts > 0 && managedHosts > l.MaxManagedHosts {
-		st.Warnings = append(st.Warnings, fmt.Sprintf("Hay %d hosts gestionados y la banda contratada es %d. No se bloquea ninguna función.", managedHosts, l.MaxManagedHosts))
+		st.Warnings = append(st.Warnings, fmt.Sprintf("Hay %d hosts gestionados y el límite local configurado es %d. No se bloquea ninguna función.", managedHosts, l.MaxManagedHosts))
 	}
 	if l.MaxSites > 0 && sites > l.MaxSites {
 		st.Warnings = append(st.Warnings, fmt.Sprintf("Hay %d sedes y la licencia cubre %d. No se bloquea ninguna función.", sites, l.MaxSites))

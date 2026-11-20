@@ -82,7 +82,7 @@ En la consola, tras copiar el archivo por SSH, USB o el mecanismo que uses:
 
 Si la sonda está firmada, `import` exige `--key`; sin clave, la rechaza. La firma cubre el JSON canónico, incluido `site_id`; no cifra el contenido. `--site-id` en `import` permite reasignar la sede de destino.
 
-Fuentes: ARP y tablas del kernel siempre que estén disponibles; SNMP/LLDP/CDP best-effort contra el gateway local; WiFi muestra `available:false` salvo compilación con `-tags pcap` e interfaz en modo monitor; VPN se lee pasivamente del kernel sin privilegios. La sonda no tiene coste aparte: NetDiag es gratuito y no hay factura ni bandas de pago desde el 20/11/2026.
+Fuentes: ARP y tablas del kernel siempre que estén disponibles; SNMP/LLDP/CDP best-effort contra el gateway local; WiFi muestra `available:false` salvo compilación con `-tags pcap` e interfaz en modo monitor; VPN se lee pasivamente del kernel sin privilegios. La sonda no necesita servicios externos: todo se procesa en local.
 
 ## Red aislada
 
@@ -110,5 +110,5 @@ Claves SSH dedicadas y restringidas.
 Sin contraseñas y sin reenvío de agente.
 Solo lectura: el escaneo no modifica la red.
 Sin envío automático a terceros.
-Sin cobro por sede, sonda ni escaneo.
+Sin servicios externos.
 ```

@@ -364,7 +364,7 @@ Estas decisiones no borran las ideas del roadmap: quedan como extensiones condic
 - NetDiag es software libre bajo [AGPL-3.0](LICENSE) y **gratuito**.
 - Los avisos de terceros están en [NOTICE](NOTICE) y [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 - El plan de [validación sin telemetría](docs/validacion.md) mide uso real con manifiestos voluntarios.
-- La activación offline de licencia es una capacidad del binario, sin coste ni bloqueo: [docs/licenciamiento.md](docs/licenciamiento.md).
+- La activación offline de licencia es una capacidad del binario, sin servicios externos ni bloqueo: [docs/licenciamiento.md](docs/licenciamiento.md).
 - Los artefactos oficiales se construyen de forma reproducible, se firman con minisign y se publican con SBOM y atestación: [docs/publicacion-segura.md](docs/publicacion-segura.md).
 - La evidencia local se firma aparte, con otra clave, en [docs/evidencia-firmada.md](docs/evidencia-firmada.md).
 - Las dudas legales se resuelven en [docs/licenciamiento.md](docs/licenciamiento.md); las vulnerabilidades se reportan por [SECURITY.md](SECURITY.md).

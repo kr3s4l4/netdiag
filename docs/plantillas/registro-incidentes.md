@@ -16,7 +16,7 @@ Un registro por incidente. No borrar. Completa en UTC.
 | `[...]` | Aviso 24 h enviado | `[...]` | `[justificante SRP]` |
 | `[...]` | Notificación 72 h enviada | `[...]` | `[justificante SRP]` |
 | `[...]` | Release correctiva firmada | `[...]` | `[versión + SHA256]` |
-| `[...]` | Correo a clientes de pago | `[...]` | `[ID del correo]` |
+| `[...]` | Aviso público | `[...]` | `[ID del aviso]` |
 | `[...]` | Notificación en UI / `REVOCATION.md` | `[...]` | `[enlace]` |
 | `[...]` | Informe final enviado | `[...]` | `[14 días / 1 mes]` |
 | `[...]` | Cierre | `[...]` | `[acta]` |
@@ -42,7 +42,7 @@ Un registro por incidente. No borrar. Completa en UTC.
 
 ## Comunicación
 
-- [ ] Clientes de pago: correo con versión afectada, mitigación y versión segura.
+- [ ] Aviso público: versión afectada, mitigación y versión segura.
 - [ ] UI: notificación `update.available` / entrada en el centro de notificaciones.
 - [ ] Air-gapped: `.ndc` firmado con el aviso.
 - [ ] Manifiesto F23: `min_version` apunta a la primera versión segura.

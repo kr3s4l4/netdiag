@@ -2986,7 +2986,7 @@ async function settingsSystemBody() {
           </div>
           <div class="tiny muted">${license.expires_at ? `Caducidad ${esc(fmtDate(license.expires_at))}` : 'Sin caducidad'}</div>
         </div>
-        <div class="tiny muted" style="margin-top:8px" title="${esc(tr('Cuenta las identidades s<siteID>:<identity> vistas en los últimos 30 días. Excluye hosts con tag guest o excluded. No se factura por host detectado.'))}">${esc(license.license_id || 'Sin licencia (Community)')} · ${esc(license.managed_hosts || 0)} hosts gestionados · ${esc(license.sites || 0)} sedes</div>
+        <div class="tiny muted" style="margin-top:8px" title="${esc(tr('Cuenta las identidades s<siteID>:<identity> vistas en los últimos 30 días. Excluye hosts con tag guest o excluded.'))}">${esc(license.license_id || 'Sin licencia (Community)')} · ${esc(license.managed_hosts || 0)} hosts gestionados · ${esc(license.sites || 0)} sedes</div>
         ${(license.warnings || []).map((w) => `<div class="notice warn" style="margin-top:10px">${icon('shield')}<div><div class="tiny">${esc(w)}</div></div></div>`).join('')}
       </div>
     </div>` : ''}

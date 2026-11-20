@@ -46,7 +46,7 @@ Si la decisión es NO REPORTAR, revisar de nuevo si cambia la explotación o la 
 | Parche preparado | `[...]` | `[commit / PR]` |
 | Release firmada publicada | `[...]` | `[versión, SHA256]` |
 | `min_version` actualizado en manifiesto F23 | `[...]` | `[manifest.json]` |
-| Correo a clientes de pago | `[...]` | `[ID]` |
+| Aviso público | `[...]` | `[ID]` |
 | Notificación en UI | `[...]` | `[...]` |
 | `REVOCATION.md` firmado | `[...]` | `[enlace o N/A]` |
 | Informe final CRA | `[...]` | `[14 días / 1 mes]` |

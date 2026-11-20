@@ -1,6 +1,6 @@
 # Roadmap de NetDiag
 
-Este documento registra el estado del producto a partir de la versión **1.5.0**. El roadmap original F0–F26 se conserva como referencia histórica en `notes/14-roadmap.md`; aquí se añaden las mejoras posteriores, las decisiones comerciales ya tomadas y el plan de salida al mercado.
+Este documento registra el estado del producto a partir de la versión **1.5.0**. El roadmap original F0–F26 se conserva como referencia histórica en `notes/14-roadmap.md`; aquí se añaden las mejoras posteriores, la decisión vigente de licenciamiento y el plan de validación con uso real.
 
 ## Estado actual
 
@@ -10,7 +10,7 @@ Este documento registra el estado del producto a partir de la versión **1.5.0**
 | F13, F14, F15, F16, F17, F26 | Diferidos y justificados en `README.md` |
 | F23 | Cerrado: notificación + descarga verificada + instalación con rollback + reinicio |
 | F24 | Backup automático programado |
-| F33, F34 | Decisiones cerradas; documentación legal y comercial añadida en `1.5.0` |
+| F33, F34 | Decisiones históricas retiradas; queda una sola licencia AGPL-3.0 |
 | F35 | Implementado y publicado en `v1.5.1`: licencia Ed25519 offline, CLI, API, UI y backup |
 | F36 | Implementado y publicado en `v1.5.1`: contenedor `.ndc` ZIP firmado, inspect/verify/build |
 | F37 | Implementado, verificado y publicado en `v1.5.1`: release reproducible, SBOM, procedencia, `.ndc` y verificación offline |
@@ -155,44 +155,23 @@ Generar un PDF de una página con:
 
 ## Decisiones de producto — registro histórico
 
-**Corrección del 20/11/2026:** el propietario retiró la venta. La decisión vigente es una sola licencia AGPL-3.0, gratuita, sin precios ni checkout. F33 y F34 se conservan como registro de lo que se escribió el 18/11/2026; no están vigentes. Los documentos ejecutivos vigentes son `docs/licenciamiento.md` y `docs/publicacion-segura.md`.
+**Decisión vigente (20/11/2026):** una sola licencia AGPL-3.0, sin servicios externos ni licencia online. F33 y F34 se conservan como registro histórico; no están vigentes. Los documentos vigentes son `docs/licenciamiento.md` y `docs/publicacion-segura.md`.
 
 ### F33 — Licenciamiento (histórico, sin vigor)
 
-**Decisión anterior:** doble licencia.
+**Decisión vigente:** una sola licencia `AGPL-3.0`.
 
-- **Community:** `AGPL-3.0`. Archivo `LICENSE` en la raíz; `NOTICE` y `THIRD_PARTY_LICENSES.md` con los avisos de terceros.
-- **Enterprise/Pro:** licencia comercial de pago, sin obligación de publicar modificaciones, con derechos de uso, soporte y actualizaciones definidos en contrato.
-- El funcionamiento básico **no depende** de un servidor de licencias en línea. La edición de pago se acredita con una licencia firmada localmente.
-- El código aportado por terceros se acepta bajo DCO; no se exige CLA para Community. La licencia comercial se firma aparte con el cliente.
+- Archivo `LICENSE` en la raíz; `NOTICE` y `THIRD_PARTY_LICENSES.md` con los avisos de terceros.
+- El funcionamiento básico **no depende** de un servidor de licencias en línea. La licencia se verifica en local.
+- El código aportado por terceros se acepta bajo DCO.
 
-**Criterio de cierre:** toda versión utilizable incluye `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md` y `SECURITY.md`, y la oferta comercial queda descrita sin ambigüedad.
+**Criterio de cierre:** toda versión utilizable incluye `LICENSE`, `NOTICE`, `THIRD_PARTY_LICENSES.md` y `SECURITY.md`.
 
-### F34 — Modelo comercial (histórico, sin vigor)
+### F34 — Métrica de hosts gestionados — **histórica, sin vigor**
 
-**Decisión anterior:** suscripción anual por banda de hosts gestionados; no se cobra por informe ni por host detectado. Retirada el 20/11/2026. Hoy no hay venta, precios ni soporte de pago.
+La antigua propuesta de planes quedó sin vigor el 20/11/2026. Hoy el identificador `s<siteID>:<identity>` se usa solo para medir el uso real en `netdiag evidence usage`, excluyendo hosts con etiqueta `guest` o `excluded`. El descubrimiento y el escaneo son ilimitados. No se recoge ninguna señal de intención.
 
-| SKU | Precio anual | Hosts gestionados | Sedes | Retención | Incluye |
-| --- | ---: | ---: | ---: | --- | --- |
-| `community` | 0 € | Sin límite de descubrimiento | 1 | 7 días | Binario AGPL, actualización manual, soporte comunitario |
-| `pro-25` | 990 € | 25 | 3 | 1 mes | Actualizaciones firmadas automáticas, informe ejecutivo, soporte por correo |
-| `pro-100` | 2.490 € | 100 | 10 | 1 mes | Igual que `pro-25` |
-| `pro-500` | 5.900 € | 500 | Ilimitadas | 1 año | Igual que `pro-25` |
-| `enterprise-500` | 9.900 € | 500 | Ilimitadas | 7 años | Licencia offline, SLA, paquete de confianza, onboarding |
-| `enterprise-2000` | 19.900 € | 2.000 | Ilimitadas | 7 años | Igual que `enterprise-500` |
-| `enterprise-custom` | A medida | Ilimitados | Ilimitadas | 7 años o según contrato | Espejo privado, condiciones a medida |
-
-**Definición de host gestionado:** identificador único `s<siteID>:<identity>` observado en los últimos 30 días, excluyendo hosts con etiqueta `guest` o `excluded`. El descubrimiento y el escaneo son ilimitados: un host detectado una sola vez no factura.
-
-**Reglas de facturación:**
-
-- Factura anual por adelantado; IVA no incluido; transferencia/SEPA y orden de compra aceptadas.
-- La banda se revisa en la renovación; superar la banda durante el año genera aviso, nunca una factura sorpresa ni borrado de datos.
-- La retención es un diferenciador del plan (7 días / 1 mes / 1 año; Enterprise 7 años), no un producto de duración de acceso.
-- Prueba de 30 días con todas las funciones Pro; al caducar se conservan los datos y se vuelve a capacidades Community.
-- No hay cargo por informe, alerta, escaneo, usuario ni puerto.
-
-**Criterio de cierre:** un cliente puede elegir SKU, entender qué paga y recibir una factura predecible sin hablar con ventas para los planes Pro.
+**Criterio de cierre (cumplido):** la evidencia de uso se exporta en local, se firma con clave dedicada y no contiene IPs, MACs ni nombres.
 
 ## Implementación pendiente
 
@@ -235,24 +214,21 @@ Herramientas: `cmd/netdiag-release`, `scripts/release.sh`, `scripts/verify-relea
 - Clave minisign de release en hardware/offline; clave raíz aparte solo para rotar la de release; publicación de clave y revocación en `docs/public_keys.md`.
 - Espejo HTTPS inmutable (`releases/<versión>/`) con tags de git inmutables; sin HTTP, sin credenciales en URL, HSTS y listado de checksums en la página de descarga.
 - F23 consume exactamente `manifest.json` + `public_key` del espejo oficial; el cliente puede sustituir ambos por su espejo interno.
-- Enterprise recibe el mismo artefacto firmado, licencia offline y manifiesto para alojarlo en su red sin conexión externa.
+- Cualquier despliegue recibe el mismo artefacto firmado y manifiesto para alojarlo en su red sin conexión externa.
 
 **Criterio de cierre (cumplido):** desde un checkout limpio, dos ejecuciones con el mismo `SOURCE_DATE_EPOCH` producen `SHA256SUMS`, manifiesto, SBOM y `.ndc` byte a byte idénticos. `scripts/verify-release.sh` valida firmas, hashes, manifiesto F23 y contenedor; al añadir un byte a `RELEASE_NOTES.md` la verificación termina con `NO VÁLIDO` y código de salida 1. Se usó una clave de prueba de `netdiag-release keygen`; la clave oficial `netdiag-release` sigue siendo la que se documentará en `docs/public_keys.md`.
 
 **Esfuerzo:** 8–12 h (realizado).
 
-### F38 — Paquete de confianza empresarial — **documentación y plantillas listas**
+### F38 — Paquete de verificación — **documentación y plantillas listas**
 
-Documentación de confianza retirada el 20/11/2026. Quedan las plantillas técnicas y de seguridad en `docs/plantillas/`. La demo con datos sintéticos depende de F39.
+Documentación antigua retirada el 20/11/2026. Quedan las plantillas técnicas y de seguridad en `docs/plantillas/`. La demo con datos sintéticos depende de F39.
 
-- Documentos: whitepaper de seguridad, modelo de amenazas, flujo de datos, DPA/EULA, matriz SLA, guía de endurecimiento y política de vulnerabilidades.
-- Proceso: prueba de 30 días, PoC guiado, presupuesto con SKU, orden de compra, factura anual, licencia firmada y alta en soporte.
-- SLA Enterprise: P1 respuesta 1 h / workaround 8 h / objetivo de solución 24 h; P2 4 h hábiles / 2 días; P3 1 día hábil / 5 días. El P1 de 1 h requiere cobertura alterna; sin ella se ofrece 8 h hábiles y se indica en el presupuesto.
-- Pro: soporte por correo con objetivo 48 h hábiles, sin SLA contractual.
-- Kit de venta: ficha de precios, one-pager de ROI, demo con datos sintéticos (F39), preguntas frecuentes de seguridad y checklist de compras.
+- Documentos: modelo de amenazas, flujo de datos, guía de endurecimiento y política de vulnerabilidades.
+- Proceso: verificación de firmas y hashes con `scripts/verify-release.sh` y clave pública publicada en `docs/public_keys.md`.
 - Transparencia: declarar que SQLite no cifra toda la base por defecto; `secret.key` protege secretos de integraciones; la edición portable no captura 802.11 crudo.
 
-**Criterio de cierre:** un comprador recibe un paquete único con licencia, factura, SBOM firmado, documentos legales y pasos de verificación antes de firmar.
+**Criterio de cierre:** cualquier persona puede verificar el artefacto descargado sin servicios externos antes de usarlo.
 
 **Esfuerzo:** 10–16 h (mayormente documentación y plantillas).
 
@@ -286,12 +262,12 @@ API en `/api/v1/views`, nueva página en el SPA, barra de vistas en inventario y
 
 Runbook y plantillas en `SECURITY.md` y `docs/plantillas/`. `min_version` ya viaja firmado en F23: `Release.MinVersion`, `CheckResult.SecurityUpdate` y evento `update.security`. Se genera con `--min-version` en el pipeline F37.
 
-- Política de soporte de seguridad publicada: versión contratada durante la suscripción + 12 meses. Debe aparecer en `SECURITY.md`, en la orden de compra y en el EULA.
+- Política de soporte de seguridad publicada: versión publicada + 12 meses. Debe aparecer en `SECURITY.md`.
 - Runbook de incidentes: responsable único, cuenta en la Single Reporting Platform de ENISA, árbol de decisión «¿explotación activa o incidente grave?» y plantillas de aviso 24 h / 72 h.
 - Monitorización de dependencias: SBOM por release, revisión periódica de avisos, parche entregado como release nueva firmada. Nunca firmar un binario de terceros sin reconstruirlo o verificarlo.
-- Registro de responsabilidad: fecha de conocimiento, versiones afectadas, decisión de reportar, parche, comunicación al cliente y cierre.
-- EULA reforzado: el cliente declara que está autorizado a analizar esas redes; se prohíbe escaneo de terceros; se limita responsabilidad con las excepciones legales obligatorias.
-- Comunicación: correo a clientes de pago, notificación en la UI y `REVOCATION.md` firmado; `min_version` en el manifiesto F23 para saltar versiones inseguras.
+- Registro de responsabilidad: fecha de conocimiento, versiones afectadas, decisión de reportar, parche, comunicación pública y cierre.
+- Aviso en la documentación: quien escanea declara que está autorizado a analizar esas redes; se prohíbe escaneo de terceros; se limita responsabilidad con las excepciones legales obligatorias.
+- Comunicación: aviso público, notificación en la UI y `REVOCATION.md` firmado; `min_version` en el manifiesto F23 para saltar versiones inseguras.
 
 **Criterio de cierre (parte técnica cumplida):** un manifiesto con `min_version` manipulado falla la verificación; una instalación anterior a esa cifra recibe `security_update: true` y el evento `update.security`. Queda pendiente el ensayo humano del runbook con responsable y credenciales SRP reales: aviso preparado en < 24 h, notificación en < 72 h y release firmada en < 7 días.
 
@@ -299,18 +275,18 @@ Runbook y plantillas en `SECURITY.md` y `docs/plantillas/`. `min_version` ya via
 
 ### F42 — Validación de mercado sin telemetría — **plantillas listas; ejecución en curso**
 
-Plan, fuentes públicas y umbral 3/2/1 en `docs/validacion.md` y `docs/plantillas/`. Calendario a 7 días, hoja de registro y borrador de recordatorio en `docs/plan-seguimiento-f42.md`.
+Plan, fuentes públicas y umbral 3/2 en `docs/validacion.md` y `docs/plantillas/`. Calendario a 7 días, hoja de registro y borrador de recordatorio en `docs/plan-seguimiento-f42.md`.
 
-- Publicar Community y medir solo fuentes públicas: descargas de GitHub, estrellas, forks, issues y Discussions.
+- Publicar el proyecto y medir solo fuentes públicas: descargas de GitHub, estrellas, forks, issues y Discussions.
 - Discussion #1 con tres preguntas: dónde se desplegó, qué se intentó hacer, qué faltó. Fijarlo es un paso manual opcional; la API de GitHub no lo expone.
 - Encuesta voluntaria de 5 preguntas; **nunca instrumentar el binario**.
 - Piloto de 30 días con 3–5 organizaciones, sin SLA y con una llamada semanal de 20 minutos.
-- Umbral vigente para seguir invirtiendo: 3 instalaciones reales con 7 días de uso y 2 casos de uso concretos. El antiguo criterio de pago quedó sin vigor el 20/11/2026.
+- Umbral vigente para seguir invirtiendo: 3 instalaciones reales con 7 días de uso y 2 casos de uso concretos.
 - Plan completo y plantillas en `docs/validacion.md`.
 
-**Criterio de cierre vigente:** existe evidencia escrita de uso real antes de seguir invirtiendo tiempo. No hay estructura comercial que activar.
+**Criterio de cierre vigente:** existe evidencia escrita de uso real antes de seguir invirtiendo tiempo. No hay servicios externos que activar.
 
-**Aviso Beta añadido (19/11/2026):** descargo en ambos README, aviso en la pantalla de acceso y confirmación local en el asistente de primer arranque antes del primer escaneo. `serve --accept-terms` o `terms.accepted: true` registran la confirmación del operador. No bloquea el CLI, no hay red y no sustituye la autorización del propietario de la red. No cambia la licencia AGPL ni el modelo de negocio.
+**Aviso Beta añadido (19/11/2026):** descargo en ambos README, aviso en la pantalla de acceso y confirmación local en el asistente de primer arranque antes del primer escaneo. `serve --accept-terms` o `terms.accepted: true` registran la confirmación del operador. No bloquea el CLI, no hay red y no sustituye la autorización del propietario de la red. No cambia la licencia AGPL ni el funcionamiento local.
 
 **Esfuerzo:** 4–6 h de plantillas y seguimiento; la gestión es continua pero ligera.
 
@@ -396,7 +372,7 @@ El detector `tls_expiring` lee `TLSCert.NotAfter` del handshake ya recogido. Avi
 
 ### F49 — Sonda portable — **implementado**
 
-`netdiag probe` usa el mismo binario para recoger ARP y tablas del kernel desde un punto de red remoto. LLDP/CDP por SNMP es best-effort; WiFi marca `available:false` sin `-tags pcap` e interfaz monitor; VPN se lee del kernel sin privilegios. El JSON usa `netdiag.probe/v1`, puede firmarse con `--seed-file` y se importa con `netdiag probe import [--key CLAVE.pub]`. Una sonda firmada sin clave pública se rechaza. No hay nube, envío automático ni cobro por sonda.
+`netdiag probe` usa el mismo binario para recoger ARP y tablas del kernel desde un punto de red remoto. LLDP/CDP por SNMP es best-effort; WiFi marca `available:false` sin `-tags pcap` e interfaz monitor; VPN se lee del kernel sin privilegios. El JSON usa `netdiag.probe/v1`, puede firmarse con `--seed-file` y se importa con `netdiag probe import [--key CLAVE.pub]`. Una sonda firmada sin clave pública se rechaza. No hay nube ni envío automático.
 
 **Criterio de cierre (cumplido):** ciclo `probe → import` validado con y sin firma; importación sin clave de una sonda firmada rechazada; tests de firma y persistencia en `internal/probe`.
 
@@ -412,9 +388,9 @@ Cada hallazgo puede revisarse desde **Diagnósticos** con estado `pending`, `con
 
 **Criterio de cierre (cumplido):** generación manual y verificación con `container verify` sobre datos temporales; configuración y variables `NETDIAG_EVIDENCE_DOSSIER_*` cubiertas por tests.
 
-### F55 — Precios — **borrador, no aprobado**
+### F55 — Medición de uso — **propuesta antigua sin vigor**
 
-Las bandas `solo-5`, `solo-10` y `pro-50` siguen siendo propuestas. No se activan sin decisión escrita o cierre de F42. La facturación, cuando se active, seguirá siendo por banda de hosts gestionados, nunca por informe, alerta, escaneo, usuario, host detectado, sonda o sede.
+Las bandas propuestas quedaron sin vigor el 20/11/2026. Hoy solo existe `netdiag evidence usage`, que agrupa el uso en `1-5`, `6-10`, `11-50`, `51-200` y `201+` por sede, sin identificadores de red.
 
 ### F61 — Fuente única de versión y prueba de descarga — **implementado**
 
@@ -436,11 +412,11 @@ Tests: `internal/buildinfo` compara el valor por defecto con `VERSION` del Makef
 
 **Criterio de cierre (cumplido):** salida byte a byte determinista con T0 fijo por defecto, hashes del SBOM y la procedencia coincidentes con `sha256sum`, y advertencia explícita de que F41 real sigue bloqueado hasta credenciales SRP y release correctiva.
 
-### F64 — Expediente de decisión comercial — **borrador listo para firma**
+### F64 — Expediente de decisión — **retirado**
 
-El expediente F64 se eliminó el 20/11/2026. Recogía la métrica `s<siteID>:<identity>` sobre los últimos 30 días excluyendo `guest`/`excluded`, las bandas propuestas sin aprobar y campos vacíos para F55, F65 y F66. Nunca se firmó.
+El expediente F64 se eliminó el 20/11/2026. Recogía la métrica `s<siteID>:<identity>` sobre los últimos 30 días excluyendo `guest`/`excluded` y campos vacíos para F55, F65 y F66. Nunca se firmó.
 
-**Criterio de cierre (cumplido):** borrador listo para firma, sin precios activos, sin cobro y sin abrir F42.
+**Criterio de cierre (cumplido):** documento retirado sin activar F42.
 
 ## Dependencias y orden recomendado
 
@@ -453,13 +429,13 @@ El expediente F64 se eliminó el 20/11/2026. Recogía la métrica `s<siteID>:<id
 | F31 | F28 y modal de reglas de alertas | Alta: implementada en `master`, entrega 1.5.2 |
 | F32 | F28, F21 y F31 para datos y redacción | Alta: implementada en `master`, entrega 1.5.2 |
 | F33, F34 | Ninguna | Cerradas en 1.5.0 |
-| F35 | F33, F34 | Alta: habilita prueba y venta |
+| F35 | F33, F34 | Alta: habilita verificación local de licencia |
 | F36 | F23 | Media: reutiliza minisign y canonicalización |
 | F37 | F23, F36 | Alta: es el canal de distribución |
-| F38 | F33–F37 | Alta: es el paquete que se entrega al comprador |
-| F39 | F27, F28 para lucir la demo | Media: ventas y documentación |
+| F38 | F33–F37 | Alta: es el paquete de verificación para quien descarga |
+| F39 | F27, F28 para lucir la demo | Media: documentación |
 | F40 | F29 | Media: retención de usuarios |
-| F41 | F33, F37, F38 | Alta: obligación legal y contractual |
+| F41 | F33, F37, F38 | Alta: obligación legal |
 | F42 | Ninguna | Alta: se ejecuta antes de F35/F37/F38 |
 | F43 | Ninguna | Media: valor de seguridad sin permisos ni captura |
 | F45 | F43 | Alta: evita alertas duplicadas al añadir detectores |
@@ -481,21 +457,21 @@ El expediente F64 se eliminó el 20/11/2026. Recogía la métrica `s<siteID>:<id
 | F61 | Ninguna | Alta: cierra el issue de la versión del login |
 | F62 | F58, F68 | Media: apoya F42 sin telemetría |
 | F63 | F37, F38 | Media: ensayo local de F41 sin envíos |
-| F64 | F42, F55 | Media: solo borrador, sin publicar precios |
+| F64 | F42, F55 | Media: retirado, sin publicar |
 
 Orden cerrado: Lote 1 F51–F54; Lote 2 F50, F56, F57, F58, F60; Lote 3 F59, F49, F68; Lote 4 F61–F64.
 
-## Cierre de salida al mercado — HISTÓRICO, SIN VIGOR
+## Cierre de publicación — HISTÓRICO, SIN VIGOR
 
-La venta se retiró el 20/11/2026. NetDiag queda publicado como software libre y gratuito. Esta sección se conserva como registro; los puntos siguientes no se activan.
+La propuesta anterior se retiró el 20/11/2026. NetDiag queda publicado como software libre bajo AGPL-3.0. Esta sección se conserva como registro; los puntos siguientes no se activan.
 
-Antes se consideraba listo para vender cuando:
+Antes se consideraba listo para publicar cuando:
 
-1. F42 ha mostrado uso real y al menos una disposición a pagar antes de invertir en estructura comercial.
-2. Los documentos legales y de precios están publicados y revisados.
+1. F42 ha mostrado uso real: 3 instalaciones con 7 días y 2 casos concretos.
+2. La documentación de licencia y seguridad está publicada y revisada.
 3. El espejo oficial publica artefactos firmados y verificables desde un checkout limpio.
-4. Una licencia de prueba de 30 días puede emitirse y activarse sin red.
-5. Existe una reproducción completa del flujo: demo → PoC → presupuesto → factura → licencia → soporte → renovación.
-6. El paquete Enterprise incluye SBOM, atestación, DPA/EULA, SLA y guía de verificación.
+4. La verificación de firmas funciona sin red.
+5. Existe una reproducción completa del flujo: descarga → verificación → primer escaneo → informe.
+6. El paquete incluye SBOM, atestación y guía de verificación.
 7. `SECURITY.md` define canal privado de reporte, plazos de respuesta, obligaciones CRA 24/72 h y proceso de rotación de claves.
 8. Existe un responsable identificado para la Single Reporting Platform y se ha ensayado el runbook de CVE en dependencia de terceros.

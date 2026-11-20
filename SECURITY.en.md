@@ -10,7 +10,7 @@
 | 1.4.x | Until the next minor, critical fixes only |
 | < 1.4 | No |
 
-**No contractual window:** NetDiag is free. There are no paid editions, contracts or EULA. The table above describes the security support offered. There is no SLA or formal support: issues are handled through GitHub Issues.
+**No contractual window:** NetDiag is free software. The table above describes the security support offered. There is no SLA or formal support: issues are handled through GitHub Issues.
 
 ## Reporting a vulnerability
 
@@ -37,7 +37,7 @@ Include, if possible:
 | Patch for an actively exploited critical vulnerability | target 72 h–7 days |
 | Patch for a non-exploited high-severity issue | target 30 days |
 | Medium/low severity | next release, target 90 days |
-| Publication | signed notes, notice in this file and notification to paid customers |
+| Publication | signed notes, notice in this file and public notice |
 
 If there is credible evidence of active exploitation or a serious incident, we report it even when no fix exists yet. The patch comes later; the notice cannot wait.
 
@@ -69,12 +69,12 @@ Steps:
 3. Send the [24 h warning](docs/plantillas/aviso-cra-24h.md) to the CSIRT of the member state of the main establishment and to the ENISA SRP. Keep the receipt.
 4. Send the [72 h notification](docs/plantillas/aviso-cra-72h.md) with the initial assessment.
 5. Fix in a new signed release with SBOM, manifest and `min_version` pointing to the first safe version. F23 marks those installations with `security_update: true` and emits `update.security`; the user sees the notice even when the version comparison does not look urgent.
-6. Notify paid customers by email, show the notice in the UI and publish a signed [REVOCATION.md](docs/plantillas/REVOCATION.md) when applicable. In air-gapped environments deliver a signed `.ndc` with the notice.
+6. Publish a public notice, show it in the UI and publish a signed [REVOCATION.md](docs/plantillas/REVOCATION.md) when applicable. In air-gapped environments deliver a signed `.ndc` with the notice.
 7. Send the final report and close both records.
 
 **Dependency monitoring:** every release ships a CycloneDX SBOM (`sbom.cdx.json`) and provenance attestation. Review advisories periodically. A relevant CVE is treated as an internal incident even without known exploitation. The producer is responsible for the finished product; upstream claims follow afterwards if a contract exists. **Never sign a third-party binary without rebuilding or verifying it.** See `docs/publicacion-segura.md`.
 
-**Scan authorisation:** whoever runs NetDiag declares they are authorised to analyse those networks. Scanning third parties is prohibited. There is no EULA or paid contract.
+**Scan authorisation:** whoever runs NetDiag declares they are authorised to analyse those networks. Scanning third parties is prohibited.
 
 ## CRA obligations in the EU
 

@@ -51,7 +51,7 @@ Completamos la notificación inicial del incidente `[ID-INC-AAAA-NNN]`, avisado 
 - **Mitigación temporal recomendada al cliente:** `[...]`
 - **Parche previsto:** `[versión correctiva]`, fecha objetivo `[AAAA-MM-DD]`
 - **Versión segura mínima (`min_version`):** `[versión]`
-- **Comunicación a clientes de pago:** `[enviada el ... / prevista el ...]`
+- **Comunicación pública:** `[enviada el ... / prevista el ...]`
 - **Notificación en UI y `REVOCATION.md`:** `[estado]`
 
 ## 6. Informe final

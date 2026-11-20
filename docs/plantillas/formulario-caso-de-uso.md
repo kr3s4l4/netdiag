@@ -1,6 +1,6 @@
 # Manifiesto de caso de uso — F42
 
-**Plantilla desplegada en <https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html> (19/11/2026), con autorización explícita. Actualizada el 20/11/2026 para quitar las preguntas de pago.** El fichero [formulario-disposicion-pago.html](formulario-disposicion-pago.html) es una página estática: no tiene backend, no hace `fetch`, no usa cookies ni carga recursos externos. La persona rellena el formulario, genera un JSON `netdiag.usecase/v1` y decide si lo envía por correo.
+**Plantilla desplegada en <https://kr3s4l4.github.io/netdiag/plantillas/formulario-caso-de-uso.html> (19/11/2026), con autorización explícita. Actualizada el 20/11/2026.** El fichero [formulario-caso-de-uso.html](formulario-caso-de-uso.html) es una página estática: no tiene backend, no hace `fetch`, no usa cookies ni carga recursos externos. La persona rellena el formulario, genera un JSON `netdiag.usecase/v1` y decide si lo envía por correo.
 
 El nombre del fichero se conserva para no romper los enlaces ya publicados.
 
@@ -15,7 +15,7 @@ El nombre del fichero se conserva para no romper los enlaces ya publicados.
 - Qué faltó o confundió, texto libre opcional de hasta 1000 caracteres.
 - Consentimiento explícito y autorización opcional para citar la respuesta de forma anónima.
 
-**Ya no recoge:** interés en suscripción ni banda de hosts gestionados. Esas preguntas se retiraron el 20/11/2026 porque no hay venta.
+**Recoge:** el caso de uso y el despliegue, sin datos de la red.
 
 **No recoge:** IPs, MACs, nombres de host, nombres de red, credenciales, identificadores de hosts ni ningún dato de escaneo. No hay telemetría ni envío automático. El envío lo hace la persona con su propio cliente de correo.
 
@@ -25,7 +25,7 @@ El nombre del fichero se conserva para no romper los enlaces ya publicados.
 - Base: consentimiento explícito, marcado en una casilla obligatoria.
 - Conservación: solo hasta responder y cerrar el registro de F42. Se borra si la persona lo pide.
 - Destinatarios: solo el contacto indicado. Sin gestores de correo, CRM, Merchant of Record ni analítica.
-- El manifiesto no es pedido, factura, contrato ni activación de cobro. NetDiag es gratuito y no publica precios.
+- El manifiesto es solo un caso de uso. No es un pedido ni un contrato.
 
 ## Cómo se contabiliza para F42
 
@@ -35,10 +35,10 @@ Esta página **no cuenta como evidencia** por existir. Cuenta cuando una persona
 2. Respuesta a «sigue instalado tras 7 días».
 3. Caso de uso concreto, del campo `caso_de_uso` del manifiesto si lo rellenó.
 
-El umbral vigente es 3 instalaciones reales con 7 días y 2 casos concretos. Hoy está en 0/3 y 0/2. El antiguo criterio de «1 disposición a pagar» quedó sin vigor el 20/11/2026: no hay producto que vender.
+El umbral vigente es 3 instalaciones reales con 7 días y 2 casos concretos. Hoy está en 0/3 y 0/2.
 
 ## Publicación
 
-Publicado con OK explícito del propietario el 19/11/2026. GitHub Pages sirve `master:/docs` en <https://kr3s4l4.github.io/netdiag/>; el formulario está en `/plantillas/formulario-disposicion-pago.html`. El enlace se añadió a ambos README y al Discussion #1. Tras el cambio del 20/11/2026 hay que volver a publicar el HTML desde `master:/docs`. No se ha tocado `docs/respuesta-hn.md` ni se han publicado textos en Reddit sin su autorización específica.
+Publicado con OK explícito del propietario el 19/11/2026. GitHub Pages sirve `master:/docs` en <https://kr3s4l4.github.io/netdiag/>; el formulario está en `/plantillas/formulario-caso-de-uso.html`. La URL antigua mantiene una redirección al nuevo nombre. No se ha tocado `docs/respuesta-hn.md` ni se han publicado textos en Reddit sin su autorización específica.
 
 El seguimiento de cada manifiesto está en el [plan de seguimiento a 7 días](../plan-seguimiento-f42.md) y en la cola de [registro-evidencia-f42.md](registro-evidencia-f42.md). El recordatorio para el Discussion es un borrador: no se publica sin OK explícito.
