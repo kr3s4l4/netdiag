@@ -141,7 +141,7 @@ The **Diagnostics** view and `GET /api/v1/diagnostics/enterprise` correlate data
 
 **Voluntary usage evidence.** `netdiag evidence usage` produces a signed `.ndc` with days installed, scans, sites and aggregated managed-host bands. It contains no IPs, MACs, names or secrets, and is never sent automatically. It does not replace the written evidence for F42. Procedure in [docs/evidencia-uso.md](docs/evidencia-uso.md).
 
-**Portable probe (F49).** `netdiag probe --site-id 1 --out sonda.json` collects ARP and kernel tables, attempts LLDP/CDP over SNMP and reports `available:false` for unavailable WiFi or VPN sources. The JSON may carry an optional minisign signature via `--seed-file`. `netdiag probe import [--key CLAVE.pub] sonda.json` writes it to the local database; a signed probe requires the public key. No cloud, no automatic upload and no charge per probe. See [docs/escaneo-remoto.md](docs/escaneo-remoto.md).
+**Portable probe (F49).** `netdiag probe --site-id 1 --out sonda.json` collects ARP and kernel tables, attempts LLDP/CDP over SNMP and reports `available:false` for unavailable WiFi or VPN sources. The JSON may carry an optional minisign signature via `--seed-file`. `netdiag probe import [--key CLAVE.pub] sonda.json` writes it to the local database; a signed probe requires the public key. No cloud and no automatic upload. See [docs/escaneo-remoto.md](docs/escaneo-remoto.md).
 
 **Local dossier (F68).** `evidence.dossier` writes a signed `.ndc` every `interval_hours` containing the executive report, diff, audits and snapshots from the last `days` days, keeps the latest `keep` files and never uploads them. `netdiag evidence dossier` generates one manually. The seed is not stored in `config.yaml`: only a `0600` path to it.
 
@@ -179,9 +179,9 @@ The SSRF guard blocks private destinations by default; set `integrations.allow_p
 
 ## Licensing
 
-NetDiag is free software under AGPL-3.0. There are no paid editions, prices or checkout. If you use it, tell us where you deployed it, what you tried and what was missing. There is no telemetry, online licence check or intrusive DRM. The published v1.5.2 release carried older commercial text; its hashes are unchanged.
+NetDiag is free software under AGPL-3.0. If you use it, tell us where you deployed it, what you tried and what was missing. There is no telemetry, online licence check or intrusive DRM. The v1.5.2 release notes were updated; its hashes are unchanged.
 
-**Already using NetDiag?** Leave a [use-case note](https://kr3s4l4.github.io/netdiag/plantillas/formulario-disposicion-pago.html). It is generated in your browser and you decide whether to send it. No IPs, MACs or network data are collected. No billing, prices or automatic submission.
+**Already using NetDiag?** Tell us where you deployed it, what you tried and what was missing in Discussions or in an issue with the **Real use case** template.
 
 ## Documentation
 
